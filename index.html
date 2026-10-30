@@ -113,6 +113,29 @@
     <div id="statCards" class="grid grid-cols-2 lg:grid-cols-5 gap-3"></div>
     <div id="scheduleBar" class="mt-3"></div>
 
+    <details id="myDet" class="mt-3 rounded-xl border border-amber-500/25 bg-panel group">
+      <summary class="cursor-pointer list-none flex flex-wrap items-center gap-x-2 gap-y-0.5 px-3 py-2.5">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="text-slate-500 transition-transform group-open:rotate-90" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg>
+        <span class="font-semibold text-sm"><span class="text-amber-300" aria-hidden="true">★</span> My stocks</span>
+        <span id="myCount" class="text-xs text-slate-400"></span>
+        <span class="text-[11px] text-slate-500 w-full sm:w-auto sm:ml-2">Stocks you add are always scanned, even if they don’t pass the liquidity filters.</span>
+      </summary>
+      <div class="px-3 pb-3 border-t border-line/60 pt-3">
+        <form id="myForm" class="flex flex-wrap gap-2 items-end" autocomplete="off" novalidate>
+          <label class="text-xs text-slate-400">Market
+            <select id="myMkt" class="mt-1 block h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select>
+          </label>
+          <label class="text-xs text-slate-400 flex-1 min-w-[150px]">Ticker symbol
+            <input id="myInput" type="text" inputmode="text" autocapitalize="characters" spellcheck="false" maxlength="24" class="mt-1 block w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 uppercase placeholder:normal-case placeholder:text-slate-500">
+          </label>
+          <button id="myAdd" type="submit" class="h-9 px-4 rounded-lg bg-amber-400 text-ink text-sm font-semibold hover:bg-amber-300 disabled:opacity-50">Add</button>
+        </form>
+        <p id="myErr" class="mt-1.5 text-xs text-rose-300 empty:hidden" role="alert"></p>
+        <div id="mySyncLine" class="mt-2" aria-live="polite"></div>
+        <div id="myList" class="mt-2"></div>
+      </div>
+    </details>
+
     <button id="filtersToggle" type="button" aria-expanded="false" aria-controls="filters" class="md:hidden mt-4 w-full h-10 rounded-xl border border-line bg-panel text-sm text-slate-300 inline-flex items-center justify-center gap-2">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 5h18M6 12h12M10 19h4"/></svg><span id="filtersToggleLabel">Filters &amp; sort</span>
     </button>
@@ -141,6 +164,7 @@
         <button type="button" data-tier="A" class="tierChip">A</button>
         <button type="button" data-tier="B" class="tierChip">B</button>
         <button type="button" data-tier="C" class="tierChip">C</button>
+        <button type="button" id="fMine" aria-pressed="false" class="h-8 px-2.5 rounded-lg text-sm ring-1 ring-line text-slate-400">★ Mine</button>
         <label class="ml-2 text-xs text-slate-400">Show
           <select id="fTop" class="ml-1 h-8 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">
             <option value="25">Top 25</option><option value="50">Top 50</option><option value="100">Top 100</option><option value="0">All</option>
@@ -161,8 +185,33 @@
 
   <!-- ============ BACKTEST ============ -->
   <section id="tab-backtest" role="tabpanel" aria-label="Backtest" hidden>
-    <div class="rounded-xl border border-line bg-panel p-4">
-      <h2 class="text-base font-semibold">Backtest the scoring model</h2>
+    <div class="rounded-xl border border-emerald-500/30 bg-panel p-4">
+      <h2 class="text-base font-semibold">Backtest one stock — which strategy worked best?</h2>
+      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Pick a stock. The app replays its price history and tests 16 strategies on it — the scanner’s 12 chart-pattern signals, the scanner’s own shortlist and 3 classic trading rules — then compares them with simply buying and holding.</p>
+      <form id="sbForm" class="mt-4 grid grid-cols-2 md:grid-cols-6 gap-3 items-end" autocomplete="off" onsubmit="return false">
+        <label class="text-xs text-slate-400">Market
+          <select id="sbMarket" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select>
+        </label>
+        <label class="col-span-2 text-xs text-slate-400">Stock <span class="text-slate-500">(type to search, ★ = my stocks)</span>
+          <input id="sbStock" list="sbList" type="text" spellcheck="false" autocapitalize="characters" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 placeholder:text-slate-500">
+          <datalist id="sbList"></datalist>
+        </label>
+        <label class="text-xs text-slate-400">Period
+          <select id="sbWindow" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">
+            <option value="125">Last 6 months</option><option value="250">Last 1 year</option><option value="all" selected>All available history</option>
+          </select>
+        </label>
+        <label class="text-xs text-slate-400">Max days in a trade
+          <input id="sbHold" type="number" min="3" max="30" step="1" value="10" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 num">
+        </label>
+        <button id="sbRun" type="button" class="h-9 px-4 rounded-lg bg-emerald-500 text-ink text-sm font-semibold hover:bg-emerald-400 disabled:opacity-50 disabled:cursor-wait">Find best strategy</button>
+      </form>
+      <p id="sbError" class="mt-2 text-xs text-rose-300 hidden" role="alert"></p>
+    </div>
+    <div id="sbResults" class="mt-4" aria-live="polite"></div>
+
+    <div class="mt-8 rounded-xl border border-line bg-panel p-4">
+      <h2 class="text-base font-semibold">Backtest the whole scanner (all stocks)</h2>
       <p class="text-xs text-slate-400 mt-0.5 max-w-2xl">Replays the scan on past sessions (every 5 trading days), takes the top picks from each scan, and simulates the trade plan: buy-stop fill at the entry zone, exit at target, stop, or after the holding period. Also shows how well the probability estimates matched what actually happened.</p>
       <form id="btForm" class="mt-4 grid grid-cols-2 md:grid-cols-6 gap-3 items-end" onsubmit="return false">
         <label class="text-xs text-slate-400">Market
@@ -224,7 +273,7 @@
   <div id="alertsList" class="flex-1 overflow-y-auto scroll-thin p-3 space-y-2"></div>
 </aside>
 
-<div id="toasts" class="fixed bottom-4 inset-x-4 sm:left-auto sm:right-4 sm:w-96 z-[60] space-y-2" aria-live="polite" aria-atomic="false"></div>
+<div id="toasts" class="fixed bottom-4 inset-x-4 sm:left-auto sm:right-4 sm:w-96 z-[60] space-y-2 pointer-events-none" aria-live="polite" aria-atomic="false"></div>
 
 <script>
 (() => {
@@ -422,6 +471,7 @@ const DEFAULTS = {
   tiers: { A: 72, B: 60, C: 48 },
   earningsMode: 'boost', regimeFilter: 'downgrade', catalystWindow: 10,
   autoTrackA: true, autoRun: true,
+  myStocks: { US: [], CA: [], IN: [] }, myStocksDirty: false,
   alerts: { newA: true, entry: true, browser: false, webhook: '' },
   bt: { window: 250, hold: 10, perScan: 10, tiers: ['A', 'B'], market: 'US' }
 };
@@ -460,7 +510,9 @@ const Store = (() => {
     tab: 'watchlist',
     mkts: {},            // code -> { ds, scan, cal, fit }
     results: [],         // ranked rows for the markets in view
-    filters: { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: 25 },
+    filters: { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: 25, mine: false },
+    mySync: { state: 'idle', msg: '' },
+    sbt: null, sbtBusy: false,
     sort: 'prob',
     busy: false,
     pipes: {},           // code -> { stages, runs, ms }
@@ -764,26 +816,29 @@ const Feed = {
     try { return await r.json(); } catch { throw new Error(`Feed: ${file} is not valid JSON.`); }
   },
   /** Load one market: fetch meta, reuse the cached copy if unchanged, otherwise download. Falls back to cache offline. */
+  /** Changes whenever the data job publishes this market again (new date or new stocks). */
+  stamp(mm) { return mm?.generated || mm?.asOf || null; },
   async load(M, cfg, onProgress) {
     const cacheKey = `feed-${M.code}`, cached = await Idb.get(cacheKey);
     let meta;
     try { meta = await this.get(cfg, 'meta.json'); }
     catch (e) {
-      if (cached) return this.build(cached.json, M, [`Feed unreachable (${e.message}) — showing cached data from ${fmt.date(cached.json.asOf)}.`]);
+      if (cached) return Object.assign(this.build(cached.json, M, [`Feed unreachable (${e.message}) — showing cached data from ${fmt.date(cached.json.asOf)}.`]), { stamp: cached.stamp, notFound: cached.notFound || [] });
       throw e;
     }
     const mm = meta.markets?.[M.code];
     if (!mm?.asOf) throw new Error(`The feed has no ${M.name} data yet. Run the GitHub workflow with markets = ${M.code}.`);
     onProgress?.(.2);
     let json;
-    if (cached && cached.asOf === mm.asOf && cached.generated === meta.generated) json = cached.json;
+    const stamp = this.stamp(mm);
+    if (cached && cached.stamp === stamp) json = cached.json;
     else {
       json = await this.get(cfg, `${M.code}.json`);
       if (json.market !== M.code || !Array.isArray(json.dates)) throw new Error(`Feed: ${M.code}.json has an unexpected format.`);
-      Idb.set(cacheKey, { asOf: json.asOf, generated: meta.generated, json });
+      Idb.set(cacheKey, { asOf: json.asOf, stamp, notFound: mm.notFound || [], json });
     }
     onProgress?.(1);
-    return this.build(json, M, (mm.warnings || []).map(w => `Feed warning: ${w}`));
+    return Object.assign(this.build(json, M, (mm.warnings || []).map(w => `Feed warning: ${w}`)), { stamp, notFound: mm.notFound || [] });
   },
   build(j, M, warnings = []) {
     const dates = j.dates, T = dates.length, last = dates[T - 1];
@@ -808,6 +863,183 @@ const Feed = {
       label: `Live feed · ${tickers.length.toLocaleString()} ${M.name} tickers · ${j.source} · as of ${fmt.date(j.asOf)}`,
       key: `live-${M.code}`, dates, T, cursor: T - 1, tickers, splits: [], warnings, detectSplits: true,
       indexSym: M.idxSyms.find(s => tickers.some(t => t.sym === s)) || null
+    };
+  }
+};
+
+/** GitHub REST calls on the data repo (the feed's owner/repo), used to save "My stocks" and start a data update. */
+const GH = {
+  async req(path, opts = {}) {
+    const cfg = S().settings.feed;
+    const headers = { Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', ...(opts.body ? { 'Content-Type': 'application/json' } : {}) };
+    if (cfg.token) headers.Authorization = `Bearer ${cfg.token}`;
+    let r;
+    try { r = await fetch(`https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}${path}`, { ...opts, headers, cache: 'no-store' }); }
+    catch (e) { throw Object.assign(new Error(`Can't reach GitHub (${e.message}).`), { code: 'network' }); }
+    return r;
+  },
+  async branch() {
+    if (this._branch) return this._branch;
+    const r = await this.req('');
+    if (!r.ok) throw Object.assign(new Error(r.status === 404 ? 'GitHub repo not found with this token.' : `GitHub error ${r.status}.`), { code: r.status === 404 ? 'notfound' : 'http' });
+    return (this._branch = (await r.json()).default_branch || 'main');
+  },
+  b64: str => btoa(unescape(encodeURIComponent(str))),
+  unb64: b => decodeURIComponent(escape(atob(String(b).replace(/\s/g, ''))))
+};
+
+/** The user's own tickers: always scanned, saved on this device and in the data repo (my-tickers.json). */
+const MyStocks = {
+  FILE: 'my-tickers.json',
+  list: m => S().settings.myStocks[m] || [],
+  set(m) { return new Set(this.list(m)); },
+  has(m, sym) { return this.list(m).includes(sym); },
+  count() { return MARKET_CODES.reduce((a, m) => a + this.list(m).length, 0); },
+  canSync() { const f = S().settings.feed; return f.mode === 'github' && Feed.configured(f) && !!f.token; },
+  normalize(m, raw) {
+    let sym = String(raw || '').trim().toUpperCase().replace(/^[A-Z]+:/, '').replace(/\s+/g, '');
+    for (const suf of ['.TO', '.TSX', '.V', '.NS', '.NSE', '.BO', '.BSE', '.US']) if (sym.endsWith(suf)) sym = sym.slice(0, -suf.length);
+    if (!sym) return { error: 'Type a ticker symbol first, e.g. ' + { US: 'AAPL', CA: 'SHOP', IN: 'TCS' }[m] + '.' };
+    if (/\s/.test(String(raw).trim())) return { error: `“${String(raw).trim()}” looks like a company name. Type the ticker symbol instead (e.g. ${{ US: 'AAPL for Apple', CA: 'RY for Royal Bank', IN: 'INFY for Infosys' }[m]}).` };
+    if (!/^[A-Z0-9][A-Z0-9.&-]{0,19}$/.test(sym)) return { error: `"${raw}" isn't a valid ticker. Use the symbol (e.g. ${{ US: 'MSFT', CA: 'RY', IN: 'INFY' }[m]}), not the company name.` };
+    return { sym };
+  },
+  async add(m, raw) {
+    const n = this.normalize(m, raw); if (n.error) throw new Error(n.error);
+    const list = this.list(m);
+    if (list.includes(n.sym)) throw new Error(`${n.sym} is already in your ${MARKETS[m].name} list.`);
+    if (list.length >= 200) throw new Error('You can keep up to 200 stocks per market.');
+    S().settings.myStocks[m] = [...list, n.sym];
+    await this.changed([m]);
+    return n.sym;
+  },
+  async remove(m, sym) { S().settings.myStocks[m] = this.list(m).filter(x => x !== sym); await this.changed([], true); },
+  async changed(addedIn, removal = false) {
+    S().settings.myStocksDirty = true; Store.persist(); App.rescore(); Store.set({ settings: S().settings });
+    await this.sync(removal ? [] : addedIn);
+  },
+  setSync(state, msg) { S().mySync = { state, msg }; Store.set({ mySync: S().mySync }); },
+  /** Save the list to the data repo, then (if allowed) start a data update for the markets that gained stocks. */
+  async sync(updateMarkets = []) {
+    if (!this.canSync()) { this.setSync('local', ''); return; }
+    this.setSync('saving', 'Saving to your data repo…');
+    try {
+      const branch = await GH.branch();
+      const cur = await GH.req(`/contents/${this.FILE}?ref=${encodeURIComponent(branch)}`);
+      const sha = cur.ok ? (await cur.json()).sha : undefined;
+      const body = { message: 'Update my stocks from Opportunity Scanner', branch, content: GH.b64(JSON.stringify(S().settings.myStocks, null, 1) + '\n'), ...(sha ? { sha } : {}) };
+      const put = await GH.req(`/contents/${this.FILE}`, { method: 'PUT', body: JSON.stringify(body) });
+      if (!put.ok) { this.setSync('noWrite', put.status === 403 || put.status === 404 ? '' : `GitHub error ${put.status}.`); return; }
+      S().settings.myStocksDirty = false; Store.persist();
+      const live = updateMarkets.filter(c => S().settings.sources[c] === 'live');
+      if (!live.length) { this.setSync('saved', 'Saved to your data repo — included in every nightly data update.'); return; }
+      const run = await GH.req('/actions/workflows/nightly-market-data.yml/dispatches', { method: 'POST', body: JSON.stringify({ ref: branch, inputs: { markets: live.join(',') } }) });
+      if (run.status === 204) {
+        this.setSync('updating', `Saved. A data update started at ${new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} — new stocks usually appear in 5–15 minutes (US stocks can take longer). The app checks every 2 minutes.`);
+        App.watchFeed();
+      } else this.setSync('saved', 'Saved to your data repo. Your new stocks will appear after tonight’s data update. (To start updates from the app, also give the token Actions access — see “How to allow this”.)');
+    } catch (e) { this.setSync('error', e.message); }
+  },
+  /** On start-up, take the repo's list as the truth (unless this device has unsaved changes, which are pushed instead). */
+  async pull() {
+    if (!this.canSync()) return;
+    if (S().settings.myStocksDirty) return this.sync([]);
+    try {
+      const branch = await GH.branch();
+      const r = await GH.req(`/contents/${this.FILE}?ref=${encodeURIComponent(branch)}`);
+      if (!r.ok) return;
+      const remote = JSON.parse(GH.unb64((await r.json()).content));
+      const next = Object.fromEntries(MARKET_CODES.map(m => [m, Array.isArray(remote[m]) ? remote[m].map(String) : []]));
+      if (JSON.stringify(next) !== JSON.stringify(S().settings.myStocks)) { S().settings.myStocks = next; Store.persist(); App.rescore(); Store.set({ settings: S().settings }); }
+    } catch (e) { console.warn('My stocks pull failed', e); }
+  },
+  /** Where a stock stands in today's data. */
+  status(m, sym) {
+    const M = MARKETS[m], src = S().settings.sources[m], mk = S().mkts[m], ds = mk?.ds;
+    if (src !== 'live') return { kind: 'demo', text: `${M.name} is on demo data — switch it to Live feed (Settings) to scan your stocks.` };
+    if (!ds || ds.source !== 'live') return { kind: 'idle', text: view().includes(m) ? 'Loading…' : `Open ${M.name} to see today’s status.` };
+    const ti = ds.tickers.findIndex(t => t.sym === sym);
+    if (ti < 0) return ds.notFound?.includes(sym)
+      ? { kind: 'bad', text: 'Not found on the exchange — check the symbol, then remove it.' }
+      : { kind: 'pending', text: 'Waiting for data — it downloads on the next data update.' };
+    const tk = ds.tickers[ti];
+    if (tk.excluded) return { kind: 'bad', text: `Data problem: ${tk.excluded}.` };
+    const row = S().results.find(r => r.m === m && r.cd.sym === sym);
+    if (row) return { kind: 'hit', row, text: `Shortlisted · ${fmt.prob(row.p)} · ${Engine.event(row).text}` };
+    const cd = mk.scan?.cands.find(c => c.sym === sym);
+    return { kind: 'scanned', ti, text: cd ? `Scanned · ${cd.pats[0].name} found, but the score is below tier C.` : `Scanned · no setup today · last ${fmt.px(tk.c[ds.cursor], M)}.` };
+  }
+};
+
+/** Backtest every strategy on ONE stock and rank them. */
+const StockBT = {
+  CLASSIC: {
+    ma: { name: 'Trend following (20/50-day crossover)', rule: 'Buys the day after the 20-day average crosses above the 50-day average; sells the day after it crosses back below.' },
+    rsi: { name: 'Buy the dip (RSI below 30)', rule: 'Buys the day after RSI(14) closes below 30 (oversold); sells the day after RSI closes above 55, or after 20 sessions.' },
+    donchian: { name: 'Breakout (new 20-day high)', rule: 'Buys the day after a close above the highest price of the previous 20 days; sells the day after a close below the lowest price of the previous 10 days.' }
+  },
+  run(ds, ti, cfg) {
+    const tk = ds.tickers[ti], M = ds.M, x = Ind.compute(tk, M), last = ds.cursor, st = S().settings, g = st.gates[ds.m];
+    const from = cfg.window === 'all' ? tk.start : Math.max(tk.start, last - cfg.window);
+    const sigFrom = Math.max(from, tk.start + 60);
+    if (last - sigFrom < 40) throw new Error(`${tk.sym} has only ${last - tk.start + 1} sessions of price history here — at least about 100 are needed for a backtest.`);
+    const strats = {};
+    const mk = (key, name, group, rule) => (strats[key] = { key, name, group, rule, trades: [], signals: 0, nofill: 0 });
+    for (const [k, p] of Object.entries(PATTERNS)) mk('pat:' + k, p.label, p.group, `Buys when the scanner detects a ${p.label.toLowerCase()}, using the scanner’s trade plan: buy-stop at the pivot (skipped if not reached within 5 sessions), sell at the target or stop, or after ${cfg.hold} sessions.`);
+    mk('scanner', 'Scanner shortlist (tier A or B)', 'Scanner', `Buys whenever the stock made the scanner’s A or B tier, with the same trade plan (pivot entry, target, stop, ${cfg.hold}-session time exit).`);
+    for (const [k, c] of Object.entries(this.CLASSIC)) mk(k, c.name, 'Classic rule', c.rule);
+    // Scanner patterns + shortlist: one trade at a time per strategy
+    const nextFree = {};
+    const take = (key, i, plan) => {
+      const s = strats[key]; s.signals++;
+      if (i < (nextFree[key] ?? 0)) return;
+      const r = simulate(tk, plan, i, cfg.hold, last);
+      if (r.status === 'nofill') { s.nofill++; nextFree[key] = i + 5; return; }
+      if (r.status === 'watching') { nextFree[key] = last + 1; return; }
+      s.trades.push({ sig: i, entry: r.fill, px: r.px, exit: r.exit, exitPx: r.exitPx, ret: r.ret, how: r.status, open: r.status === 'open' });
+      nextFree[key] = r.exit + 1;
+    };
+    for (let i = sigFrom; i < last; i++) {
+      const cd = Engine.candidate(ds, ti, x, i); if (!cd) continue;
+      for (const p of cd.pats) take('pat:' + p.key, i, Engine.plan(x, i, p));
+      const sc = Engine.score(cd, st, g); if (sc.tier === 'A' || sc.tier === 'B') take('scanner', i, cd.plan);
+    }
+    // Classic rules: act at the next session's open
+    const hi = (i, n) => { let m = -Infinity; for (let j = i - n; j < i; j++) m = Math.max(m, x.h[j]); return m; };
+    const lo = (i, n) => { let m = Infinity; for (let j = i - n; j < i; j++) m = Math.min(m, x.l[j]); return m; };
+    const rule = (key, enter, exit, maxDays = 0) => {
+      const s = strats[key]; let pos = null;
+      for (let i = sigFrom; i <= last; i++) {
+        if (!pos) { if (i < last && enter(i)) { s.signals++; pos = { sig: i, entry: i + 1, px: x.o[i + 1] }; } continue; }
+        if (i < pos.entry) continue;
+        const sell = exit(i), timeUp = maxDays && i - pos.entry + 1 >= maxDays;
+        if ((sell || timeUp) && i < last) { s.trades.push({ ...pos, exit: i + 1, exitPx: x.o[i + 1], ret: x.o[i + 1] / pos.px - 1, how: sell ? 'signal' : 'time', open: false }); pos = null; }
+      }
+      if (pos) s.trades.push({ ...pos, exit: last, exitPx: x.c[last], ret: x.c[last] / pos.px - 1, how: 'open', open: true });
+    };
+    const ok = (...v) => v.every(Number.isFinite);
+    rule('ma', i => ok(x.sma20[i], x.sma50[i], x.sma20[i - 1], x.sma50[i - 1]) && x.sma20[i] > x.sma50[i] && x.sma20[i - 1] <= x.sma50[i - 1], i => x.sma20[i] < x.sma50[i]);
+    rule('rsi', i => ok(x.rsi[i]) && x.rsi[i] < 30, i => x.rsi[i] > 55, 20);
+    rule('donchian', i => i - tk.start > 20 && x.c[i] > hi(i, 20), i => x.c[i] < lo(i, 10));
+    // Buy & hold benchmark
+    const bh = { px: x.o[sigFrom + 1], ret: x.c[last] / x.o[sigFrom + 1] - 1, entry: sigFrom + 1 };
+    const span = last - sigFrom;
+    const rows = Object.values(strats).map(s => ({ ...s, ...this.stats(s.trades, span) }));
+    const band = r => r.n >= 3 ? 0 : r.n >= 1 ? 1 : 2;
+    rows.sort((a, b) => band(a) - band(b) || b.total - a.total || b.avg - a.avg);
+    const best = rows[0]?.n >= 1 ? rows[0] : null;
+    return { m: ds.m, M, ds, ti, sym: tk.sym, name: tk.name, from, sigFrom, last, hold: cfg.hold, window: cfg.window, rows, best, confident: !!best && best.n >= 3, bh };
+  },
+  stats(trades, span) {
+    const closed = trades.filter(t => !t.open), n = closed.length, rets = closed.map(t => t.ret);
+    let eq = 1, peak = 1, dd = 0;
+    for (const r of rets) { eq *= 1 + r; peak = Math.max(peak, eq); dd = Math.max(dd, 1 - eq / peak); }
+    const days = closed.map(t => t.exit - t.entry + 1);
+    return {
+      n, wins: rets.filter(r => r > 0).length, winRate: n ? rets.filter(r => r > 0).length / n : NaN,
+      avg: n ? rets.reduce((a, b) => a + b, 0) / n : NaN, total: n ? eq - 1 : NaN, maxDD: n ? dd : NaN,
+      days: n ? days.reduce((a, b) => a + b, 0) / n : NaN, exposure: span ? trades.reduce((a, t) => a + (t.exit - t.entry + 1), 0) / span : 0,
+      best: n ? Math.max(...rets) : NaN, worst: n ? Math.min(...rets) : NaN, openTrade: trades.find(t => t.open) || null
     };
   }
 };
@@ -1163,9 +1395,9 @@ const Engine = {
     return { total, tier, comps, contrib, eligible, notes, earnSoon, fdaSoon };
   },
 
-  rank(cands, st, g) {
+  rank(cands, st, g, mine) {
     const rows = [];
-    for (const cd of cands) { const sc = Engine.score(cd, st, g); if (sc.eligible && sc.tier) rows.push({ cd, sc }); }
+    for (const cd of cands) { const sc = Engine.score(cd, st, g); if ((sc.eligible || mine?.has(cd.sym)) && sc.tier) rows.push({ cd, sc }); }
     return rows.sort((a, b) => b.sc.total - a.sc.total);
   },
 
@@ -1555,7 +1787,7 @@ const App = {
     const live = !pending && st.sources[code] === 'live';
     let needLoad = fresh || pending || !mk.ds || (mk.ds.source === 'live') !== live;
     if (!needLoad && live) {
-      try { const meta = await Feed.get(st.feed, 'meta.json'); if (meta.markets?.[code]?.asOf && meta.markets[code].asOf !== mk.ds.asOf) needLoad = true; }
+      try { const meta = await Feed.get(st.feed, 'meta.json'); const sp = Feed.stamp(meta.markets?.[code]); if (sp && sp !== mk.ds.stamp) needLoad = true; }
       catch (e) { Pipeline.log(code, `Feed check failed: ${e.message}`, 'warn'); }
     }
     Pipeline.reset(code, needLoad ? [] : ['ingest', 'corp', 'dq', 'fund', 'news', 'calib']);
@@ -1622,7 +1854,7 @@ const App = {
     const mk = S().mkts[code]; if (!mk?.scan) return [];
     const st = S().settings, g = st.gates[code], M = MARKETS[code];
     const fit = Calib.fit(mk, g);
-    return Engine.rank(mk.scan.cands, st, g).map(r => ({ ...r, m: code, M, ds: mk.ds, p: Calib.p(fit, r.cd), key: code + ':' + r.cd.ti }));
+    return Engine.rank(mk.scan.cands, st, g, MyStocks.set(code)).map(r => ({ ...r, m: code, M, ds: mk.ds, p: Calib.p(fit, r.cd), key: code + ':' + r.cd.ti }));
   },
 
   /** Re-apply settings to cached candidates for every market in view; rank by probability. */
@@ -1649,9 +1881,19 @@ const App = {
     if (!live.length || S().busy || !Feed.configured(st.feed)) return;
     try {
       const meta = await Feed.get(st.feed, 'meta.json');
-      const changed = live.filter(c => meta.markets?.[c]?.asOf && meta.markets[c].asOf !== S().mkts[c].ds.asOf);
-      if (changed.length) { UI.toast(`New market data: ${changed.map(c => MARKETS[c].name).join(', ')} — rescanning.`, 'ok'); await this.run({ codes: changed, fresh: true, reason: 'New data from live feed' }); }
+      const changed = live.filter(c => { const sp = Feed.stamp(meta.markets?.[c]); return sp && sp !== S().mkts[c].ds.stamp; });
+      if (changed.length) { UI.toast(`New market data: ${changed.map(c => MARKETS[c].name).join(', ')} — rescanning.`, 'ok'); await this.run({ codes: changed, fresh: true, reason: 'New data from live feed' }); return true; }
     } catch (e) { console.warn('Live check failed', e); }
+    return false;
+  },
+
+  /** After starting a data update, check every 2 minutes (for up to 40 minutes) until new data arrives. */
+  watchFeed() {
+    clearInterval(this._watch); let n = 0;
+    this._watch = setInterval(async () => {
+      if (++n > 20) return clearInterval(this._watch);
+      if (await this.checkLive(MARKET_CODES)) { clearInterval(this._watch); S().mySync = { state: 'saved', msg: 'New data arrived — your stocks are now in the scan.' }; Store.set({ mySync: S().mySync }); }
+    }, 120000);
   },
 
   async nextSession(codes = view()) {
@@ -1846,6 +2088,26 @@ const Charts = {
     chart.timeScale().fitContent();
     return chart;
   },
+  /** Price chart with the buy/sell points of one strategy. */
+  trades(el, res, strat) {
+    const { ds, ti, from, last, M } = res, tk = ds.tickers[ti];
+    if (!this.ok()) return this.fallbackLines(el, [Array.from({ length: last - from + 1 }, (_, k) => tk.c[from + k])], ['#34d399']);
+    const x = Ind.compute(tk, M), chart = LightweightCharts.createChart(el, this.base(M));
+    const candles = chart.addCandlestickSeries({ upColor: '#34d399', downColor: '#f87171', borderVisible: false, wickUpColor: '#34d399', wickDownColor: '#f87171', priceLineVisible: false });
+    const bars = []; for (let t = from; t <= last; t++) if (Number.isFinite(tk.c[t])) bars.push({ time: ds.dates[t], open: tk.o[t], high: tk.h[t], low: tk.l[t], close: tk.c[t] });
+    candles.setData(bars);
+    const s50 = chart.addLineSeries({ color: '#38bdf8', lineWidth: 1, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+    const d50 = []; for (let t = from; t <= last; t++) if (Number.isFinite(x.sma50[t])) d50.push({ time: ds.dates[t], value: x.sma50[t] });
+    s50.setData(d50);
+    const wide = el.clientWidth > 520, marks = [];
+    for (const t of strat?.trades || []) {
+      if (t.entry >= from) marks.push({ time: ds.dates[t.entry], position: 'belowBar', color: '#34d399', shape: 'arrowUp', text: wide ? 'Buy' : '' });
+      if (!t.open && t.exit >= from) marks.push({ time: ds.dates[t.exit], position: 'aboveBar', color: t.ret > 0 ? '#34d399' : '#f87171', shape: 'arrowDown', text: wide ? fmt.pct(t.ret, 0) : '' });
+    }
+    candles.setMarkers(marks.sort((a, b) => a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
+    chart.timeScale().fitContent();
+    return chart;
+  },
   equity(el, curve) {
     if (!this.ok()) return this.fallbackLines(el, [curve.map(c => c.eq), curve.map(c => c.beq)], ['#34d399', '#64748b']);
     const chart = LightweightCharts.createChart(el, this.base());
@@ -1987,7 +2249,9 @@ const UI = {
   },
 
   tierChips() {
-    const on = S().filters.tiers;
+    const on = S().filters.tiers, mine = S().filters.mine, fm = $('fMine');
+    fm.setAttribute('aria-pressed', mine);
+    fm.className = `h-8 px-2.5 rounded-lg text-sm ring-1 ${mine ? 'bg-amber-500/15 text-amber-300 ring-amber-500/40' : 'ring-line text-slate-400'}`;
     document.querySelectorAll('.tierChip').forEach(b => {
       const t = b.dataset.tier, active = on.includes(t);
       b.setAttribute('aria-pressed', active);
@@ -1996,7 +2260,7 @@ const UI = {
   },
 
   resetFilters(emit = true) {
-    const f = { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: S().filters.top };
+    const f = { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: S().filters.top, mine: false };
     $('fQ').value = ''; $('fCap').value = 'all'; $('fSector').value = 'all'; $('fPattern').value = 'all'; $('fMin').value = 0; $('fMinVal').textContent = '0%';
     if (emit) Store.set({ filters: f }); else S().filters = f;
   },
@@ -2011,6 +2275,7 @@ const UI = {
       if (f.sector !== 'all' && tk.sector !== f.sector) return false;
       if (f.pattern !== 'all' && !r.cd.pats.some(p => p.key === f.pattern)) return false;
       if (q && !tk.sym.includes(q) && !tk.name.toUpperCase().includes(q)) return false;
+      if (f.mine && !MyStocks.has(r.m, tk.sym)) return false;
       return true;
     });
     const k = s.sort;
@@ -2040,7 +2305,8 @@ const UI = {
       const none = !s.results.length;
       el.innerHTML = `<div class="rounded-xl border border-dashed border-line bg-panel p-10 text-center">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#475569" stroke-width="1.5" class="mx-auto" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-        <p class="mt-3 font-medium text-slate-200">${none ? 'No setups qualified in this scan' : 'No setups match these filters'}</p>
+        <p class="mt-3 font-medium text-slate-200">${none ? 'No setups qualified in this scan' : s.filters.mine ? 'None of your stocks has a setup today' : 'No setups match these filters'}</p>
+        ${!none && s.filters.mine ? '<p class="mt-1 text-sm text-slate-400">Open <span class="text-amber-300">★ My stocks</span> above to see where each one stands.</p>' : ''}
         <p class="mt-1 text-sm text-slate-400">${none ? 'Try lowering the tier thresholds in Settings, relaxing the regime filter, or run the next session.' : 'Loosen a filter or reset them.'}</p>
         ${none ? '' : '<button type="button" data-action="resetFilters" class="mt-4 h-9 px-4 rounded-lg border border-line text-sm hover:bg-panel2">Reset filters</button>'}</div>`;
       return;
@@ -2060,7 +2326,7 @@ const UI = {
           const { cd, sc, M, ds } = r, tk = ds.tickers[cd.ti], p = cd.plan, ev = Engine.event(r);
           return `<tr class="row-click align-top" tabindex="0" data-open="${r.key}" aria-label="${U.esc(cd.sym)}, ${M.name}, probability ${fmt.prob(r.p)}, ${U.esc(ev.text)}">
             <td class="px-3 py-3 text-slate-500 num">${n + 1}</td>
-            <td class="px-3 py-3"><div class="flex items-start gap-2.5">${tierBadge(sc.tier)}<div class="min-w-0"><p class="font-semibold text-slate-100 whitespace-nowrap">${U.esc(cd.sym)} ${multi ? `<span class="text-[11px] font-normal text-slate-400">${flagTag(M)} ${M.code}</span>` : ''}</p><p class="text-[11px] text-slate-500 truncate max-w-[170px]">${U.esc(tk.name)}</p><p class="text-[11px] text-slate-500 truncate max-w-[170px]">${U.esc(tk.sector)} · ${fmt.px(cd.price, M)}</p></div></div></td>
+            <td class="px-3 py-3"><div class="flex items-start gap-2.5">${tierBadge(sc.tier)}<div class="min-w-0"><p class="font-semibold text-slate-100 whitespace-nowrap">${MyStocks.has(r.m, cd.sym) ? '<span class="text-amber-300" title="My stock">★</span> ' : ''}${U.esc(cd.sym)} ${multi ? `<span class="text-[11px] font-normal text-slate-400">${flagTag(M)} ${M.code}</span>` : ''}</p><p class="text-[11px] text-slate-500 truncate max-w-[170px]">${U.esc(tk.name)}</p><p class="text-[11px] text-slate-500 truncate max-w-[170px]">${U.esc(tk.sector)} · ${fmt.px(cd.price, M)}</p></div></div></td>
             <td class="px-3 py-3 whitespace-nowrap"><p class="num text-lg font-semibold leading-none" style="color:${probColor(r)}">${fmt.prob(r.p)}</p>
               <div class="mt-1.5 w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden" aria-hidden="true"><div class="h-full rounded-full" style="width:${Math.min(100, r.p * 100 / .6)}%;background:${probColor(r)}"></div></div>
               <p class="text-[11px] text-slate-500 mt-1 num">score ${sc.total.toFixed(0)}</p></td>
@@ -2078,7 +2344,7 @@ const UI = {
       const { cd, sc, M, ds } = r, tk = ds.tickers[cd.ti], p = cd.plan, ev = Engine.event(r);
       return `<li><button type="button" data-open="${r.key}" class="w-full text-left rounded-xl border border-line bg-panel p-3 active:bg-panel2">
         <div class="flex items-start gap-2.5">${tierBadge(sc.tier)}
-          <div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(cd.sym)} <span class="text-xs font-normal text-slate-500">${multi ? flagTag(M) + ' ' : ''}#${n + 1}</span></p><p class="text-[11px] text-slate-500 truncate">${U.esc(tk.name)} · ${fmt.px(cd.price, M)}</p></div>
+          <div class="min-w-0 flex-1"><p class="font-semibold">${MyStocks.has(r.m, cd.sym) ? '<span class="text-amber-300" aria-label="My stock">★</span> ' : ''}${U.esc(cd.sym)} <span class="text-xs font-normal text-slate-500">${multi ? flagTag(M) + ' ' : ''}#${n + 1}</span></p><p class="text-[11px] text-slate-500 truncate">${U.esc(tk.name)} · ${fmt.px(cd.price, M)}</p></div>
           <div class="text-right"><p class="num text-xl font-semibold leading-none" style="color:${probColor(r)}">${fmt.prob(r.p)}</p><p class="text-[10px] text-slate-500 mt-1">probability</p></div>
         </div>
         <p class="mt-2.5 text-[13px] text-slate-100 leading-snug"><span class="text-slate-500">Event:</span> ${U.esc(ev.text)} <span class="text-[11px] text-slate-500">(${fmt.dateShort(ev.date)})</span></p>
@@ -2116,6 +2382,7 @@ const UI = {
         ${tierBadge(sc.tier)}
         <div class="min-w-0 flex-1"><h2 id="drawerTitle" class="font-semibold text-lg leading-tight">${U.esc(tk.sym)} <span class="text-sm font-normal text-slate-400">${fmt.px(cd.price, M)}</span></h2>
           <p class="text-xs text-slate-400 truncate">${flagTag(M)} ${M.exch} · ${U.esc(tk.name)} · ${U.esc(tk.sector)} · ${fmt.cap(tk.cap, M)}</p></div>
+        <button type="button" data-action="btStock" data-m="${row.m}" data-sym="${U.esc(tk.sym)}" class="hidden sm:inline-flex h-9 px-3 items-center rounded-lg border border-line text-sm text-slate-300 hover:bg-panel2">Backtest</button>
         <button type="button" data-action="track" data-key="${row.key}" class="h-9 px-3 rounded-lg border border-emerald-500/40 text-emerald-300 text-sm hover:bg-emerald-500/10">Track</button>
         <button type="button" data-action="closeDrawer" class="h-9 w-9 inline-flex items-center justify-center rounded-lg hover:bg-panel2" aria-label="Close details"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
       </div>
@@ -2213,7 +2480,7 @@ const UI = {
     const dr = $('drawer'), bd = $('drawerBackdrop');
     if (dr.classList.contains('hidden')) return;
     dr.classList.remove('open'); bd.classList.remove('open');
-    UI.charts = UI.charts.filter(c => { if (c._bt) return true; try { c.remove(); } catch { } return false; });
+    UI.charts = UI.charts.filter(c => { if (c._bt || c._sb) return true; try { c.remove(); } catch { } return false; });
     setTimeout(() => { dr.classList.add('hidden'); dr.classList.remove('flex'); bd.classList.add('hidden'); }, 220);
     document.body.style.overflow = '';
     UI.lastFocus?.focus?.();
@@ -2248,7 +2515,148 @@ const UI = {
   },
 
   /* ---------- Backtest ---------- */
+  /* ---------- My stocks panel ---------- */
+  myStocks() {
+    if (!$('myDet')) return;
+    const st = S().settings, codes = view(), total = MyStocks.count(), sync = S().mySync;
+    $('myCount').textContent = total ? `${total} stock${total === 1 ? '' : 's'}` : 'none yet';
+    const sel = $('myMkt'), key = codes.join();
+    if (sel.dataset.k !== key) {
+      sel.innerHTML = codes.map(c => `<option value="${c}">${MARKETS[c].flag} ${MARKETS[c].name}</option>`).join('');
+      sel.dataset.k = key; sel.parentElement.classList.toggle('hidden', codes.length === 1);
+    }
+    $('myInput').placeholder = `e.g. ${{ US: 'AAPL', CA: 'SHOP', IN: 'TCS' }[sel.value]}`;
+    if (!$('myDet').dataset.init) { $('myDet').open = total > 0; $('myDet').dataset.init = '1'; }
+    // sync line
+    const anyLive = MARKET_CODES.some(c => st.sources[c] === 'live');
+    const tone = { ok: 'text-emerald-300', warn: 'text-amber-300', bad: 'text-rose-300', mute: 'text-slate-400' };
+    const line = (cls, html, retry) => `<div class="text-xs ${tone[cls]} leading-relaxed">${html}${retry ? ' <button type="button" data-action="mySync" class="ml-1 underline underline-offset-2 text-slate-200 hover:text-white">Try again</button>' : ''}</div>`;
+    const howTo = `<details class="mt-1.5 text-xs text-slate-300"><summary class="cursor-pointer underline underline-offset-2 text-slate-200">How to allow this (2 minutes, on a laptop)</summary>
+      <ol class="mt-1.5 ml-4 list-decimal space-y-1 text-slate-400">
+        <li>Go to <span class="text-slate-200">github.com/settings/personal-access-tokens</span> (signed in).</li>
+        <li>Click the token you made for this app (e.g. “Scanner app”), then click <span class="text-slate-200">Edit</span>.</li>
+        <li>Under <span class="text-slate-200">Repository permissions</span>, set <span class="text-slate-200">Contents</span> to <span class="text-slate-200">Read and write</span>, and <span class="text-slate-200">Actions</span> to <span class="text-slate-200">Read and write</span>. (If Actions isn’t listed, click <span class="text-slate-200">Add permissions</span> first.)</li>
+        <li>Click <span class="text-slate-200">Update</span> at the bottom. The token stays the same — there’s nothing to paste.</li>
+        <li>Come back here and click <span class="text-slate-200">Try again</span>.</li>
+      </ol>
+      <p class="mt-1.5 text-slate-500">Contents lets the app save your list to the data repo. Actions lets it start a data update straight away instead of waiting for tonight. Both apply only to the scanner-data repo.</p></details>`;
+    let html;
+    if (!anyLive) html = line('mute', 'Saved on this device. Your stocks are scanned once a market uses the live feed (Settings → Live market data).');
+    else if (!MyStocks.canSync()) html = line('warn', 'Saved on this device only. To have the nightly data job download your stocks, use the “Private GitHub repo” feed with a token (Settings → Live market data).');
+    else if (sync.state === 'saving') html = line('mute', '<span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse mr-1.5"></span>' + U.esc(sync.msg));
+    else if (sync.state === 'saved' || sync.state === 'updating') html = line('ok', '✓ ' + U.esc(sync.msg));
+    else if (sync.state === 'noWrite') html = line('warn', 'Saved on this device only — your token can read the data repo but isn’t allowed to save to it, so the nightly data job can’t see your list yet.' + (sync.msg ? ' ' + U.esc(sync.msg) : ''), true) + howTo;
+    else if (sync.state === 'error') html = line('bad', 'Couldn’t save to your data repo: ' + U.esc(sync.msg), true);
+    else if (st.myStocksDirty) html = line('warn', 'Not saved to your data repo yet.', true);
+    else html = total ? line('ok', '✓ Saved to your data repo — included in every nightly data update.') : line('mute', 'Add the stocks you follow. They’re saved to your data repo and downloaded in every nightly data update.');
+    $('mySyncLine').innerHTML = html;
+    // list
+    const order = [...codes, ...MARKET_CODES.filter(c => !codes.includes(c))].filter(c => MyStocks.list(c).length);
+    const dot = { hit: 'bg-emerald-400', scanned: 'bg-sky-400', pending: 'bg-amber-400 animate-pulse', bad: 'bg-rose-400', demo: 'bg-slate-500', idle: 'bg-slate-600' };
+    const txt = { hit: 'text-slate-100', scanned: 'text-slate-300', pending: 'text-amber-200/90', bad: 'text-rose-300', demo: 'text-slate-400', idle: 'text-slate-500' };
+    $('myList').innerHTML = order.map(c => `<div class="mt-2"><p class="text-[11px] uppercase tracking-wide text-slate-500">${flagTag(MARKETS[c])} ${MARKETS[c].name}</p>
+      <ul class="mt-1 divide-y divide-line/60 rounded-lg border border-line bg-ink">${MyStocks.list(c).map(sym => {
+        const stt = MyStocks.status(c, sym);
+        return `<li class="flex items-start gap-2.5 px-2.5 py-2">
+          <span class="mt-1.5 w-2 h-2 rounded-full shrink-0 ${dot[stt.kind]}" aria-hidden="true"></span>
+          <div class="flex-1 min-w-0"><p class="font-semibold text-sm">${U.esc(sym)}</p><p class="text-xs ${txt[stt.kind]} leading-snug">${U.esc(stt.text)}</p></div>
+          ${stt.row ? `<button type="button" data-open="${stt.row.key}" class="text-xs text-emerald-300 hover:underline shrink-0">View</button>` : ''}
+          ${stt.kind === 'hit' || stt.kind === 'scanned' ? `<button type="button" data-action="btStock" data-m="${c}" data-sym="${U.esc(sym)}" class="text-xs text-slate-300 hover:underline shrink-0">Backtest</button>` : ''}
+          <button type="button" data-action="myRemove" data-m="${c}" data-sym="${U.esc(sym)}" class="shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-rose-300 hover:bg-rose-500/10" aria-label="Remove ${U.esc(sym)} from my stocks"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+        </li>`; }).join('')}</ul></div>`).join('');
+  },
+
+  /* ---------- Backtest one stock ---------- */
+  sbForm() {
+    const sel = $('sbMarket');
+    if (!sel.options.length) { sel.innerHTML = MARKET_CODES.map(c => `<option value="${c}">${MARKETS[c].flag} ${MARKETS[c].name}</option>`).join(''); sel.value = view()[0]; }
+    UI.sbList();
+    $('sbRun').disabled = S().sbtBusy || S().busy;
+    $('sbRun').textContent = S().sbtBusy ? 'Testing…' : 'Find best strategy';
+    UI.sbResults();
+  },
+  sbList() {
+    const m = $('sbMarket').value, M = MARKETS[m], ds = S().mkts[m]?.ds, inp = $('sbStock');
+    if (!ds) { $('sbList').innerHTML = ''; inp.placeholder = `${M.name} data not loaded yet — press Find best strategy to load it`; $('sbList').dataset.k = ''; return; }
+    const mine = MyStocks.set(m), k = `${ds.key}|${ds.stamp || ds.cursor}|${[...mine].join()}`;
+    if ($('sbList').dataset.k !== k) {
+      const tks = ds.tickers.filter(t => !t.excluded).sort((a, b) => (mine.has(b.sym) - mine.has(a.sym)) || a.sym.localeCompare(b.sym));
+      $('sbList').innerHTML = tks.map(t => `<option value="${U.esc(t.sym)}">${mine.has(t.sym) ? '★ ' : ''}${U.esc(t.name)}</option>`).join('');
+      $('sbList').dataset.k = k;
+      inp.placeholder = `Type a ticker or name — ${fmt.num(tks.length)} ${M.name} stocks`;
+    }
+    if (!inp.value) {
+      const pick = MyStocks.list(m).find(sym => ds.tickers.some(t => t.sym === sym && !t.excluded)) || S().results.find(r => r.m === m)?.cd.sym;
+      if (pick) inp.value = pick;
+    }
+  },
+  sbResults() {
+    const el = $('sbResults'), st = S().sbt;
+    UI.charts = UI.charts.filter(c => { if (c._sb) { try { c.remove(); } catch { } return false; } return true; });
+    if (S().sbtBusy) { el.innerHTML = `<div class="rounded-xl border border-line bg-panel p-4 space-y-3"><div class="skeleton h-20"></div><div class="skeleton h-48"></div><p class="text-xs text-slate-500">Replaying the price history and testing every strategy…</p></div>`; return; }
+    if (!st) { el.innerHTML = ''; return; }
+    const r = st.res, M = r.M, ds = r.ds, sel = r.rows.find(x => x.key === st.sel) || r.best || r.rows[0];
+    const span = `${fmt.date(ds.dates[r.sigFrom])} → ${fmt.date(ds.dates[r.last])}`;
+    const pctC = v => !Number.isFinite(v) ? '' : v > 0 ? 'text-emerald-300' : v < 0 ? 'text-rose-300' : '';
+    const best = r.best, beat = best && best.total > r.bh.ret;
+    const verdict = !best
+      ? `<div class="rounded-xl border border-line bg-panel p-4"><p class="font-semibold">No strategy completed a trade for ${U.esc(r.sym)} in this period.</p><p class="text-sm text-slate-400 mt-1">Choose “All available history” or a longer period. Buying and holding returned <span class="${pctC(r.bh.ret)}">${fmt.pct(r.bh.ret, 1)}</span> over ${span}.</p></div>`
+      : `<div class="rounded-xl border ${r.confident ? 'border-emerald-500/40 bg-emerald-500/[0.04]' : 'border-amber-500/40 bg-amber-500/[0.04]'} p-4">
+          <p class="text-xs text-slate-400">${flagTag(M)} ${U.esc(r.sym)} · ${U.esc(r.name)} · ${span} · max ${r.hold} days per trade</p>
+          <h3 class="mt-1 text-lg font-semibold">Best strategy: <span class="${r.confident ? 'text-emerald-300' : 'text-amber-300'}">${U.esc(best.name)}</span></h3>
+          <p class="mt-1 text-sm text-slate-200">${best.n} trade${best.n === 1 ? '' : 's'} · ${fmt.prob(best.winRate)} won · <strong class="${pctC(best.total)}">${fmt.pct(best.total, 1)} in total</strong> (${fmt.pct(best.avg, 2)} per trade) · worst drop ${fmt.pct(-best.maxDD, 1)}</p>
+          <p class="mt-1 text-sm text-slate-300">Simply buying and holding returned <span class="${pctC(r.bh.ret)}">${fmt.pct(r.bh.ret, 1)}</span> over the same period — this strategy ${beat ? '<span class="text-emerald-300">beat</span>' : '<span class="text-rose-300">did not beat</span>'} it${beat ? '' : ', so for this stock holding would have worked better'}.</p>
+          ${r.confident ? '' : `<p class="mt-2 text-xs text-amber-200">Only ${best.n} completed trade${best.n === 1 ? '' : 's'} — too few to trust. Treat this as a hint, not a result.</p>`}
+          <p class="mt-2 text-[11px] text-slate-500">What worked on one stock in the past may not work next. Results exclude trading costs, slippage, currency moves and taxes. Not investment advice.</p>
+        </div>`;
+    const active = r.rows.filter(x => x.n > 0), idle = r.rows.filter(x => x.n === 0);
+    const row = (x, k) => `<tr class="row-click ${x.key === sel?.key ? 'bg-emerald-500/[0.07]' : ''}" tabindex="0" data-sbsel="${x.key}" aria-selected="${x.key === sel?.key}">
+        <td class="px-3 py-2.5 text-slate-500 num">${k + 1}</td>
+        <td class="px-3 py-2.5"><p class="text-slate-100">${U.esc(x.name)} ${best && x.key === best.key ? `<span class="ml-1 text-[10px] px-1.5 py-0.5 rounded ${r.confident ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'}">BEST</span>` : ''}${x.n > 0 && x.n < 3 ? ' <span class="text-[10px] text-amber-300/80">few trades</span>' : ''}</p><p class="text-[11px] text-slate-500">${U.esc(x.group)}${x.openTrade ? ' · 1 trade still open' : ''}</p></td>
+        <td class="px-3 py-2.5 text-right num">${x.n}</td>
+        <td class="px-3 py-2.5 text-right num">${fmt.prob(x.winRate)}</td>
+        <td class="px-3 py-2.5 text-right num ${pctC(x.avg)}">${fmt.pct(x.avg, 2)}</td>
+        <td class="px-3 py-2.5 text-right num font-semibold ${pctC(x.total)}">${fmt.pct(x.total, 1)}</td>
+        <td class="hidden sm:table-cell px-3 py-2.5 text-right num text-slate-300">${Number.isFinite(x.maxDD) ? fmt.pct(-x.maxDD, 1) : '—'}</td>
+        <td class="hidden md:table-cell px-3 py-2.5 text-right num text-slate-300">${Number.isFinite(x.days) ? x.days.toFixed(0) : '—'}</td>
+      </tr>`;
+    const how = { target: 'Target hit', stopped: 'Stopped out', time: 'Time limit', signal: 'Sell signal', open: 'Still open' };
+    const trades = (sel?.trades || []).slice().reverse();
+    el.innerHTML = verdict + `
+      <div class="mt-4 rounded-xl border border-line bg-panel overflow-x-auto scroll-thin">
+        <table class="w-full text-sm">
+          <caption class="text-left px-3 pt-3 text-sm font-medium">All strategies, ranked <span class="block text-[11px] font-normal text-slate-400">Ranked by total return; strategies with fewer than 3 trades rank below the rest. Select a row to see its trades on the chart.</span></caption>
+          <thead class="text-[11px] uppercase tracking-wide text-slate-400 text-left border-b border-line"><tr>
+            <th scope="col" class="px-3 py-2 w-8">#</th><th scope="col" class="px-3 py-2">Strategy</th><th scope="col" class="px-3 py-2 text-right">Trades</th><th scope="col" class="px-3 py-2 text-right">Won</th>
+            <th scope="col" class="px-3 py-2 text-right">Avg / trade</th><th scope="col" class="px-3 py-2 text-right">Total return</th><th scope="col" class="hidden sm:table-cell px-3 py-2 text-right">Worst drop</th><th scope="col" class="hidden md:table-cell px-3 py-2 text-right">Avg days held</th></tr></thead>
+          <tbody class="divide-y divide-line/70">${active.map(row).join('')}
+            <tr class="bg-ink/60"><td class="px-3 py-2.5"></td><td class="px-3 py-2.5"><p class="text-slate-300">Buy &amp; hold (benchmark)</p><p class="text-[11px] text-slate-500">Bought ${fmt.date(ds.dates[r.bh.entry])} at ${fmt.px(r.bh.px, M)}, held to today</p></td><td class="px-3 py-2.5 text-right num">1</td><td></td><td></td><td class="px-3 py-2.5 text-right num font-semibold ${pctC(r.bh.ret)}">${fmt.pct(r.bh.ret, 1)}</td><td class="hidden sm:table-cell"></td><td class="hidden md:table-cell"></td></tr>
+          </tbody>
+        </table>
+        ${idle.length ? `<details class="border-t border-line px-3 py-2 text-xs text-slate-400"><summary class="cursor-pointer">${idle.length} strateg${idle.length === 1 ? 'y' : 'ies'} with no completed trades in this period</summary><p class="mt-1.5 leading-relaxed">${idle.map(x => `${U.esc(x.name)}${x.signals ? ` (${x.signals} signal${x.signals === 1 ? '' : 's'}, ${x.openTrade ? 'trade still open' : 'never reached the entry price'})` : ''}`).join(' · ')}</p></details>` : ''}
+      </div>
+      ${sel ? `<div class="mt-4 rounded-xl border border-line bg-panel p-3">
+        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mb-2"><span class="font-medium text-slate-200">${U.esc(sel.name)} on ${U.esc(r.sym)}</span>
+          <span class="inline-flex items-center gap-1"><i class="text-emerald-400 not-italic">▲</i>buy</span><span class="inline-flex items-center gap-1"><i class="text-rose-400 not-italic">▼</i>sell (with result)</span><span class="inline-flex items-center gap-1"><i class="w-3 h-0.5 bg-sky-400 inline-block"></i>50-day average</span></div>
+        <div id="sbChart" class="chart-box rounded-lg border border-line bg-ink" role="img" aria-label="Price chart of ${U.esc(r.sym)} with the buy and sell points of ${U.esc(sel.name)}"></div>
+        <p class="mt-2 text-xs text-slate-400"><span class="text-slate-300">How it trades:</span> ${U.esc(sel.rule)}</p>
+      </div>
+      <div class="mt-4 rounded-xl border border-line bg-panel overflow-x-auto scroll-thin">
+        <table class="w-full text-xs">
+          <caption class="text-left px-3 pt-3 text-sm font-medium">Trades — ${U.esc(sel.name)} <span class="text-[11px] font-normal text-slate-400">(newest first, prices in ${M.ccy})</span></caption>
+          <thead class="text-left text-slate-400 border-b border-line"><tr><th scope="col" class="px-3 py-2">Bought</th><th scope="col" class="px-3 py-2 text-right">Price</th><th scope="col" class="px-3 py-2">Sold</th><th scope="col" class="px-3 py-2 text-right">Price</th><th scope="col" class="px-3 py-2">Why it sold</th><th scope="col" class="px-3 py-2 text-right">Return</th><th scope="col" class="px-3 py-2 text-right">Days</th></tr></thead>
+          <tbody>${trades.length ? trades.map(t => `<tr class="border-t border-line/60"><td class="px-3 py-1.5 whitespace-nowrap">${fmt.date(ds.dates[t.entry])}</td><td class="px-3 py-1.5 text-right num">${fmt.px(t.px, M)}</td><td class="px-3 py-1.5 whitespace-nowrap">${t.open ? '—' : fmt.date(ds.dates[t.exit])}</td><td class="px-3 py-1.5 text-right num">${fmt.px(t.exitPx, M)}${t.open ? ' <span class="text-slate-500">now</span>' : ''}</td><td class="px-3 py-1.5">${how[t.how] || t.how}</td><td class="px-3 py-1.5 text-right num ${pctC(t.ret)}">${fmt.pct(t.ret, 1)}</td><td class="px-3 py-1.5 text-right num">${t.exit - t.entry + 1}</td></tr>`).join('') : '<tr><td colspan="7" class="px-3 py-3 text-slate-400">No trades in this period.</td></tr>'}</tbody>
+        </table>
+      </div>` : ''}`;
+    if (sel) requestAnimationFrame(() => {
+      const box = $('sbChart'); if (!box || box.dataset.drawn) return;
+      box.dataset.drawn = '1';
+      try { const c = Charts.trades(box, r, sel); c._sb = true; UI.charts.push(c); } catch (e) { console.error(e); }
+    });
+  },
+
   btForm() {
+    UI.sbForm();
     const b = S().settings.bt, sel = $('btMarket');
     sel.innerHTML = MARKET_CODES.map(c => `<option value="${c}">${MARKETS[c].flag} ${MARKETS[c].name}</option>`).join('');
     sel.value = view().length === 1 ? view()[0] : b.market;
@@ -2626,6 +3034,20 @@ function wire() {
     try {
       switch (act.dataset.action) {
         case 'closeDrawer': UI.closeDrawer(); break;
+        case 'myRemove': {
+          const { m, sym } = act.dataset;
+          if (confirm(`Remove ${sym} from your ${MARKETS[m].name} stocks? It will still be scanned if it passes the normal filters.`)) { await MyStocks.remove(m, sym); UI.toast(`${sym} removed.`, 'ok'); }
+          break;
+        }
+        case 'mySync': await MyStocks.sync(MARKET_CODES.filter(c => MyStocks.list(c).some(sym => MyStocks.status(c, sym).kind === 'pending'))); break;
+        case 'btStock': {
+          const { m, sym } = act.dataset;
+          UI.closeDrawer(); Store.set({ tab: 'backtest' });
+          $('sbMarket').value = m; UI.sbList(); $('sbStock').value = sym;
+          $('tab-backtest').scrollIntoView({ block: 'start' }); window.scrollTo({ top: 0 });
+          UI.runStockBT();
+          break;
+        }
         case 'resetFilters': UI.resetFilters(); break;
         case 'track': { const row = S().results.find(r => r.key === act.dataset.key); if (row) { Paper.add(row); Paper.evaluate(false); Store.set({ paper: S().paper }); Store.persist(); } break; }
         case 'alertOpen': { const key = act.dataset.key; UI.closeAlerts(); setTimeout(() => UI.openDetail(key), 240); break; }
@@ -2692,7 +3114,7 @@ function wire() {
               const missing = MARKET_CODES.filter(c => sources[c] === 'live' && !meta.markets?.[c]);
               if (missing.length) { err.textContent = `No data yet for ${missing.map(c => MARKETS[c].name).join(', ')} — keep those on Demo until the workflow has run.`; return; }
               const changed = MARKET_CODES.filter(c => sources[c] !== S().settings.sources[c] || (sources[c] === 'live' && JSON.stringify(f.cfg) !== JSON.stringify(S().settings.feed)));
-              S().settings.feed = f.cfg; S().settings.sources = sources; Store.persist();
+              S().settings.feed = f.cfg; S().settings.sources = sources; Store.persist(); GH._branch = null; MyStocks.pull();
               const reload = changed.filter(c => view().includes(c) || S().mkts[c]?.ds);
               UI.toast('Live feed saved.', 'ok');
               if (reload.length) { Store.set({ tab: 'watchlist' }); await App.run({ codes: reload, fresh: true, reason: 'Switched data source' }); UI.filterOptions(); }
@@ -2744,6 +3166,45 @@ function wire() {
   });
   $('paperView').addEventListener('change', e => { if (e.target.id === 'pAuto') { S().settings.autoTrackA = e.target.checked; Store.persist(); } });
 
+  // My stocks
+  $('myMkt').addEventListener('change', () => { $('myInput').placeholder = `e.g. ${{ US: 'AAPL', CA: 'SHOP', IN: 'TCS' }[$('myMkt').value]}`; });
+  $('myForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const m = view().length === 1 ? view()[0] : $('myMkt').value, inp = $('myInput'), err = $('myErr');
+    err.textContent = '';
+    try { const sym = await MyStocks.add(m, inp.value); inp.value = ''; UI.toast(`★ ${sym} added to your ${MARKETS[m].name} stocks.`, 'ok'); }
+    catch (ex) { err.textContent = ex.message; inp.focus(); }
+  });
+  $('myInput').addEventListener('input', () => { $('myErr').textContent = ''; });
+  $('fMine').addEventListener('click', () => Store.set({ filters: { ...S().filters, mine: !S().filters.mine } }));
+
+  // Backtest one stock
+  const runStock = async () => {
+    const err = $('sbError'); err.classList.add('hidden');
+    const fail = msg => { err.textContent = msg; err.classList.remove('hidden'); };
+    const m = $('sbMarket').value, M = MARKETS[m];
+    const sym = $('sbStock').value.trim().toUpperCase().replace(/^★\s*/, '').split(/\s+[—-]\s+/)[0].replace(/\.(TO|NS|NSE|BO|US)$/, '');
+    const hold = +$('sbHold').value, win = $('sbWindow').value;
+    if (!Number.isInteger(hold) || hold < 3 || hold > 30) return fail('Max days in a trade must be a whole number from 3 to 30.');
+    if (!S().mkts[m]?.ds) { await App.run({ codes: [m], reason: `Loading ${M.name} for backtest` }); UI.sbList(); }
+    const ds = S().mkts[m]?.ds; if (!ds) return fail(`Couldn’t load ${M.name} data — see the Pipeline tab.`);
+    if (!sym) return fail('Type or pick a stock first.');
+    const ti = ds.tickers.findIndex(t => t.sym === sym);
+    if (ti < 0) return fail(`${sym} isn’t in the ${M.name} data${ds.source === 'demo' ? ' (demo data uses made-up tickers — switch to the live feed in Settings)' : ''}. Pick a stock from the list${ds.source === 'live' ? ', or add it under ★ My stocks on the Watchlist so the next data update downloads it' : ''}.`);
+    if (ds.tickers[ti].excluded) return fail(`${sym} was left out of today’s scan: ${ds.tickers[ti].excluded}.`);
+    Store.set({ sbtBusy: true });
+    await U.sleep(30);
+    try { const res = StockBT.run(ds, ti, { hold, window: win === 'all' ? 'all' : +win }); Store.set({ sbt: { res, sel: res.best?.key || res.rows[0]?.key } }); }
+    catch (ex) { console.error(ex); fail(ex.message); }
+    finally { Store.set({ sbtBusy: false }); }
+  };
+  $('sbRun').addEventListener('click', runStock);
+  $('sbStock').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); runStock(); } });
+  $('sbMarket').addEventListener('change', () => { $('sbStock').value = ''; UI.sbList(); });
+  $('sbResults').addEventListener('click', e => { const tr = e.target.closest('[data-sbsel]'); if (tr) Store.set({ sbt: { ...S().sbt, sel: tr.dataset.sbsel } }); });
+  $('sbResults').addEventListener('keydown', e => { const tr = e.target.closest('[data-sbsel]'); if (tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); Store.set({ sbt: { ...S().sbt, sel: tr.dataset.sbsel } }); } });
+  UI.runStockBT = runStock;
+
   $('btRun').addEventListener('click', async () => {
     const market = $('btMarket').value, hold = +$('btHold').value, per = +$('btPer').value, win = +$('btWindow').value;
     const tiers = [...document.querySelectorAll('.btTier:checked')].map(c => c.value), err = $('btError');
@@ -2773,12 +3234,15 @@ Store.on(['pipes', 'log'], () => UI.pipeline());
 Store.on(['paper'], () => { if (S().tab === 'paper') UI.paper(); });
 Store.on(['alerts'], () => { if (!$('alertsPanel').classList.contains('hidden')) UI.alertsList(); });
 Store.on(['bt', 'btBusy', 'busy'], () => { if (S().tab === 'backtest') UI.btForm(); });
+Store.on(['sbt', 'sbtBusy'], () => { if (S().tab === 'backtest') UI.sbForm(); });
+Store.on(['results', 'settings', 'mkts', 'mySync'], () => UI.myStocks());
 
 function boot() {
   wire();
   if (!S().disclaimerSeen) $('disclaimer').classList.remove('hidden');
   $('fTop').value = String(S().filters.top); $('fSort').value = S().sort;
-  UI.filterOptions(); UI.tabs(); UI.header(); UI.stats(); UI.results(); UI.tierChips(); UI.schedule();
+  UI.filterOptions(); UI.tabs(); UI.header(); UI.stats(); UI.results(); UI.tierChips(); UI.schedule(); UI.myStocks();
+  MyStocks.pull();
   const nextAt = {}; MARKET_CODES.forEach(c => { nextAt[c] = Cal.nextRun(MARKETS[c]).at.getTime(); });
   setInterval(() => {
     UI.schedule();

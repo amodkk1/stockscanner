@@ -306,20 +306,6 @@
   </details>
 </aside>
 
-<div id="nameModal" class="hidden fixed inset-0 z-[70] bg-black/70 items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="nameTitle">
-  <form id="nameForm" class="w-full max-w-md rounded-2xl border border-line bg-panel p-5 shadow-2xl" novalidate>
-    <h2 id="nameTitle" class="text-lg font-semibold">Welcome to Opportunity Scanner</h2>
-    <p class="mt-1 text-sm text-slate-300">What should we call you?</p>
-    <input id="nameInput" type="text" maxlength="40" autocomplete="name" placeholder="Your first name" class="mt-3 w-full h-10 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 placeholder:text-slate-500">
-    <p id="nameErr" class="mt-1 text-xs text-rose-300 empty:hidden" role="alert"></p>
-    <p class="mt-3 text-xs text-slate-400 leading-relaxed">The app’s owner keeps a simple visit log: the name you enter, when you visit, how long you stay, which parts you use, and your device type, browser and language. Nothing else, and it isn’t shared.</p>
-    <div class="mt-4 flex gap-2 justify-end">
-      <button type="button" id="nameSkip" class="h-10 px-4 rounded-lg border border-line text-sm text-slate-300 hover:bg-panel2">Skip</button>
-      <button type="submit" class="h-10 px-5 rounded-lg bg-emerald-500 text-ink text-sm font-semibold hover:bg-emerald-400">Continue</button>
-    </div>
-  </form>
-</div>
-
 <div id="toasts" class="fixed bottom-4 inset-x-4 sm:left-auto sm:right-4 sm:w-96 z-[60] space-y-2 pointer-events-none" aria-live="polite" aria-atomic="false"></div>
 
 <script>
@@ -522,7 +508,7 @@ const DEFAULTS = {
   autoTrackA: true, autoRun: true,
   myStocks: { US: [], CA: [], IN: [] }, myStocksDirty: false,
   stratWatch: [], stratAlerted: {},
-  visitorLog: null, publicFeed: '', site: null,
+  visitorLog: null, publicFeed: '', site: null, visitorNames: {},
   alerts: { newA: true, entry: true, watch: true, browser: false, webhook: '' },
   bt: { window: 250, hold: 10, perScan: 10, tiers: ['A', 'B'], market: 'US' }
 };
@@ -1258,9 +1244,22 @@ const Visit = {
     const br = /Edg\//.test(ua) ? 'Edge' : /SamsungBrowser/.test(ua) ? 'Samsung Internet' : /OPR\//.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Other';
     return { kind, os, br };
   },
+  /** Public IP + approximate location via GeoJS (backup: ipify, IP only). Cached for the browser session. */
+  net: null,
+  async lookup() {
+    try { const c = JSON.parse(sessionStorage.getItem('oppscanner.net')); if (c?.ip) return (this.net = c); } catch { }
+    const get = async (url, ms = 3500) => { const ac = new AbortController(), t = setTimeout(() => ac.abort(), ms); try { const r = await fetch(url, { signal: ac.signal, cache: 'no-store' }); return r.ok ? await r.json() : null; } catch { return null; } finally { clearTimeout(t); } };
+    let n = null;
+    const g = await get('https://get.geojs.io/v1/ip/geo.json');
+    if (g?.ip) n = { ip: g.ip, city: g.city || '', region: g.region || '', country: g.country || g.country_code || '', isp: g.organization_name || g.organization || '' };
+    else { const i = await get('https://api.ipify.org?format=json'); if (i?.ip) n = { ip: i.ip }; }
+    this.net = n || { ip: '' };
+    try { sessionStorage.setItem('oppscanner.net', JSON.stringify(this.net)); } catch { }
+    return this.net;
+  },
   details(extra = {}) {
-    const d = this.device(), clean = v => String(v ?? '').replace(/[;=\n]/g, ' ').slice(0, 200);
-    const o = { t: new Date().toISOString(), device: `${d.os} ${d.kind}`, browser: d.br, screen: `${screen.width}x${screen.height}`, lang: navigator.language, tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    const d = this.device(), clean = v => String(v ?? '').replace(/[;=\n]/g, ' ').slice(0, 200), n = this.net || {};
+    const o = { t: new Date().toISOString(), ip: n.ip, city: n.city, region: n.region, country: n.country, isp: n.isp, device: `${d.os} ${d.kind}`, browser: d.br, screen: `${screen.width}x${screen.height}`, lang: navigator.language, tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
       ref: document.referrer ? new URL(document.referrer).hostname : '', ...extra };
     return Object.entries(o).filter(([, v]) => v !== '' && v !== undefined).map(([k, v]) => `${k}=${clean(v)}`).join('; ');
   },
@@ -1285,15 +1284,14 @@ const Visit = {
   /** First visit: ask for a name (or skip), then log the visit. */
   start() {
     if (!this.form()) return;
-    const go = () => { this.opened = true; this.t0 = Date.now(); this.send(this.get('oppscanner.seen') ? 'visit' : 'first visit'); this.put('oppscanner.seen', '1'); };
+    const go = async () => { this.opened = true; this.t0 = Date.now(); await this.lookup(); this.send(this.get('oppscanner.seen') ? 'visit' : 'first visit'); this.put('oppscanner.seen', '1'); };
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') this.summary();
       else if (this.sentSummary && Date.now() - this.hiddenAt > 30 * 60000) { this.sentSummary = false; this.tabs.clear(); this.markets.clear(); go(); }
       if (document.visibilityState === 'hidden') this.hiddenAt = Date.now();
     });
     window.addEventListener('pagehide', () => this.summary());
-    if (this.name() || this.get('oppscanner.nameAsked')) go();
-    else UI.askName(go);
+    go();
   },
   track(kind, v) { if (kind === 'tab') this.tabs.add(v); if (kind === 'market') this.markets.add(v); }
 };
@@ -2834,26 +2832,11 @@ const UI = {
   },
 
   /* ---------- Backtest ---------- */
-  /* ---------- Visitor name ---------- */
-  askName(done) {
-    const m = $('nameModal'); m.classList.remove('hidden'); m.classList.add('flex');
-    setTimeout(() => $('nameInput').focus(), 50);
-    const close = () => { m.classList.add('hidden'); m.classList.remove('flex'); Visit.put('oppscanner.nameAsked', '1'); UI.whoLine(); done?.(); };
-    $('nameForm').onsubmit = e => {
-      e.preventDefault();
-      const v = $('nameInput').value.trim().replace(/\s+/g, ' ');
-      if (!v) { $('nameErr').textContent = 'Type a name, or press Skip.'; return; }
-      if (v.length > 40) { $('nameErr').textContent = 'Please keep it under 40 characters.'; return; }
-      Visit.put('oppscanner.name', v); close();
-    };
-    $('nameSkip').onclick = close;
-  },
   whoLine() {
     const el = $('whoLine'); if (!el) return;
     if (Admin.is) { el.innerHTML = '<span class="text-amber-300/90">Admin copy</span> · visits from this page aren’t logged.'; return; }
     if (!Visit.form()) { el.innerHTML = ''; return; }
-    const n = Visit.name();
-    el.innerHTML = `This app keeps a simple visit log for its owner. You’re visiting as <span class="text-slate-300">${U.esc(n || 'Anonymous')}</span> · <button type="button" data-action="changeName" class="underline underline-offset-2 hover:text-slate-300">change name</button>`;
+    el.textContent = 'Privacy: visits to this app are logged for its owner — IP address, approximate location (city level), device, browser, time and the parts of the app used. Nothing is shared or sold.';
   },
 
   /* ---------- Strategy watch tab ---------- */
@@ -3254,7 +3237,6 @@ function wire() {
     try {
       switch (act.dataset.action) {
         case 'closeDrawer': UI.closeDrawer(); break;
-        case 'changeName': $('nameInput').value = Visit.name(); $('nameErr').textContent = ''; UI.askName(); break;
         case 'copyText': try { await navigator.clipboard.writeText(act.dataset.text); UI.toast('Copied.', 'ok'); } catch { UI.toast('Couldn’t copy — select the text and copy it yourself.', 'warn'); } break;
         case 'toggleMatch': Store.set({ filters: { ...S().filters, match: !S().filters.match } }); break;
         case 'watchAdd': {

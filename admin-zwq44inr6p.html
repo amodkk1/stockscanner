@@ -92,6 +92,7 @@
   </div>
   <nav class="mx-auto max-w-7xl px-2 sm:px-4 flex gap-1 overflow-x-auto scroll-thin" role="tablist" aria-label="Sections">
     <button role="tab" data-tab="watchlist" class="tab">Watchlist</button>
+    <button role="tab" data-tab="portfolio" class="tab">Portfolio</button>
     <button role="tab" data-tab="watch" class="tab">Strategy watch</button>
     <button role="tab" data-tab="backtest" class="tab">Backtest</button>
     <button role="tab" data-tab="paper" class="tab">Paper log</button>
@@ -247,6 +248,31 @@
     <div id="btResults" class="mt-4" aria-live="polite"></div>
   </section>
 
+  <!-- ============ PORTFOLIO ============ -->
+  <section id="tab-portfolio" role="tabpanel" aria-label="Portfolio" hidden>
+    <div class="rounded-xl border border-amber-500/30 bg-panel p-4">
+      <h2 class="text-base font-semibold"><span aria-hidden="true">💼</span> My portfolio</h2>
+      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Add the stocks you own. After every scan the app checks each one against all 19 strategies, its trend, your buy price, its fundamentals and upcoming events, and tells you whether to <span class="text-rose-300 font-medium">sell</span>, <span class="text-emerald-300 font-medium">buy more</span>, <span class="text-amber-300 font-medium">review</span> or <span class="text-sky-300 font-medium">hold</span> — with the reasons. Saved on this device only.</p>
+      <form id="pForm" class="mt-4 grid grid-cols-2 md:grid-cols-7 gap-3 items-end" autocomplete="off" novalidate>
+        <label class="text-xs text-slate-400">Market
+          <select id="pMarket" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select></label>
+        <label class="text-xs text-slate-400">Stock
+          <input id="pStock" list="pList" type="text" spellcheck="false" autocapitalize="characters" placeholder="Ticker" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 uppercase placeholder:normal-case placeholder:text-slate-500">
+          <datalist id="pList"></datalist></label>
+        <label class="text-xs text-slate-400">Shares
+          <input id="pQty" type="number" min="0" step="any" placeholder="e.g. 50" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 num placeholder:text-slate-500"></label>
+        <label class="text-xs text-slate-400">Avg buy price
+          <input id="pCost" type="number" min="0" step="any" placeholder="per share" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 num placeholder:text-slate-500"></label>
+        <label class="text-xs text-slate-400">Buy date <span class="text-slate-500">(optional)</span>
+          <input id="pDate" type="date" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
+        <button id="pAdd" type="submit" class="h-9 px-4 rounded-lg bg-amber-400 text-ink text-sm font-semibold hover:bg-amber-300 disabled:opacity-50">Add / update</button>
+        <button id="pCheck" type="button" class="h-9 px-3 rounded-lg border border-line text-sm text-slate-300 hover:bg-panel2 disabled:opacity-50">Check now</button>
+      </form>
+      <p id="pErr" class="mt-2 text-xs text-rose-300 empty:hidden" role="alert"></p>
+    </div>
+    <div id="portfolioView" class="mt-4" aria-live="polite"></div>
+  </section>
+
   <section id="tab-watch" role="tabpanel" aria-label="Strategy watch" hidden>
     <div class="rounded-xl border border-violet-500/30 bg-panel p-4">
       <h2 class="text-base font-semibold"><span class="text-violet-300" aria-hidden="true">◆</span> Strategy watch</h2>
@@ -279,7 +305,7 @@
     Opportunity Scanner ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-01.4 · admin</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-01.5 · admin</p>
   </div>
 </footer>
 
@@ -305,6 +331,7 @@
       <label class="flex items-center gap-2"><input type="checkbox" data-alertopt="newA" class="accent-emerald-400"> New A-tier setup appears</label>
       <label class="flex items-center gap-2"><input type="checkbox" data-alertopt="entry" class="accent-emerald-400"> Tracked pick hits its entry zone</label>
       <label class="flex items-center gap-2"><input type="checkbox" data-alertopt="watch" class="accent-emerald-400"> Strategy watch signal</label>
+      <label class="flex items-center gap-2"><input type="checkbox" data-alertopt="portfolio" class="accent-emerald-400"> A portfolio holding turns SELL or BUY MORE</label>
       <label class="flex items-center gap-2"><input type="checkbox" data-alertopt="browser" class="accent-emerald-400"> Also show browser notifications</label>
     </div>
   </details>
@@ -512,8 +539,9 @@ const DEFAULTS = {
   autoTrackA: true, autoRun: true,
   myStocks: { US: [], CA: [], IN: [] }, myStocksDirty: false,
   stratWatch: [], stratAlerted: {},
+  portfolio: [], pfAlerted: {},
   visitorLog: null, publicFeed: '', site: null, visitorNames: {},
-  alerts: { newA: true, entry: true, watch: true, browser: false, webhook: '' },
+  alerts: { newA: true, entry: true, watch: true, portfolio: true, browser: false, webhook: '' },
   bt: { window: 250, hold: 10, perScan: 10, tiers: ['A', 'B'], market: 'US' }
 };
 const PAPER_STATUS = {
@@ -560,7 +588,7 @@ const Store = (() => {
     filters: { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: 25, mine: false },
     mySync: { state: 'idle', msg: '' },
     sbt: null, sbtBusy: false,
-    bestTick: 0, bestProg: null, watchTick: 0,
+    bestTick: 0, bestProg: null, watchTick: 0, pfTick: 0,
     sort: 'prob',
     busy: false,
     pipes: {},           // code -> { stages, runs, ms }
@@ -1205,6 +1233,145 @@ const Watch = {
     return fired.length;
   },
   todayCount() { return this.list().filter(w => ['buy', 'sell', 'sold'].includes(this.state[w.id]?.kind)).length; }
+};
+
+/** Portfolio: the stocks the user owns, checked after every scan against every strategy, the trend, position risk,
+ *  fundamentals and upcoming events, giving a SELL / BUY MORE / REVIEW / HOLD verdict with the reasons. */
+const Portfolio = {
+  state: {},   // id -> evaluation
+  list: () => S().settings.portfolio,
+  VERDICT: {
+    sell:   { label: 'SELL',     badge: 'text-rose-100 bg-rose-500/25 ring-rose-400/60', card: 'border-rose-500/50 bg-rose-500/[0.04]', order: 0 },
+    buy:    { label: 'BUY MORE', badge: 'text-emerald-100 bg-emerald-500/25 ring-emerald-400/60', card: 'border-emerald-500/50 bg-emerald-500/[0.04]', order: 1 },
+    review: { label: 'REVIEW',   badge: 'text-amber-100 bg-amber-500/20 ring-amber-400/50', card: 'border-amber-500/40', order: 2 },
+    hold:   { label: 'HOLD',     badge: 'text-sky-100 bg-sky-500/20 ring-sky-400/50', card: 'border-line', order: 3 },
+    wait:   { label: 'NOT CHECKED', badge: 'text-slate-300 bg-slate-500/10 ring-slate-500/30', card: 'border-line', order: 4 }
+  },
+  upsert(h) {
+    const list = this.list(), i = list.findIndex(x => x.m === h.m && x.sym === h.sym);
+    if (i >= 0) { list[i] = { ...list[i], ...h, id: list[i].id }; }
+    else { if (list.length >= 150) throw new Error('You can keep up to 150 holdings.'); list.push({ id: U.uid(), ...h }); }
+    S().settings.portfolio = [...list]; Store.persist();
+    if (Admin.is && S().settings.sources[h.m] === 'live' && !MyStocks.has(h.m, h.sym)) MyStocks.add(h.m, h.sym).catch(() => {});   // keep it in the nightly download
+    this.evaluate([h.m], false);
+    return i >= 0;
+  },
+  remove(id) { S().settings.portfolio = this.list().filter(h => h.id !== id); delete this.state[id]; Store.persist(); Store.set({ pfTick: Date.now() }); },
+
+  /** Everything the app knows about one holding today. */
+  check(h) {
+    const ds = S().mkts[h.m]?.ds, M = MARKETS[h.m];
+    if (!ds) return { v: 'wait', text: `${M.name} data isn’t loaded yet — press “Check now”.` };
+    const ti = ds.tickers.findIndex(t => t.sym === h.sym);
+    if (ti < 0) return { v: 'wait', text: ds.source === 'live' ? 'Waiting for data — it downloads on the next data update.' : `${h.sym} isn’t in the ${M.name} ${ds.source} data.` };
+    const tk = ds.tickers[ti], i = ds.cursor, x = Ind.compute(tk, M), c = x.c, date = ds.dates[i];
+    if (i - tk.start < 2) return { v: 'wait', text: 'Not enough price history yet.' };
+    const px = c[i], day = px / c[i - 1] - 1, value = h.qty * px, cost = h.qty * h.cost, pl = value - cost, plPct = h.cost > 0 ? px / h.cost - 1 : NaN;
+    const sig = [], add = (side, w, group, text) => sig.push({ side, w, group, text });
+    const fin = (...v) => v.every(Number.isFinite);
+    const cross = (f, s) => !fin(f[i], s[i], f[i - 1], s[i - 1]) ? null
+      : f[i] > s[i] && f[i - 1] <= s[i - 1] ? 'up' : f[i] < s[i] && f[i - 1] >= s[i - 1] ? 'down' : f[i] > s[i] ? 'above' : 'below';
+
+    // 1. Strategies, backtested on this stock
+    const res = StockBT.cached(ds, ti), best = res?.bestSig || null;
+    if (!res) add('info', 0, 'Strategies', 'Not enough price history to backtest strategies on this stock yet.');
+    else {
+      if (best) {
+        const t = res.today[best.key] || {}, trust = best.n >= 3 && best.total > 0;
+        const tag = `${best.name} — the best strategy for ${h.sym} in the backtest (${best.n} trade${best.n === 1 ? '' : 's'}, ${fmt.prob(best.winRate)} won, ${fmt.pct(best.total, 1)} total)`;
+        if (t.sellNext) add('sell', trust ? 3 : 2, 'Strategies', `Sell signal today from ${tag}. It exits at the next open.`);
+        else if (t.sold) add('sell', trust ? 2 : 1, 'Strategies', `${best.name} closed its trade today (${{ target: 'target hit', stopped: 'stopped out', time: 'time limit', signal: 'sell signal' }[t.sold.how] || t.sold.how}, ${fmt.pct(t.sold.ret, 1)}) and is now out of the stock.`);
+        else if (t.buy && !t.inTrade) add('buy', trust ? 3 : 2, 'Strategies', `Buy signal today from ${tag}.`);
+        else if (best.openTrade) add('good', 1, 'Strategies', `${best.name} (best strategy for this stock) is still in a trade — bought ${fmt.date(ds.dates[best.openTrade.entry])}, ${fmt.pct(best.openTrade.ret, 1)} so far.`);
+        else add('info', 0, 'Strategies', `${best.name} (best strategy for this stock) has no position at the moment — it is waiting for its next buy signal.`);
+      } else add('info', 0, 'Strategies', 'No strategy completed a trade on this stock yet.');
+      const others = res.rows.filter(r => r.key !== 'scanner' && r.key !== best?.key);
+      const sells = others.filter(r => res.today[r.key]?.sellNext).map(r => r.name);
+      const buys = others.filter(r => res.today[r.key]?.buy && !res.today[r.key]?.inTrade).map(r => r.name);
+      if (sells.length) add('sell', 1, 'Strategies', `Also signalling SELL today: ${sells.join(', ')}.`);
+      if (buys.length) add('buy', 1, 'Strategies', `Also signalling BUY today: ${buys.join(', ')}.`);
+    }
+
+    // 2. Trend: moving averages, momentum
+    const gc = cross(x.sma50, x.sma200), p50 = cross(c, x.sma50);
+    if (gc === 'down') add('sell', 2, 'Trend', 'Death cross today: the 50-day average fell below the 200-day average.');
+    else if (gc === 'up') add('buy', 2, 'Trend', 'Golden cross today: the 50-day average rose above the 200-day average.');
+    if (p50 === 'down') add('sell', 2, 'Trend', `Closed below its 50-day average (${fmt.px(x.sma50[i], M)}) today.`);
+    else if (p50 === 'up') add('buy', 1, 'Trend', `Closed back above its 50-day average (${fmt.px(x.sma50[i], M)}) today.`);
+    if (fin(x.sma200[i])) {
+      if (px < x.sma200[i]) add('warn', 1, 'Trend', `Price is below its 200-day average (${fmt.px(x.sma200[i], M)}) — the long-term trend is down.`);
+      else add('good', 0, 'Trend', `Price is above its 200-day average (${fmt.px(x.sma200[i], M)}) — the long-term trend is up.`);
+    }
+    const ma = [['10/30 SMA', x.sma10, x.sma30], ['20/50 SMA', x.sma20, x.sma50], ['20 EMA/50 SMA', x.ema20, x.sma50], ['50/200 SMA', x.sma50, x.sma200]]
+      .map(([l, f, s]) => ({ l, st: cross(f, s) })).filter(z => z.st);
+    const down = ma.filter(z => z.st === 'below' || z.st === 'down').length;
+    if (ma.length >= 3 && down >= 3) add('warn', 1, 'Trend', `${down} of ${ma.length} moving-average pairs point down (fast average below slow).`);
+    else if (ma.length >= 3 && down === 0) add('good', 0, 'Trend', `All ${ma.length} moving-average pairs point up (fast average above slow).`);
+    const rsi = x.rsi[i];
+    if (rsi > 70) add('warn', 1, 'Trend', `RSI ${rsi.toFixed(0)} — overbought; a pullback is more likely. Consider taking some profit or tightening your stop.`);
+    else if (rsi < 30) add('buy', 1, 'Trend', `RSI ${rsi.toFixed(0)} — oversold; bounces often start from here.`);
+    if (fin(x.hh252[i]) && px > x.hh252[i]) add('good', 1, 'Trend', 'Closed at a new 52-week high.');
+
+    // 3. Your position: trailing stop, loss and gain
+    let from = Math.max(tk.start, i - 21);
+    if (h.date) { const k = ds.dates.findIndex(d => d >= h.date); if (k >= 0 && k <= i) from = Math.max(tk.start, k); }
+    let hiC = -Infinity; for (let j = from; j <= i; j++) hiC = Math.max(hiC, c[j]);
+    const stop = fin(x.atr[i]) ? hiC - 3 * x.atr[i] : NaN;
+    if (fin(stop) && px < stop) add('sell', 3, 'Your position', `Trailing stop hit: closed at ${fmt.px(px, M)}, below ${fmt.px(stop, M)} (highest close ${h.date ? 'since you bought' : 'of the last month'} minus 3× the average daily range).`);
+    if (plPct <= -.15) add('sell', 2, 'Your position', `Down ${fmt.pct(-plPct, 0, false)} from your buy price — past the 15% level where many traders cut their losses. Check that your reason for buying still holds.`);
+    else if (plPct <= -.08) add('warn', 1, 'Your position', `Down ${fmt.pct(-plPct, 0, false)} from your buy price — many traders cut losses at 8%.`);
+    else if (plPct >= .25) add('good', 0, 'Your position', `Up ${fmt.pct(plPct, 0, false)} — consider locking in part of the gain or raising your stop.`);
+
+    // 4. Fundamentals
+    const f = tk.fund, fs = tk.fs;
+    if (!f || fs?.missing) add('info', 0, 'Fundamentals', 'No fundamentals in the data for this stock.');
+    else {
+      if (fs.growthPct >= .7) add('good', 1, 'Fundamentals', `Growth in the top ${Math.max(1, Math.round((1 - fs.growthPct) * 100))}% of its sector (revenue ${fmt.pct(f.revGrowth, 0)}, EPS ${fmt.pct(f.epsGrowth, 0)} year on year).`);
+      else if (fs.growthPct < .3) add('warn', 1, 'Fundamentals', `Growth in the bottom third of its sector (revenue ${fmt.pct(f.revGrowth, 0)}, EPS ${fmt.pct(f.epsGrowth, 0)} year on year).`);
+      if (f.epsGrowth < 0) add('warn', 1, 'Fundamentals', `Earnings per share are falling (${fmt.pct(f.epsGrowth, 0)} year on year).`);
+      if (f.ocfPositive === false) add('warn', 1, 'Fundamentals', 'Operating cash flow is negative — the business is burning cash.');
+      if (f.debtToEquity > 2) add('warn', 1, 'Fundamentals', `High debt: debt/equity ${f.debtToEquity.toFixed(2)}.`);
+      if (fs.peRel > 2) add('warn', 1, 'Fundamentals', `Expensive: P/E ${f.pe.toFixed(1)} is ${fs.peRel.toFixed(1)}× its sector’s median.`);
+      if (f.peg > 0 && f.peg < 1) add('good', 1, 'Fundamentals', `PEG ${f.peg.toFixed(2)} — growth looks cheap for its price.`);
+    }
+
+    // 5. Events
+    const nextE = tk.earnIdx?.find(t => t > i), nextF = tk.fdaIdx?.find(t => t > i);
+    if (nextE !== undefined && nextE - i <= 10) add('event', 0, 'Events', `Earnings on ${fmt.date(Engine.idxDate(ds, nextE))} (${nextE - i} session${nextE - i === 1 ? '' : 's'}) — expect a big move either way.`);
+    if (nextF !== undefined && nextF - i <= 10) add('event', 0, 'Events', `${tk.fdaReg || 'Regulator'} decision expected ${fmt.date(Engine.idxDate(ds, nextF))} — a binary event.`);
+    if (Math.abs(day) >= .05) add('event', 0, 'Events', `${day > 0 ? 'Jumped' : 'Fell'} ${fmt.pct(Math.abs(day), 1, false)} today.`);
+    const rv = x.v[i] / x.av50[i - 1];
+    if (rv >= 2) add('event', 0, 'Events', `Volume ${rv.toFixed(1)}× its 50-day average today${day < 0 ? ' on a down day (possible selling pressure)' : day > 0 ? ' on an up day (possible buying interest)' : ''}.`);
+    for (const n of tk.news || []) if (n.i <= i && n.i >= i - 5) add('event', 0, 'Events', `${n.type}: ${n.text}`);
+
+    // Verdict
+    const sum = side => sig.filter(s => s.side === side).reduce((a, s) => a + s.w, 0);
+    const sS = sum('sell'), sB = sum('buy'), sW = sum('warn');
+    const v = sS >= 3 && sS > sB ? 'sell' : sB >= 3 && sS < 2 && sB > sW ? 'buy' : sS >= 1 || sW >= 3 ? 'review' : 'hold';
+    const lead = sig.filter(s => s.side === { sell: 'sell', buy: 'buy', review: sS ? 'sell' : 'warn', hold: 'good' }[v]).sort((a, b) => b.w - a.w)[0];
+    const text = lead ? lead.text : v === 'hold' ? 'No sell or buy signals today.' : '';
+    return { v, text, tk, ti, M, date, px, day, value, cost, pl, plPct, stop, rsi, ma, best, res, sig, f, fs, score: { sell: sS, buy: sB, warn: sW } };
+  },
+
+  /** Re-check holdings in the given markets; alert when a holding turns SELL or BUY MORE. */
+  evaluate(codes = MARKET_CODES, alert = true) {
+    const st = S().settings, fired = [];
+    for (const h of this.list()) {
+      if (!codes.includes(h.m)) continue;
+      let e; try { e = this.check(h); } catch (ex) { console.error(ex); e = { v: 'wait', text: 'Couldn’t check this holding: ' + ex.message }; }
+      this.state[h.id] = e;
+      if (!['sell', 'buy'].includes(e.v)) continue;
+      const tag = `${h.id}|${e.date}|${e.v}`;
+      if (!st.pfAlerted[tag]) { st.pfAlerted[tag] = 1; if (alert && st.alerts.portfolio) fired.push([h, e]); }
+    }
+    const keys = Object.keys(st.pfAlerted); if (keys.length > 600) keys.slice(0, keys.length - 600).forEach(k => delete st.pfAlerted[k]);
+    if (fired.length <= 5) fired.forEach(([h, e]) => Alerts.push('portfolio', `${e.M.flag} ${h.sym} (your portfolio): ${this.VERDICT[e.v].label} — ${e.text}`, h.sym, h.m));
+    else Alerts.push('portfolio', `${fired.length} holdings need action today: ${fired.map(([h, e]) => `${h.sym} (${this.VERDICT[e.v].label})`).join(', ')}. See the Portfolio tab.`);
+    Store.persist();
+    Store.set({ pfTick: Date.now() });
+    return fired.length;
+  },
+  actionCount() { return this.list().filter(h => ['sell', 'buy'].includes(this.state[h.id]?.v)).length; }
 };
 
 /* =====================================================================
@@ -2373,9 +2540,10 @@ const App = {
     if (st.autoTrackA) for (const r of rows.filter(r => r.sc.tier === 'A')) if (Paper.add(r, 'auto', true)) added++;
     const fills = Paper.evaluate(true);
     const wsig = Watch.evaluate([code], true);
+    const psig = Portfolio.evaluate([code], true);
     Store.persist();
     Store.set({ paper: S().paper, alerts: S().alerts });
-    return [...msg, `${added} auto-tracked`, `${fills} entry fill(s)`, `${wsig} strategy-watch signal(s)`].join(' · ');
+    return [...msg, `${added} auto-tracked`, `${fills} entry fill(s)`, `${wsig} strategy-watch signal(s)`, `${psig} portfolio alert(s)`].join(' · ');
   }
 };
 
@@ -2654,15 +2822,16 @@ const UI = {
   tabs() {
     if (!Admin.is && ['settings', 'visitors'].includes(S().tab)) S().tab = 'watchlist';
     const t = S().tab;
-    Visit.track('tab', { watchlist: 'Watchlist', watch: 'Strategy watch', backtest: 'Backtest', paper: 'Paper log', pipeline: 'Pipeline', settings: 'Settings', visitors: 'Visitors' }[t]);
+    Visit.track('tab', { watchlist: 'Watchlist', portfolio: 'Portfolio', watch: 'Strategy watch', backtest: 'Backtest', paper: 'Paper log', pipeline: 'Pipeline', settings: 'Settings', visitors: 'Visitors' }[t]);
     document.querySelectorAll('[role=tab]').forEach(b => {
       const on = b.dataset.tab === t;
       b.setAttribute('aria-selected', on);
       b.className = `tab shrink-0 px-3 py-2.5 text-sm border-b-2 -mb-px ${on ? 'border-emerald-400 text-slate-100 font-medium' : 'border-transparent text-slate-400 hover:text-slate-200'}`;
     });
-    for (const k of ['watchlist', 'watch', 'backtest', 'paper', 'pipeline', 'visitors', 'settings']) { const sec = $('tab-' + k); if (sec) sec.hidden = k !== t; }
+    for (const k of ['watchlist', 'portfolio', 'watch', 'backtest', 'paper', 'pipeline', 'visitors', 'settings']) { const sec = $('tab-' + k); if (sec) sec.hidden = k !== t; }
     if (t === 'visitors') UI.visitors();
     if (t === 'watch') UI.watchForm();
+    if (t === 'portfolio') UI.portfolioOpen();
     if (t === 'watchlist') UI.results();
     if (t === 'settings') UI.settings();
     if (t === 'paper') UI.paper();
@@ -2999,7 +3168,7 @@ const UI = {
   alertsList() {
     const a = S().alerts, el = $('alertsList');
     if (!a.length) { el.innerHTML = '<div class="text-center py-16"><p class="text-slate-300 font-medium">No alerts yet</p><p class="text-sm text-slate-500 mt-1">You will be notified when a new A-tier setup appears or a tracked pick hits its entry zone.</p></div>'; return; }
-    const icon = { newA: ['★', 'text-emerald-300'], entry: ['➜', 'text-sky-300'], watch: ['◆', 'text-violet-300'], system: ['ℹ', 'text-slate-400'] };
+    const icon = { newA: ['★', 'text-emerald-300'], entry: ['➜', 'text-sky-300'], watch: ['◆', 'text-violet-300'], portfolio: ['💼', 'text-amber-300'], system: ['ℹ', 'text-slate-400'] };
     el.innerHTML = a.map(x => {
       const row = x.sym && S().results.find(r => r.cd.sym === x.sym && (!x.m || r.m === x.m));
       return `<div class="rounded-lg border ${x.read ? 'border-line' : 'border-emerald-500/30 bg-emerald-500/5'} p-3 flex gap-3">
@@ -3103,6 +3272,106 @@ const UI = {
           ${st ? `<p class="mt-1.5 text-[11px] text-slate-500">Backtest: ${st.n} trade${st.n === 1 ? '' : 's'} · ${fmt.prob(st.winRate)} won · ${fmt.pct(st.total, 1)} total · buy &amp; hold ${fmt.pct(e.res.bh.ret, 1)}${st.n < 3 ? ' · <span class="text-amber-300/80">too few trades to trust</span>' : ''}</p>` : ''}
         </li>`; }).join('')}</ul>
       <p class="mt-3 text-[11px] text-slate-500">Alerts appear in the bell menu, as browser notifications and on your webhook if set (Settings → Alerts). The app checks when it scans, so it needs to be open (or opened) after the nightly data update. Not investment advice.</p>`;
+  },
+
+  /* ---------- Portfolio tab ---------- */
+  portfolioOpen() {
+    UI.portfolioForm();
+    Portfolio.evaluate(MARKET_CODES.filter(c => S().mkts[c]?.ds), true);
+    const need = [...new Set(Portfolio.list().map(h => h.m))].filter(c => !S().mkts[c]?.ds);
+    if (need.length && !S().busy) App.run({ codes: need, reason: 'Loading markets for your portfolio' }).then(() => UI.portfolioForm());
+  },
+  portfolioForm() {
+    const sel = $('pMarket');
+    if (!sel.options.length) {
+      sel.innerHTML = MARKET_CODES.map(c => `<option value="${c}">${MARKETS[c].flag} ${MARKETS[c].name}</option>`).join('');
+      sel.value = view()[0];
+    }
+    const m = sel.value, ds = S().mkts[m]?.ds, k = ds ? `${ds.key}|${ds.stamp || ds.cursor}` : '';
+    $('pCost').placeholder = `per share, ${MARKETS[m].ccy}`;
+    if ($('pList').dataset.k !== k) {
+      $('pList').innerHTML = ds ? ds.tickers.filter(t => !t.excluded).sort((a, b) => a.sym.localeCompare(b.sym)).map(t => `<option value="${U.esc(t.sym)}">${U.esc(t.name)}</option>`).join('') : '';
+      $('pList').dataset.k = k;
+    }
+    $('pCheck').disabled = S().busy;
+    UI.portfolio();
+  },
+  portfolio() {
+    const el = $('portfolioView'); if (!el) return;
+    const n = Portfolio.actionCount(), tab = document.querySelector('[data-tab="portfolio"]');
+    tab.innerHTML = `Portfolio${n ? ` <span class="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-[10px] font-bold text-white">${n}</span>` : ''}`;
+    if (S().tab !== 'portfolio') return;
+    const list = Portfolio.list(), V = Portfolio.VERDICT;
+    if (!list.length) {
+      el.innerHTML = `<div class="rounded-xl border border-dashed border-line bg-panel p-10 text-center"><p class="text-3xl" aria-hidden="true">💼</p><p class="mt-2 font-medium text-slate-200">No holdings yet</p>
+        <p class="mt-1 text-sm text-slate-400 max-w-lg mx-auto">Add a stock you own with the form above: pick the market, type the ticker, the number of shares and your average buy price. The buy date is optional — it lets the trailing stop start from the day you bought.</p></div>`;
+      return;
+    }
+    const items = list.map(h => ({ h, e: Portfolio.state[h.id] || { v: 'wait', text: 'Not checked yet — press “Check now”.' } }))
+      .sort((a, b) => V[a.e.v].order - V[b.e.v].order || a.h.sym.localeCompare(b.h.sym));
+    const tone = x => !Number.isFinite(x) || x === 0 ? 'text-slate-300' : x > 0 ? 'text-emerald-300' : 'text-rose-300';
+    const sums = MARKET_CODES.map(m => {
+      const its = items.filter(i => i.h.m === m && Number.isFinite(i.e.px)); if (!its.length) return null;
+      const val = its.reduce((a, i) => a + i.e.value, 0), cost = its.reduce((a, i) => a + i.e.cost, 0), dAbs = its.reduce((a, i) => a + i.e.value * i.e.day / (1 + i.e.day), 0);
+      return { M: MARKETS[m], n: its.length, val, pl: val - cost, plPct: cost ? val / cost - 1 : NaN, dAbs, day: val - dAbs ? dAbs / (val - dAbs) : NaN };
+    }).filter(Boolean);
+    const cnt = k => items.filter(i => i.e.v === k).length;
+    const money = (x, M) => Number.isFinite(x) ? (x < 0 ? '−' : '') + M.sym + Math.abs(x).toLocaleString(M.locale, { maximumFractionDigits: Math.abs(x) >= 1000 ? 0 : 2 }) : '—';
+    const icon = { sell: ['▼', 'text-rose-300'], buy: ['▲', 'text-emerald-300'], warn: ['!', 'text-amber-300 font-bold'], good: ['✓', 'text-emerald-300/80'], info: ['•', 'text-slate-500'], event: ['◆', 'text-sky-300'] };
+    const lead = { sell: 'text-rose-200', buy: 'text-emerald-200', review: 'text-amber-200', hold: 'text-slate-200', wait: 'text-slate-400' };
+    const groups = ['Strategies', 'Trend', 'Your position', 'Fundamentals', 'Events'];
+    el.innerHTML = `
+      <div class="grid gap-3 ${sums.length > 1 ? 'md:grid-cols-' + Math.min(3, sums.length) : ''}">${sums.map(s => `
+        <div class="rounded-xl border border-line bg-panel p-3">
+          <p class="text-xs text-slate-400">${flagTag(s.M)} ${s.M.name} · ${s.n} holding${s.n === 1 ? '' : 's'} · ${s.M.ccy}</p>
+          <div class="mt-1 grid grid-cols-3 gap-2">
+            <div><p class="text-[11px] text-slate-500">Value</p><p class="num font-semibold">${money(s.val, s.M)}</p></div>
+            <div><p class="text-[11px] text-slate-500">Gain / loss</p><p class="num font-semibold ${tone(s.pl)}">${money(s.pl, s.M)} <span class="text-xs">${fmt.pct(s.plPct, 1)}</span></p></div>
+            <div><p class="text-[11px] text-slate-500">Today</p><p class="num font-semibold ${tone(s.dAbs)}">${money(s.dAbs, s.M)} <span class="text-xs">${fmt.pct(s.day, 1)}</span></p></div>
+          </div></div>`).join('')}</div>
+      <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
+        ${['sell', 'buy', 'review', 'hold', 'wait'].filter(k => cnt(k)).map(k => `<span class="px-2 py-0.5 rounded-md ring-1 ${V[k].badge} font-semibold">${cnt(k)} ${V[k].label}</span>`).join('')}
+        <span class="text-slate-500">· checked after every scan${S().settings.alerts.portfolio ? '' : ' · <span class="text-amber-300">portfolio alerts are off (bell menu → Alert options)</span>'}</span>
+        <button type="button" data-action="pfExport" class="ml-auto inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-line hover:bg-panel2 text-slate-300">Export CSV</button>
+      </div>
+      <ul class="mt-3 space-y-2">${items.map(({ h, e }) => {
+        const M = MARKETS[h.m], ok = Number.isFinite(e.px), vd = V[e.v];
+        const stat = (l, v, cls = '') => `<div><p class="text-[11px] text-slate-500">${l}</p><p class="num text-sm ${cls}">${v}</p></div>`;
+        const by = side => (e.sig || []).filter(s => s.side === side).length;
+        return `<li class="rounded-xl border ${vd.card} bg-panel p-3">
+          <div class="flex flex-wrap items-start gap-x-3 gap-y-2">
+            <div class="min-w-0 flex-1">
+              <p class="font-semibold">${U.esc(h.sym)} <span class="text-xs font-normal text-slate-400">${flagTag(M)} ${M.name}${e.tk ? ' · ' + U.esc(e.tk.name) : ''}</span></p>
+              <p class="text-[11px] text-slate-500 num">${fmt.num(h.qty, h.qty % 1 ? 2 : 0)} shares @ ${fmt.px(h.cost, M)}${h.date ? ` · bought ${fmt.date(h.date)}` : ''}</p>
+            </div>
+            <span class="shrink-0 px-2.5 py-1 rounded-md ring-1 text-xs font-bold tracking-wide ${vd.badge}">${vd.label}</span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              ${ok ? `<button type="button" data-action="btStock" data-m="${h.m}" data-sym="${U.esc(h.sym)}" class="h-7 px-2.5 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Backtest</button>
+              <button type="button" data-action="watchAdd" data-m="${h.m}" data-sym="${U.esc(h.sym)}" data-key="auto" class="h-7 px-2.5 rounded-lg border border-violet-500/40 text-xs text-violet-300 hover:bg-violet-500/10">◆ Watch</button>` : ''}
+              <button type="button" data-action="pfEdit" data-id="${h.id}" class="h-7 px-2.5 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Edit</button>
+              <button type="button" data-action="pfRemove" data-id="${h.id}" class="h-7 w-7 inline-flex items-center justify-center rounded-lg text-slate-500 hover:text-rose-300 hover:bg-rose-500/10" aria-label="Remove ${U.esc(h.sym)} from your portfolio"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </div>
+          </div>
+          ${ok ? `<div class="mt-2 grid grid-cols-2 sm:grid-cols-5 gap-2">
+              ${stat(`Price · ${fmt.dateShort(e.date)}`, `${fmt.px(e.px, M)} <span class="text-xs ${tone(e.day)}">${fmt.pct(e.day, 1)}</span>`)}
+              ${stat('Value', money(e.value, M))}
+              ${stat('Gain / loss', `${money(e.pl, M)} <span class="text-xs">${fmt.pct(e.plPct, 1)}</span>`, tone(e.pl))}
+              ${stat('Trailing stop', fmt.px(e.stop, M), e.px < e.stop ? 'text-rose-300' : '')}
+              ${stat('Best strategy', e.best ? `<span class="font-sans text-xs text-slate-200">${U.esc(e.best.name)}</span>` : '—')}
+            </div>
+            <p class="mt-2 text-sm ${lead[e.v]}">${{ sell: '▼ ', buy: '▲ ', review: '! ' }[e.v] || ''}${U.esc(e.text)}</p>
+            <div class="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+              ${(e.ma || []).map(z => { const up = z.st === 'up' || z.st === 'above'; return `<span class="px-1.5 py-0.5 rounded ring-1 ${up ? 'ring-emerald-500/30 text-emerald-300' : 'ring-rose-500/30 text-rose-300'}">${z.l} ${up ? '▲' : '▼'}${z.st === 'up' || z.st === 'down' ? ' today' : ''}</span>`; }).join('')}
+              ${Number.isFinite(e.rsi) ? `<span class="px-1.5 py-0.5 rounded ring-1 ring-line text-slate-300">RSI ${e.rsi.toFixed(0)}</span>` : ''}
+              ${e.fs && !e.fs.missing ? `<span class="px-1.5 py-0.5 rounded ring-1 ring-line text-slate-300">Fundamentals ${Math.round(e.fs.score)}/100</span>` : ''}
+            </div>
+            <details class="mt-2" ${['sell', 'buy', 'review'].includes(e.v) ? 'open' : ''}>
+              <summary class="cursor-pointer text-xs text-slate-300">All signals (${e.sig.length}) · <span class="text-rose-300">${by('sell')} sell</span> · <span class="text-emerald-300">${by('buy')} buy</span> · <span class="text-amber-300">${by('warn')} caution</span></summary>
+              <div class="mt-2 grid md:grid-cols-2 gap-x-6 gap-y-2">${groups.map(g => { const ss = e.sig.filter(s => s.group === g); return ss.length ? `<div><p class="text-[11px] uppercase tracking-wide text-slate-500">${g}</p>
+                <ul class="mt-1 space-y-1">${ss.map(s => `<li class="flex gap-2 text-xs text-slate-300"><span class="${icon[s.side][1]} w-3 shrink-0 text-center" aria-hidden="true">${icon[s.side][0]}</span><span>${U.esc(s.text)}</span></li>`).join('')}</ul></div>` : ''; }).join('')}</div>
+            </details>` : `<p class="mt-2 text-sm text-slate-400">${U.esc(e.text)}</p>`}
+        </li>`; }).join('')}</ul>
+      <p class="mt-3 text-[11px] text-slate-500 leading-relaxed"><b class="text-slate-400">How the verdict is decided.</b> <span class="text-rose-300">SELL</span> when strong sell signals — the stock’s best strategy saying sell, the trailing stop being hit, a death cross, a close below the 50-day average, or a loss past 15% — outweigh the buy signals. <span class="text-emerald-300">BUY MORE</span> when strong buy signals fire and there are no strong sell signals. <span class="text-amber-300">REVIEW</span> when there is a weaker sell signal or several cautions (weak fundamentals, downtrend, overbought). Otherwise <span class="text-sky-300">HOLD</span>. The trailing stop is the highest close since you bought (or of the last month) minus 3× the average daily range. Your holdings are saved on this device only. Not investment advice.</p>`;
   },
 
   /* ---------- My stocks panel ---------- */
@@ -3695,6 +3964,22 @@ function wire() {
           catch (ex) { UI.toast(ex.message, 'warn'); }
           break;
         }
+        case 'pfRemove': { const h = Portfolio.list().find(x => x.id === act.dataset.id); if (h && confirm(`Remove ${h.sym} from your portfolio?`)) Portfolio.remove(h.id); break; }
+        case 'pfEdit': {
+          const h = Portfolio.list().find(x => x.id === act.dataset.id); if (!h) break;
+          $('pMarket').value = h.m; UI.portfolioForm();
+          $('pStock').value = h.sym; $('pQty').value = h.qty; $('pCost').value = h.cost; $('pDate').value = h.date || '';
+          window.scrollTo({ top: 0, behavior: 'smooth' }); $('pQty').focus();
+          UI.toast(`Change the numbers, then press “Add / update”.`, 'info');
+          break;
+        }
+        case 'pfExport': {
+          const head = ['Market', 'Currency', 'Ticker', 'Name', 'Shares', 'Avg buy price', 'Buy date', 'Price', 'Price date', 'Value', 'Gain/loss', 'Gain/loss %', 'Verdict', 'Main reason', 'Best strategy', 'Trailing stop', 'RSI'];
+          const lines = Portfolio.list().map(h => { const e = Portfolio.state[h.id] || {}, M = MARKETS[h.m], n2 = v => Number.isFinite(v) ? v.toFixed(2) : '';
+            return [M.name, M.ccy, h.sym, e.tk?.name || '', h.qty, h.cost, h.date || '', n2(e.px), e.date || '', n2(e.value), n2(e.pl), Number.isFinite(e.plPct) ? (e.plPct * 100).toFixed(1) : '', Portfolio.VERDICT[e.v || 'wait'].label, e.text || '', e.best?.name || '', n2(e.stop), Number.isFinite(e.rsi) ? e.rsi.toFixed(0) : ''].map(U.csvCell).join(','); });
+          U.download(`portfolio-${new Date().toISOString().slice(0, 10)}.csv`, [head.join(','), ...lines].join('\n'));
+          break;
+        }
         case 'watchRemove': if (confirm('Stop watching this stock?')) Watch.remove(act.dataset.id); break;
         case 'myRemove': {
           const { m, sym } = act.dataset;
@@ -3895,6 +4180,38 @@ function wire() {
     UI.toast(n ? `${n} new strategy signal(s) — see the bell menu.` : 'Checked — no new signals.', n ? 'ok' : 'info');
   });
 
+  // Portfolio
+  $('pMarket').addEventListener('change', () => { $('pStock').value = ''; UI.portfolioForm(); });
+  $('pForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const m = $('pMarket').value, M = MARKETS[m], errEl = $('pErr'), fail = msg => { errEl.textContent = msg; };
+    errEl.textContent = '';
+    const raw = $('pStock').value.trim().replace(/^★\s*/, '');
+    if (/\s/.test(raw)) return fail(`“${raw}” looks like a company name. Type the ticker symbol instead (e.g. ${{ US: 'AAPL for Apple', CA: 'RY for Royal Bank', IN: 'INFY for Infosys' }[m]}).`);
+    const sym = raw.toUpperCase().replace(/\.(TO|V|NS|NSE|BO|US)$/, '');
+    const qty = parseFloat($('pQty').value), cost = parseFloat($('pCost').value), date = $('pDate').value || '';
+    if (!sym) return fail('Type or pick a stock first.');
+    if (!/^[A-Z0-9][A-Z0-9.&-]{0,19}$/.test(sym)) return fail(`“${sym}” isn’t a valid ticker. Use the symbol (e.g. ${{ US: 'MSFT', CA: 'RY', IN: 'INFY' }[m]}), not the company name.`);
+    if (!(qty > 0)) return fail('Enter how many shares you own (a number above 0).');
+    if (!(cost > 0)) return fail(`Enter your average buy price per share, in ${M.ccy}.`);
+    if (date && date > new Date().toISOString().slice(0, 10)) return fail('The buy date can’t be in the future.');
+    if (!S().mkts[m]?.ds) { await App.run({ codes: [m], reason: `Loading ${M.name}` }); UI.portfolioForm(); }
+    const ds = S().mkts[m]?.ds;
+    if (!ds?.tickers.some(t => t.sym === sym) && !(Admin.is && ds?.source === 'live'))
+      return fail(`${sym} isn’t in the ${M.name} data. Pick a stock from the list${ds?.source === 'demo' ? ' (demo data uses made-up tickers)' : ''}.`);
+    try {
+      const upd = Portfolio.upsert({ m, sym, qty, cost, date });
+      ['pStock', 'pQty', 'pCost', 'pDate'].forEach(id => { $(id).value = ''; });
+      UI.toast(upd ? `${sym} updated.` : `💼 ${sym} added to your portfolio.`, 'ok');
+    } catch (ex) { fail(ex.message); }
+  });
+  $('pCheck').addEventListener('click', async () => {
+    const need = [...new Set(Portfolio.list().map(h => h.m))].filter(c => !S().mkts[c]?.ds);
+    if (need.length) await App.run({ codes: need, reason: 'Loading markets for your portfolio' });
+    const n = Portfolio.evaluate(MARKET_CODES, true);
+    UI.toast(n ? `${n} holding(s) need action — see the bell menu.` : 'Checked — no new sell or buy-more signals.', n ? 'warn' : 'info');
+  });
+
   // Backtest one stock
   const runStock = async () => {
     const err = $('sbError'); err.classList.add('hidden');
@@ -3954,6 +4271,8 @@ Store.on(['bt', 'btBusy', 'busy'], () => { if (S().tab === 'backtest') UI.btForm
 Store.on(['sbt', 'sbtBusy'], () => { if (S().tab === 'backtest') UI.sbForm(); });
 Store.on(['bestTick', 'bestProg'], () => { if (S().tab === 'watchlist') UI.results(); });
 Store.on(['watchTick', 'settings'], () => UI.watch());
+Store.on(['pfTick', 'settings'], () => UI.portfolio());
+Store.on(['busy'], () => { if (S().tab === 'portfolio') $('pCheck').disabled = S().busy; });
 Store.on(['busy'], () => { if (S().tab === 'watch') $('wCheck').disabled = S().busy; });
 Store.on(['results', 'settings', 'mkts', 'mySync'], () => UI.myStocks());
 

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Opportunity Scanner — end-of-day stock screener for the USA, Canada and India that ranks setups by estimated probability, with the trigger event and reasons for every pick.">
-<title>Opportunity Scanner · Admin</title>
+<title>Opportunity Scanner</title>
 <meta name="theme-color" content="#0a0e14">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -67,7 +67,7 @@
         <circle cx="26" cy="8" r="2.4" fill="#34d399"/>
       </svg>
       <div class="min-w-0">
-        <h1 class="text-sm sm:text-base font-semibold leading-tight truncate">Opportunity Scanner <span class="ml-1 align-middle text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-400 text-ink">ADMIN</span></h1>
+        <h1 class="text-sm sm:text-base font-semibold leading-tight truncate">Opportunity Scanner</h1>
         <p id="asOf" class="text-[11px] text-slate-400 leading-tight truncate">Loading…</p>
       </div>
     </div>
@@ -92,13 +92,11 @@
   </div>
   <nav class="mx-auto max-w-7xl px-2 sm:px-4 flex gap-1 overflow-x-auto scroll-thin" role="tablist" aria-label="Sections">
     <button role="tab" data-tab="watchlist" class="tab">Watchlist</button>
+    <button role="tab" data-tab="portfolio" class="tab">Portfolio</button>
     <button role="tab" data-tab="watch" class="tab">Strategy watch</button>
     <button role="tab" data-tab="backtest" class="tab">Backtest</button>
     <button role="tab" data-tab="paper" class="tab">Paper log</button>
     <button role="tab" data-tab="pipeline" class="tab">Pipeline</button>
-
-    <button role="tab" data-tab="visitors" class="tab adminOnly">Visitors</button>
-    <button role="tab" data-tab="settings" class="tab adminOnly">Settings</button>
 
   </nav>
 </header>
@@ -247,6 +245,31 @@
     <div id="btResults" class="mt-4" aria-live="polite"></div>
   </section>
 
+  <!-- ============ PORTFOLIO ============ -->
+  <section id="tab-portfolio" role="tabpanel" aria-label="Portfolio" hidden>
+    <div class="rounded-xl border border-amber-500/30 bg-panel p-4">
+      <h2 class="text-base font-semibold"><span aria-hidden="true">💼</span> My portfolio</h2>
+      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Add the stocks you own. After every scan the app checks each one against all 19 strategies, its trend, your buy price, its fundamentals and upcoming events, and tells you whether to <span class="text-rose-300 font-medium">sell</span>, <span class="text-emerald-300 font-medium">buy more</span>, <span class="text-amber-300 font-medium">review</span> or <span class="text-sky-300 font-medium">hold</span> — with the reasons. Saved on this device only.</p>
+      <form id="pForm" class="mt-4 grid grid-cols-2 md:grid-cols-7 gap-3 items-end" autocomplete="off" novalidate>
+        <label class="text-xs text-slate-400">Market
+          <select id="pMarket" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select></label>
+        <label class="text-xs text-slate-400">Stock
+          <input id="pStock" list="pList" type="text" spellcheck="false" autocapitalize="characters" placeholder="Ticker" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 uppercase placeholder:normal-case placeholder:text-slate-500">
+          <datalist id="pList"></datalist></label>
+        <label class="text-xs text-slate-400">Shares
+          <input id="pQty" type="number" min="0" step="any" placeholder="e.g. 50" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 num placeholder:text-slate-500"></label>
+        <label class="text-xs text-slate-400">Avg buy price
+          <input id="pCost" type="number" min="0" step="any" placeholder="per share" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 num placeholder:text-slate-500"></label>
+        <label class="text-xs text-slate-400">Buy date <span class="text-slate-500">(optional)</span>
+          <input id="pDate" type="date" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
+        <button id="pAdd" type="submit" class="h-9 px-4 rounded-lg bg-amber-400 text-ink text-sm font-semibold hover:bg-amber-300 disabled:opacity-50">Add / update</button>
+        <button id="pCheck" type="button" class="h-9 px-3 rounded-lg border border-line text-sm text-slate-300 hover:bg-panel2 disabled:opacity-50">Check now</button>
+      </form>
+      <p id="pErr" class="mt-2 text-xs text-rose-300 empty:hidden" role="alert"></p>
+    </div>
+    <div id="portfolioView" class="mt-4" aria-live="polite"></div>
+  </section>
+
   <section id="tab-watch" role="tabpanel" aria-label="Strategy watch" hidden>
     <div class="rounded-xl border border-violet-500/30 bg-panel p-4">
       <h2 class="text-base font-semibold"><span class="text-violet-300" aria-hidden="true">◆</span> Strategy watch</h2>
@@ -267,11 +290,11 @@
     <div id="watchView" class="mt-4" aria-live="polite"></div>
   </section>
 
-  <section id="tab-visitors" role="tabpanel" aria-label="Visitors" hidden><div id="visitorsView"></div></section>
+
 
   <section id="tab-paper" role="tabpanel" aria-label="Paper trading log" hidden><div id="paperView"></div></section>
   <section id="tab-pipeline" role="tabpanel" aria-label="Pipeline" hidden><div id="pipelineView"></div></section>
-  <section id="tab-settings" role="tabpanel" aria-label="Settings" hidden><div id="settingsView"></div></section>
+
 </main>
 
 <footer class="border-t border-line">
@@ -279,7 +302,7 @@
     Opportunity Scanner ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-01.4 · admin</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-01.5 · public</p>
   </div>
 </footer>
 
@@ -305,6 +328,7 @@
       <label class="flex items-center gap-2"><input type="checkbox" data-alertopt="newA" class="accent-emerald-400"> New A-tier setup appears</label>
       <label class="flex items-center gap-2"><input type="checkbox" data-alertopt="entry" class="accent-emerald-400"> Tracked pick hits its entry zone</label>
       <label class="flex items-center gap-2"><input type="checkbox" data-alertopt="watch" class="accent-emerald-400"> Strategy watch signal</label>
+      <label class="flex items-center gap-2"><input type="checkbox" data-alertopt="portfolio" class="accent-emerald-400"> A portfolio holding turns SELL or BUY MORE</label>
       <label class="flex items-center gap-2"><input type="checkbox" data-alertopt="browser" class="accent-emerald-400"> Also show browser notifications</label>
     </div>
   </details>
@@ -315,7 +339,7 @@
 <script>
 (() => {
 /* Which copy this is: 'public' (index.html — no admin features) or 'admin' (admin.html — Settings + Visitors). Set by build.py. */
-const BUILD = 'admin';
+const BUILD = 'public';
 'use strict';
 
 /* =====================================================================
@@ -512,8 +536,9 @@ const DEFAULTS = {
   autoTrackA: true, autoRun: true,
   myStocks: { US: [], CA: [], IN: [] }, myStocksDirty: false,
   stratWatch: [], stratAlerted: {},
+  portfolio: [], pfAlerted: {},
   visitorLog: null, publicFeed: '', site: null, visitorNames: {},
-  alerts: { newA: true, entry: true, watch: true, browser: false, webhook: '' },
+  alerts: { newA: true, entry: true, watch: true, portfolio: true, browser: false, webhook: '' },
   bt: { window: 250, hold: 10, perScan: 10, tiers: ['A', 'B'], market: 'US' }
 };
 const PAPER_STATUS = {
@@ -560,7 +585,7 @@ const Store = (() => {
     filters: { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: 25, mine: false },
     mySync: { state: 'idle', msg: '' },
     sbt: null, sbtBusy: false,
-    bestTick: 0, bestProg: null, watchTick: 0,
+    bestTick: 0, bestProg: null, watchTick: 0, pfTick: 0,
     sort: 'prob',
     busy: false,
     pipes: {},           // code -> { stages, runs, ms }
@@ -1207,6 +1232,145 @@ const Watch = {
   todayCount() { return this.list().filter(w => ['buy', 'sell', 'sold'].includes(this.state[w.id]?.kind)).length; }
 };
 
+/** Portfolio: the stocks the user owns, checked after every scan against every strategy, the trend, position risk,
+ *  fundamentals and upcoming events, giving a SELL / BUY MORE / REVIEW / HOLD verdict with the reasons. */
+const Portfolio = {
+  state: {},   // id -> evaluation
+  list: () => S().settings.portfolio,
+  VERDICT: {
+    sell:   { label: 'SELL',     badge: 'text-rose-100 bg-rose-500/25 ring-rose-400/60', card: 'border-rose-500/50 bg-rose-500/[0.04]', order: 0 },
+    buy:    { label: 'BUY MORE', badge: 'text-emerald-100 bg-emerald-500/25 ring-emerald-400/60', card: 'border-emerald-500/50 bg-emerald-500/[0.04]', order: 1 },
+    review: { label: 'REVIEW',   badge: 'text-amber-100 bg-amber-500/20 ring-amber-400/50', card: 'border-amber-500/40', order: 2 },
+    hold:   { label: 'HOLD',     badge: 'text-sky-100 bg-sky-500/20 ring-sky-400/50', card: 'border-line', order: 3 },
+    wait:   { label: 'NOT CHECKED', badge: 'text-slate-300 bg-slate-500/10 ring-slate-500/30', card: 'border-line', order: 4 }
+  },
+  upsert(h) {
+    const list = this.list(), i = list.findIndex(x => x.m === h.m && x.sym === h.sym);
+    if (i >= 0) { list[i] = { ...list[i], ...h, id: list[i].id }; }
+    else { if (list.length >= 150) throw new Error('You can keep up to 150 holdings.'); list.push({ id: U.uid(), ...h }); }
+    S().settings.portfolio = [...list]; Store.persist();
+    if (Admin.is && S().settings.sources[h.m] === 'live' && !MyStocks.has(h.m, h.sym)) MyStocks.add(h.m, h.sym).catch(() => {});   // keep it in the nightly download
+    this.evaluate([h.m], false);
+    return i >= 0;
+  },
+  remove(id) { S().settings.portfolio = this.list().filter(h => h.id !== id); delete this.state[id]; Store.persist(); Store.set({ pfTick: Date.now() }); },
+
+  /** Everything the app knows about one holding today. */
+  check(h) {
+    const ds = S().mkts[h.m]?.ds, M = MARKETS[h.m];
+    if (!ds) return { v: 'wait', text: `${M.name} data isn’t loaded yet — press “Check now”.` };
+    const ti = ds.tickers.findIndex(t => t.sym === h.sym);
+    if (ti < 0) return { v: 'wait', text: ds.source === 'live' ? 'Waiting for data — it downloads on the next data update.' : `${h.sym} isn’t in the ${M.name} ${ds.source} data.` };
+    const tk = ds.tickers[ti], i = ds.cursor, x = Ind.compute(tk, M), c = x.c, date = ds.dates[i];
+    if (i - tk.start < 2) return { v: 'wait', text: 'Not enough price history yet.' };
+    const px = c[i], day = px / c[i - 1] - 1, value = h.qty * px, cost = h.qty * h.cost, pl = value - cost, plPct = h.cost > 0 ? px / h.cost - 1 : NaN;
+    const sig = [], add = (side, w, group, text) => sig.push({ side, w, group, text });
+    const fin = (...v) => v.every(Number.isFinite);
+    const cross = (f, s) => !fin(f[i], s[i], f[i - 1], s[i - 1]) ? null
+      : f[i] > s[i] && f[i - 1] <= s[i - 1] ? 'up' : f[i] < s[i] && f[i - 1] >= s[i - 1] ? 'down' : f[i] > s[i] ? 'above' : 'below';
+
+    // 1. Strategies, backtested on this stock
+    const res = StockBT.cached(ds, ti), best = res?.bestSig || null;
+    if (!res) add('info', 0, 'Strategies', 'Not enough price history to backtest strategies on this stock yet.');
+    else {
+      if (best) {
+        const t = res.today[best.key] || {}, trust = best.n >= 3 && best.total > 0;
+        const tag = `${best.name} — the best strategy for ${h.sym} in the backtest (${best.n} trade${best.n === 1 ? '' : 's'}, ${fmt.prob(best.winRate)} won, ${fmt.pct(best.total, 1)} total)`;
+        if (t.sellNext) add('sell', trust ? 3 : 2, 'Strategies', `Sell signal today from ${tag}. It exits at the next open.`);
+        else if (t.sold) add('sell', trust ? 2 : 1, 'Strategies', `${best.name} closed its trade today (${{ target: 'target hit', stopped: 'stopped out', time: 'time limit', signal: 'sell signal' }[t.sold.how] || t.sold.how}, ${fmt.pct(t.sold.ret, 1)}) and is now out of the stock.`);
+        else if (t.buy && !t.inTrade) add('buy', trust ? 3 : 2, 'Strategies', `Buy signal today from ${tag}.`);
+        else if (best.openTrade) add('good', 1, 'Strategies', `${best.name} (best strategy for this stock) is still in a trade — bought ${fmt.date(ds.dates[best.openTrade.entry])}, ${fmt.pct(best.openTrade.ret, 1)} so far.`);
+        else add('info', 0, 'Strategies', `${best.name} (best strategy for this stock) has no position at the moment — it is waiting for its next buy signal.`);
+      } else add('info', 0, 'Strategies', 'No strategy completed a trade on this stock yet.');
+      const others = res.rows.filter(r => r.key !== 'scanner' && r.key !== best?.key);
+      const sells = others.filter(r => res.today[r.key]?.sellNext).map(r => r.name);
+      const buys = others.filter(r => res.today[r.key]?.buy && !res.today[r.key]?.inTrade).map(r => r.name);
+      if (sells.length) add('sell', 1, 'Strategies', `Also signalling SELL today: ${sells.join(', ')}.`);
+      if (buys.length) add('buy', 1, 'Strategies', `Also signalling BUY today: ${buys.join(', ')}.`);
+    }
+
+    // 2. Trend: moving averages, momentum
+    const gc = cross(x.sma50, x.sma200), p50 = cross(c, x.sma50);
+    if (gc === 'down') add('sell', 2, 'Trend', 'Death cross today: the 50-day average fell below the 200-day average.');
+    else if (gc === 'up') add('buy', 2, 'Trend', 'Golden cross today: the 50-day average rose above the 200-day average.');
+    if (p50 === 'down') add('sell', 2, 'Trend', `Closed below its 50-day average (${fmt.px(x.sma50[i], M)}) today.`);
+    else if (p50 === 'up') add('buy', 1, 'Trend', `Closed back above its 50-day average (${fmt.px(x.sma50[i], M)}) today.`);
+    if (fin(x.sma200[i])) {
+      if (px < x.sma200[i]) add('warn', 1, 'Trend', `Price is below its 200-day average (${fmt.px(x.sma200[i], M)}) — the long-term trend is down.`);
+      else add('good', 0, 'Trend', `Price is above its 200-day average (${fmt.px(x.sma200[i], M)}) — the long-term trend is up.`);
+    }
+    const ma = [['10/30 SMA', x.sma10, x.sma30], ['20/50 SMA', x.sma20, x.sma50], ['20 EMA/50 SMA', x.ema20, x.sma50], ['50/200 SMA', x.sma50, x.sma200]]
+      .map(([l, f, s]) => ({ l, st: cross(f, s) })).filter(z => z.st);
+    const down = ma.filter(z => z.st === 'below' || z.st === 'down').length;
+    if (ma.length >= 3 && down >= 3) add('warn', 1, 'Trend', `${down} of ${ma.length} moving-average pairs point down (fast average below slow).`);
+    else if (ma.length >= 3 && down === 0) add('good', 0, 'Trend', `All ${ma.length} moving-average pairs point up (fast average above slow).`);
+    const rsi = x.rsi[i];
+    if (rsi > 70) add('warn', 1, 'Trend', `RSI ${rsi.toFixed(0)} — overbought; a pullback is more likely. Consider taking some profit or tightening your stop.`);
+    else if (rsi < 30) add('buy', 1, 'Trend', `RSI ${rsi.toFixed(0)} — oversold; bounces often start from here.`);
+    if (fin(x.hh252[i]) && px > x.hh252[i]) add('good', 1, 'Trend', 'Closed at a new 52-week high.');
+
+    // 3. Your position: trailing stop, loss and gain
+    let from = Math.max(tk.start, i - 21);
+    if (h.date) { const k = ds.dates.findIndex(d => d >= h.date); if (k >= 0 && k <= i) from = Math.max(tk.start, k); }
+    let hiC = -Infinity; for (let j = from; j <= i; j++) hiC = Math.max(hiC, c[j]);
+    const stop = fin(x.atr[i]) ? hiC - 3 * x.atr[i] : NaN;
+    if (fin(stop) && px < stop) add('sell', 3, 'Your position', `Trailing stop hit: closed at ${fmt.px(px, M)}, below ${fmt.px(stop, M)} (highest close ${h.date ? 'since you bought' : 'of the last month'} minus 3× the average daily range).`);
+    if (plPct <= -.15) add('sell', 2, 'Your position', `Down ${fmt.pct(-plPct, 0, false)} from your buy price — past the 15% level where many traders cut their losses. Check that your reason for buying still holds.`);
+    else if (plPct <= -.08) add('warn', 1, 'Your position', `Down ${fmt.pct(-plPct, 0, false)} from your buy price — many traders cut losses at 8%.`);
+    else if (plPct >= .25) add('good', 0, 'Your position', `Up ${fmt.pct(plPct, 0, false)} — consider locking in part of the gain or raising your stop.`);
+
+    // 4. Fundamentals
+    const f = tk.fund, fs = tk.fs;
+    if (!f || fs?.missing) add('info', 0, 'Fundamentals', 'No fundamentals in the data for this stock.');
+    else {
+      if (fs.growthPct >= .7) add('good', 1, 'Fundamentals', `Growth in the top ${Math.max(1, Math.round((1 - fs.growthPct) * 100))}% of its sector (revenue ${fmt.pct(f.revGrowth, 0)}, EPS ${fmt.pct(f.epsGrowth, 0)} year on year).`);
+      else if (fs.growthPct < .3) add('warn', 1, 'Fundamentals', `Growth in the bottom third of its sector (revenue ${fmt.pct(f.revGrowth, 0)}, EPS ${fmt.pct(f.epsGrowth, 0)} year on year).`);
+      if (f.epsGrowth < 0) add('warn', 1, 'Fundamentals', `Earnings per share are falling (${fmt.pct(f.epsGrowth, 0)} year on year).`);
+      if (f.ocfPositive === false) add('warn', 1, 'Fundamentals', 'Operating cash flow is negative — the business is burning cash.');
+      if (f.debtToEquity > 2) add('warn', 1, 'Fundamentals', `High debt: debt/equity ${f.debtToEquity.toFixed(2)}.`);
+      if (fs.peRel > 2) add('warn', 1, 'Fundamentals', `Expensive: P/E ${f.pe.toFixed(1)} is ${fs.peRel.toFixed(1)}× its sector’s median.`);
+      if (f.peg > 0 && f.peg < 1) add('good', 1, 'Fundamentals', `PEG ${f.peg.toFixed(2)} — growth looks cheap for its price.`);
+    }
+
+    // 5. Events
+    const nextE = tk.earnIdx?.find(t => t > i), nextF = tk.fdaIdx?.find(t => t > i);
+    if (nextE !== undefined && nextE - i <= 10) add('event', 0, 'Events', `Earnings on ${fmt.date(Engine.idxDate(ds, nextE))} (${nextE - i} session${nextE - i === 1 ? '' : 's'}) — expect a big move either way.`);
+    if (nextF !== undefined && nextF - i <= 10) add('event', 0, 'Events', `${tk.fdaReg || 'Regulator'} decision expected ${fmt.date(Engine.idxDate(ds, nextF))} — a binary event.`);
+    if (Math.abs(day) >= .05) add('event', 0, 'Events', `${day > 0 ? 'Jumped' : 'Fell'} ${fmt.pct(Math.abs(day), 1, false)} today.`);
+    const rv = x.v[i] / x.av50[i - 1];
+    if (rv >= 2) add('event', 0, 'Events', `Volume ${rv.toFixed(1)}× its 50-day average today${day < 0 ? ' on a down day (possible selling pressure)' : day > 0 ? ' on an up day (possible buying interest)' : ''}.`);
+    for (const n of tk.news || []) if (n.i <= i && n.i >= i - 5) add('event', 0, 'Events', `${n.type}: ${n.text}`);
+
+    // Verdict
+    const sum = side => sig.filter(s => s.side === side).reduce((a, s) => a + s.w, 0);
+    const sS = sum('sell'), sB = sum('buy'), sW = sum('warn');
+    const v = sS >= 3 && sS > sB ? 'sell' : sB >= 3 && sS < 2 && sB > sW ? 'buy' : sS >= 1 || sW >= 3 ? 'review' : 'hold';
+    const lead = sig.filter(s => s.side === { sell: 'sell', buy: 'buy', review: sS ? 'sell' : 'warn', hold: 'good' }[v]).sort((a, b) => b.w - a.w)[0];
+    const text = lead ? lead.text : v === 'hold' ? 'No sell or buy signals today.' : '';
+    return { v, text, tk, ti, M, date, px, day, value, cost, pl, plPct, stop, rsi, ma, best, res, sig, f, fs, score: { sell: sS, buy: sB, warn: sW } };
+  },
+
+  /** Re-check holdings in the given markets; alert when a holding turns SELL or BUY MORE. */
+  evaluate(codes = MARKET_CODES, alert = true) {
+    const st = S().settings, fired = [];
+    for (const h of this.list()) {
+      if (!codes.includes(h.m)) continue;
+      let e; try { e = this.check(h); } catch (ex) { console.error(ex); e = { v: 'wait', text: 'Couldn’t check this holding: ' + ex.message }; }
+      this.state[h.id] = e;
+      if (!['sell', 'buy'].includes(e.v)) continue;
+      const tag = `${h.id}|${e.date}|${e.v}`;
+      if (!st.pfAlerted[tag]) { st.pfAlerted[tag] = 1; if (alert && st.alerts.portfolio) fired.push([h, e]); }
+    }
+    const keys = Object.keys(st.pfAlerted); if (keys.length > 600) keys.slice(0, keys.length - 600).forEach(k => delete st.pfAlerted[k]);
+    if (fired.length <= 5) fired.forEach(([h, e]) => Alerts.push('portfolio', `${e.M.flag} ${h.sym} (your portfolio): ${this.VERDICT[e.v].label} — ${e.text}`, h.sym, h.m));
+    else Alerts.push('portfolio', `${fired.length} holdings need action today: ${fired.map(([h, e]) => `${h.sym} (${this.VERDICT[e.v].label})`).join(', ')}. See the Portfolio tab.`);
+    Store.persist();
+    Store.set({ pfTick: Date.now() });
+    return fired.length;
+  },
+  actionCount() { return this.list().filter(h => ['sell', 'buy'].includes(this.state[h.id]?.v)).length; }
+};
+
 /* =====================================================================
  * ADMIN MODE, SHARED SETTINGS, VISITOR LOG
  * ===================================================================== */
@@ -1237,38 +1401,6 @@ const Shared = {
     if (this.cfg.feed?.baseUrl) st.feed = { mode: 'url', owner: '', repo: '', branch: 'data', token: '', baseUrl: this.cfg.feed.baseUrl };
     else st.sources = { US: 'demo', CA: 'demo', IN: 'demo' };
   },
-  
-  publicFeedGuess() {
-    const f = S().settings.feed;
-    if (S().settings.publicFeed) return S().settings.publicFeed;
-    if (f.mode === 'github' && f.owner && f.repo) return `https://raw.githubusercontent.com/${f.owner}/${f.repo}/${f.branch || 'data'}`;
-    return f.mode === 'url' ? f.baseUrl : '';
-  },
-  build(publicFeed) {
-    const st = S().settings, vl = st.visitorLog;
-    return {
-      v: 2, published: new Date().toISOString(),
-      settings: { weights: st.weights, tiers: st.tiers, gates: st.gates, regimeFilter: st.regimeFilter, earningsMode: st.earningsMode, catalystWindow: st.catalystWindow,
-        sources: publicFeed ? { ...st.sources } : { US: 'demo', CA: 'demo', IN: 'demo' } },
-      feed: publicFeed ? { baseUrl: publicFeed.replace(/\/+$/, '') } : null,
-      visitorLog: vl?.formUrl ? { formUrl: vl.formUrl, fields: vl.fields } : null
-    };
-  },
-  async publish(cfg, site) {
-    const tok = S().settings.feed.token;
-    if (!tok) throw Object.assign(new Error('No GitHub token on this device (Settings → Live market data).'), { code: 'token' });
-    const base = `https://api.github.com/repos/${encodeURIComponent(site.owner)}/${encodeURIComponent(site.repo)}`;
-    const h = { Accept: 'application/vnd.github+json', Authorization: `Bearer ${tok}`, 'X-GitHub-Api-Version': '2022-11-28' };
-    const repo = await fetch(base, { headers: h, cache: 'no-store' });
-    if (!repo.ok) throw Object.assign(new Error(`Can’t open ${site.owner}/${site.repo} with your token (HTTP ${repo.status}).`), { code: 'perm' });
-    const branch = (await repo.json()).default_branch || 'main';
-    const cur = await fetch(`${base}/contents/config.json?ref=${encodeURIComponent(branch)}`, { headers: h, cache: 'no-store' });
-    const sha = cur.ok ? (await cur.json()).sha : undefined;
-    const put = await fetch(`${base}/contents/config.json`, { method: 'PUT', headers: { ...h, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: 'Publish Opportunity Scanner settings', branch, content: GH.b64(JSON.stringify(cfg, null, 1) + '\n'), ...(sha ? { sha } : {}) }) });
-    if (!put.ok) throw Object.assign(new Error(`GitHub refused to save config.json (HTTP ${put.status}).`), { code: 'perm' });
-    this.cfg = cfg;
-  }
   
 };
 
@@ -1337,141 +1469,6 @@ const Visit = {
     go();
   },
   track(kind, v) { if (kind === 'tab') this.tabs.add(v); if (kind === 'market') this.markets.add(v); }
-};
-
-/** Reads the published Google Sheet (CSV) of visits and renders the admin panel. */
-const VisitLog = {
-  /** Pre-filled Google Form link -> form submit URL + field ids. */
-  parsePrefill(link) {
-    let u; try { u = new URL(link.trim()); } catch { throw new Error('Box A isn’t a web link. Copy it again from “Get pre-filled link”.'); }
-    const m = u.pathname.match(/\/forms\/d\/e\/([^/]+)\//);
-    if (!/docs\.google\.com$/.test(u.hostname) || !m) throw new Error('Box A must be the Google Form pre-filled link (it starts with https://docs.google.com/forms/d/e/).');
-    const want = { name: 'name', id: 'id', event: 'event', details: 'details' }, fields = {};
-    for (const [k, v] of u.searchParams) if (/^entry\.\d+$/.test(k)) { const key = Object.keys(want).find(w => want[w] === v.trim().toLowerCase()); if (key) fields[key] = k; }
-    const miss = Object.keys(want).filter(k => !fields[k]);
-    if (miss.length) throw new Error(`The link doesn’t have the answers ${miss.map(x => '“' + want[x] + '”').join(', ')}. In “Get pre-filled link”, type exactly: name, id, event, details — then Get link → Copy link.`);
-    return { formUrl: `https://docs.google.com/forms/d/e/${m[1]}/formResponse`, fields, prefill: link.trim() };
-  },
-  checkCsv(link) {
-    let u; try { u = new URL(link.trim()); } catch { throw new Error('Box B isn’t a web link.'); }
-    if (!/docs\.google\.com$/.test(u.hostname) || !/\/pub/.test(u.pathname)) throw new Error('Box B must be the “Publish to web” link of the sheet (it contains /pub).');
-    if (u.searchParams.get('output') !== 'csv') throw new Error('In “Publish to web”, choose “Comma-separated values (.csv)” in the second dropdown, then copy the link again.');
-    return u.toString();
-  },
-  async fetch(url) {
-    let r;
-    try { r = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), { cache: 'no-store' }); }
-    catch (e) { throw new Error(`Couldn’t reach Google (${e.message}).`); }
-    if (!r.ok) throw new Error(`Google answered HTTP ${r.status}. Check the sheet is still published to the web as CSV.`);
-    const text = await r.text();
-    if (/^\s*</.test(text)) throw new Error('Google returned a web page instead of CSV — publish the sheet as “Comma-separated values (.csv)”.');
-    return text;
-  },
-  csv(text) {
-    const rows = []; let row = [], f = '', q = false;
-    for (let i = 0; i < text.length; i++) {
-      const c = text[i];
-      if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
-      else if (c === '"') q = true;
-      else if (c === ',') { row.push(f); f = ''; }
-      else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; }
-      else f += c;
-    }
-    if (f || row.length) { row.push(f); rows.push(row); }
-    return rows.filter(r => r.some(x => x.trim()));
-  },
-  parse(text) {
-    const rows = this.csv(text); if (!rows.length) return [];
-    const head = rows[0].map(h => h.trim().toLowerCase());
-    const col = n => head.findIndex(h => h.includes(n));
-    const ci = { ts: col('timestamp'), name: col('name'), id: col('visitor'), ev: col('event'), det: col('detail') };
-    if (ci.id < 0 || ci.det < 0) throw new Error('The sheet doesn’t have “Visitor ID” and “Details” columns. Check the 4 question titles in the form.');
-    return rows.slice(1).map(r => {
-      const d = {}; for (const part of (r[ci.det] || '').split(';')) { const k = part.indexOf('='); if (k > 0) d[part.slice(0, k).trim()] = part.slice(k + 1).trim(); }
-      const t = d.t ? new Date(d.t) : null;
-      return { name: (r[ci.name] || '').trim() || 'Anonymous', id: (r[ci.id] || '').trim(), event: (r[ci.ev] || '').trim(), d, t: t && !isNaN(t) ? t : null, raw: r[ci.ts] };
-    }).filter(x => x.id && x.t);
-  },
-  render(log) {
-    const rows = log.rows, now = Date.now(), day = 864e5;
-    const opens = rows.filter(r => /visit$/.test(r.event) && r.event !== 'visit summary');
-    const sums = rows.filter(r => r.event === 'visit summary');
-    const people = new Map();
-    for (const r of rows.slice().sort((a, b) => a.t - b.t)) {
-      const p = people.get(r.id) || { id: r.id, name: '', first: r.t, last: r.t, visits: 0, mins: 0, device: '', browser: '', tabs: new Set(), markets: new Set(), tz: '', lang: '', ips: new Set(), ip: '', place: '', isp: '', events: [] };
-      if (r.name && r.name !== 'Anonymous') p.name = r.name;
-      if (r.d.ip) { p.ip = r.d.ip; p.ips.add(r.d.ip); }
-      if (r.d.city || r.d.country) p.place = [r.d.city, r.d.region, r.d.country].filter(Boolean).join(', ');
-      if (r.d.isp) p.isp = r.d.isp;
-      p.last = r.t; p.events.push(r);
-      if (/visit$/.test(r.event) && r.event !== 'visit summary') p.visits++;
-      if (r.event === 'visit summary') { p.mins += +r.d.mins || 0; (r.d.tabs || '').split(',').map(x => x.trim()).filter(Boolean).forEach(x => p.tabs.add(x)); (r.d.markets || '').split(',').map(x => x.trim()).filter(Boolean).forEach(x => p.markets.add(x)); }
-      if (r.d.device) { p.device = r.d.device; p.browser = r.d.browser || ''; p.tz = r.d.tz || ''; p.lang = r.d.lang || ''; }
-      people.set(r.id, p);
-    }
-    const nick = S().settings.visitorNames || {};
-    for (const p of people.values()) p.label = nick[p.id] || p.name || (p.place ? `Visitor from ${p.place.split(',')[0]}` : `Visitor ${p.id.slice(0, 4)}`);
-    const list = [...people.values()].filter(p => p.visits || p.mins).sort((a, b) => b.last - a.last);
-    const q = (UI._vq || '').toLowerCase();
-    const shown = q ? list.filter(p => [p.label, p.device, p.id, p.place, p.isp, ...p.ips].join(' ').toLowerCase().includes(q)) : list;
-    const inDays = (arr, n) => arr.filter(r => now - r.t < n * day);
-    const today0 = new Date(); today0.setHours(0, 0, 0, 0);
-    const visitsToday = opens.filter(r => r.t >= today0).length;
-    const avgMin = sums.length ? sums.reduce((a, r) => a + (+r.d.mins || 0), 0) / sums.length : NaN;
-    const uniq30 = new Set(inDays(opens, 30).map(r => r.id)).size;
-    const returning = list.filter(p => p.visits > 1).length;
-    // visits per day, last 30 days
-    const days = []; for (let k = 29; k >= 0; k--) { const d0 = new Date(today0.getTime() - k * day); days.push({ d: d0, n: 0, u: new Set() }); }
-    for (const r of opens) { const k = Math.floor((r.t - (today0.getTime() - 29 * day)) / day); if (k >= 0 && k < 30) { days[k].n++; days[k].u.add(r.id); } }
-    const maxN = Math.max(1, ...days.map(d => d.n));
-    const W = 600, H = 150, bw = W / 30;
-    const bars = days.map((d, k) => { const h = (d.n / maxN) * (H - 24); return `<g><title>${d.d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}: ${d.n} visit${d.n === 1 ? '' : 's'}, ${d.u.size} ${d.u.size === 1 ? 'person' : 'people'}</title><rect x="${k * bw + 2}" y="${H - 16 - h}" width="${bw - 4}" height="${Math.max(h, d.n ? 2 : 0)}" rx="2" fill="${k === 29 ? '#34d399' : '#38bdf8'}" opacity="${k === 29 ? 1 : .75}"/></g>`; }).join('');
-    const ticks = [0, 7, 14, 21, 29].map(k => `<text x="${k * bw + bw / 2}" y="${H - 2}" text-anchor="middle" font-size="10" fill="#64748b">${days[k].d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</text>`).join('');
-    const kpi = (l, v, sub) => `<div class="rounded-xl border border-line bg-panel p-3"><p class="text-[11px] uppercase tracking-wide text-slate-400">${l}</p><p class="mt-1 text-xl font-semibold num">${v}</p><p class="text-[11px] text-slate-500">${sub}</p></div>`;
-    const when = t => { const s = (now - t) / 1000; return s < 3600 ? `${Math.max(1, Math.round(s / 60))} min ago` : s < 86400 ? `${Math.round(s / 3600)} h ago` : t.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: t.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' }); };
-    const recent = rows.slice().sort((a, b) => b.t - a.t).slice(0, 40);
-    const evLabel = { 'first visit': 'First visit', visit: 'Visit', 'visit summary': 'Left', test: 'Test' };
-    return `<div class="flex flex-wrap items-center gap-2 mb-3">
-        <div><h2 class="text-base font-semibold">Visitors</h2><p class="text-xs text-slate-400">From your Google Sheet · read ${log.at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} · Google refreshes the published sheet about every 5 minutes · IP and location are looked up automatically</p></div>
-        <div class="ml-auto flex gap-2"><button type="button" data-action="vlRefresh" class="h-8 px-3 rounded-lg border border-line text-xs hover:bg-panel2">Refresh</button><button type="button" data-action="vlEdit" class="h-8 px-3 rounded-lg border border-line text-xs hover:bg-panel2">Log settings</button></div>
-      </div>
-      ${!Shared.cfg?.visitorLog ? '<p class="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-200">Visitors’ apps aren’t logging yet — go to Settings → Publish to all users.</p>' : ''}
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-        ${kpi('People, last 30 days', fmt.num(uniq30), `${fmt.num(list.length)} ever · ${fmt.num(returning)} came back`)}
-        ${kpi('Visits today', fmt.num(visitsToday), `${fmt.num(inDays(opens, 7).length)} in the last 7 days`)}
-        ${kpi('Average visit', Number.isFinite(avgMin) ? (avgMin < 1 ? '<1 min' : `${avgMin.toFixed(avgMin < 10 ? 1 : 0)} min`) : '—', `${fmt.num(sums.length)} visits with a length`)}
-        ${kpi('Total visits', fmt.num(opens.length), list[0] ? `Latest: ${U.esc(list[0].label)}, ${when(list[0].last)}` : 'None yet')}
-      </div>
-      <div class="mt-4 rounded-xl border border-line bg-panel p-3">
-        <p class="text-sm font-medium">Visits per day <span class="text-xs font-normal text-slate-500">— last 30 days, today in green</span></p>
-        <svg viewBox="0 0 ${W} ${H}" class="mt-2 w-full h-36" role="img" aria-label="Bar chart of visits per day over the last 30 days">${bars}${ticks}</svg>
-      </div>
-      <div class="mt-4 rounded-xl border border-line bg-panel overflow-x-auto scroll-thin">
-        <div class="flex flex-wrap items-center gap-2 px-3 pt-3"><p class="text-sm font-medium">Who visited <span class="text-xs font-normal text-slate-500">(${fmt.num(shown.length)}, most recent first)</span></p>
-          <input id="vlSearch" type="search" value="${U.esc(UI._vq || '')}" placeholder="Search name, IP, place, device" class="ml-auto h-8 w-48 rounded-lg bg-ink border border-line px-2 text-xs text-slate-100"></div>
-        <table class="mt-2 w-full text-sm">
-          <thead class="text-left text-[11px] uppercase tracking-wide text-slate-400 border-b border-line"><tr><th scope="col" class="px-3 py-2">Visitor</th><th scope="col" class="hidden sm:table-cell px-3 py-2">IP address</th><th scope="col" class="px-3 py-2">Last visit</th><th scope="col" class="px-3 py-2 text-right">Visits</th><th scope="col" class="hidden sm:table-cell px-3 py-2 text-right">Time spent</th><th scope="col" class="hidden md:table-cell px-3 py-2">Device</th><th scope="col" class="hidden lg:table-cell px-3 py-2">Used</th><th scope="col" class="hidden md:table-cell px-3 py-2">First visit</th></tr></thead>
-          <tbody class="divide-y divide-line/70">${shown.length ? shown.slice(0, 300).map(p => `<tr class="row-click" tabindex="0" data-vid="${U.esc(p.id)}">
-            <td class="px-3 py-2.5"><p class="font-medium text-slate-100">${U.esc(p.label)}</p><p class="text-[11px] text-slate-500">${U.esc(p.place || p.tz || 'Location unknown')}${p.isp ? ' · ' + U.esc(p.isp) : ''}</p></td>
-            <td class="hidden sm:table-cell px-3 py-2.5 font-mono text-xs text-slate-300">${U.esc(p.ip || '—')}${p.ips.size > 1 ? `<p class="font-sans text-[10px] text-slate-500">+${p.ips.size - 1} other IP${p.ips.size > 2 ? 's' : ''}</p>` : ''}</td>
-            <td class="px-3 py-2.5 whitespace-nowrap text-slate-300">${when(p.last)}</td>
-            <td class="px-3 py-2.5 text-right num">${p.visits}</td>
-            <td class="hidden sm:table-cell px-3 py-2.5 text-right num text-slate-300">${p.mins ? (p.mins < 1 ? '<1 min' : Math.round(p.mins) + ' min') : '—'}</td>
-            <td class="hidden md:table-cell px-3 py-2.5 text-slate-300 whitespace-nowrap">${U.esc(p.device)}${p.browser ? ` · ${U.esc(p.browser)}` : ''}</td>
-            <td class="hidden lg:table-cell px-3 py-2.5 text-xs text-slate-400">${U.esc([...p.tabs].join(', ') || '—')}${p.markets.size ? ` · ${U.esc([...p.markets].join(', '))}` : ''}</td>
-            <td class="hidden md:table-cell px-3 py-2.5 whitespace-nowrap text-slate-400">${p.first.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
-          </tr>${UI._vopen === p.id ? `<tr><td colspan="8" class="px-3 pb-3 bg-ink/60">
-            <form class="vlName pt-3 flex flex-wrap items-center gap-2" data-id="${U.esc(p.id)}"><label class="text-xs text-slate-400">Name this visitor (only you see it)</label><input name="n" value="${U.esc(nick[p.id] || '')}" maxlength="40" placeholder="e.g. Ravi" class="h-8 w-44 rounded-lg bg-panel border border-line px-2 text-xs text-slate-100"><button class="h-8 px-3 rounded-lg border border-line text-xs hover:bg-panel2">Save</button></form>
-            <p class="mt-1 text-[11px] text-slate-500">Browser ID ${U.esc(p.id)} · IPs seen: ${U.esc([...p.ips].join(', ') || '—')}</p>
-            <p class="pt-2 text-xs text-slate-400">Visit history (newest first)</p><ul class="mt-1 text-xs text-slate-300 space-y-0.5">${p.events.slice().reverse().slice(0, 50).map(r => `<li>${r.t.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · ${evLabel[r.event] || U.esc(r.event)}${r.event === 'visit summary' ? ` after ${U.esc(r.d.mins)} min${r.d.tabs ? ' · ' + U.esc(r.d.tabs) : ''}` : r.d.device ? ` · ${U.esc(r.d.device)}, ${U.esc(r.d.browser || '')}` : ''}${r.d.ip ? ` · ${U.esc(r.d.ip)}` : ''}${r.d.city ? ` · ${U.esc(r.d.city)}` : ''}</li>`).join('')}</ul></td></tr>` : ''}`).join('') : '<tr><td colspan="8" class="px-3 py-6 text-center text-slate-400">No visits recorded yet. Visitors are logged once you’ve published the log settings (Settings → Publish to all users).</td></tr>'}</tbody>
-        </table>
-      </div>
-      <details class="mt-4 rounded-xl border border-line bg-panel">
-        <summary class="cursor-pointer px-4 py-3 text-sm font-medium">Latest activity (${recent.length})</summary>
-        <ul class="border-t border-line divide-y divide-line/60 text-xs">${recent.map(r => `<li class="px-4 py-2 flex flex-wrap gap-x-3"><span class="text-slate-500 w-36 shrink-0">${r.t.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span><span class="text-slate-200 font-medium">${U.esc(people.get(r.id)?.label || r.name)}</span><span class="text-slate-500 font-mono">${U.esc(r.d.ip || '')}</span><span class="text-slate-400">${evLabel[r.event] || U.esc(r.event)}${r.event === 'visit summary' ? ` after ${U.esc(r.d.mins)} min` : ''}</span><span class="text-slate-500">${U.esc(r.d.device || '')}</span></li>`).join('')}</ul>
-      </details>
-      <p class="mt-3 text-[11px] text-slate-500">One row per browser. An IP address shows the network, not the person: people on the same Wi-Fi share one, phones change IPs often, and VPNs hide the real location. Location is approximate (city level) and comes from GeoJS. Visits from the admin page aren’t logged. Visitors see a privacy note at the bottom of the app.</p>`;
-  }
 };
 
 /* =====================================================================
@@ -2373,9 +2370,10 @@ const App = {
     if (st.autoTrackA) for (const r of rows.filter(r => r.sc.tier === 'A')) if (Paper.add(r, 'auto', true)) added++;
     const fills = Paper.evaluate(true);
     const wsig = Watch.evaluate([code], true);
+    const psig = Portfolio.evaluate([code], true);
     Store.persist();
     Store.set({ paper: S().paper, alerts: S().alerts });
-    return [...msg, `${added} auto-tracked`, `${fills} entry fill(s)`, `${wsig} strategy-watch signal(s)`].join(' · ');
+    return [...msg, `${added} auto-tracked`, `${fills} entry fill(s)`, `${wsig} strategy-watch signal(s)`, `${psig} portfolio alert(s)`].join(' · ');
   }
 };
 
@@ -2654,17 +2652,18 @@ const UI = {
   tabs() {
     if (!Admin.is && ['settings', 'visitors'].includes(S().tab)) S().tab = 'watchlist';
     const t = S().tab;
-    Visit.track('tab', { watchlist: 'Watchlist', watch: 'Strategy watch', backtest: 'Backtest', paper: 'Paper log', pipeline: 'Pipeline', settings: 'Settings', visitors: 'Visitors' }[t]);
+    Visit.track('tab', { watchlist: 'Watchlist', portfolio: 'Portfolio', watch: 'Strategy watch', backtest: 'Backtest', paper: 'Paper log', pipeline: 'Pipeline', settings: 'Settings', visitors: 'Visitors' }[t]);
     document.querySelectorAll('[role=tab]').forEach(b => {
       const on = b.dataset.tab === t;
       b.setAttribute('aria-selected', on);
       b.className = `tab shrink-0 px-3 py-2.5 text-sm border-b-2 -mb-px ${on ? 'border-emerald-400 text-slate-100 font-medium' : 'border-transparent text-slate-400 hover:text-slate-200'}`;
     });
-    for (const k of ['watchlist', 'watch', 'backtest', 'paper', 'pipeline', 'visitors', 'settings']) { const sec = $('tab-' + k); if (sec) sec.hidden = k !== t; }
-    if (t === 'visitors') UI.visitors();
+    for (const k of ['watchlist', 'portfolio', 'watch', 'backtest', 'paper', 'pipeline', 'visitors', 'settings']) { const sec = $('tab-' + k); if (sec) sec.hidden = k !== t; }
+    
     if (t === 'watch') UI.watchForm();
+    if (t === 'portfolio') UI.portfolioOpen();
     if (t === 'watchlist') UI.results();
-    if (t === 'settings') UI.settings();
+    
     if (t === 'paper') UI.paper();
     if (t === 'pipeline') UI.pipeline();
     if (t === 'backtest') UI.btForm();
@@ -2999,7 +2998,7 @@ const UI = {
   alertsList() {
     const a = S().alerts, el = $('alertsList');
     if (!a.length) { el.innerHTML = '<div class="text-center py-16"><p class="text-slate-300 font-medium">No alerts yet</p><p class="text-sm text-slate-500 mt-1">You will be notified when a new A-tier setup appears or a tracked pick hits its entry zone.</p></div>'; return; }
-    const icon = { newA: ['★', 'text-emerald-300'], entry: ['➜', 'text-sky-300'], watch: ['◆', 'text-violet-300'], system: ['ℹ', 'text-slate-400'] };
+    const icon = { newA: ['★', 'text-emerald-300'], entry: ['➜', 'text-sky-300'], watch: ['◆', 'text-violet-300'], portfolio: ['💼', 'text-amber-300'], system: ['ℹ', 'text-slate-400'] };
     el.innerHTML = a.map(x => {
       const row = x.sym && S().results.find(r => r.cd.sym === x.sym && (!x.m || r.m === x.m));
       return `<div class="rounded-lg border ${x.read ? 'border-line' : 'border-emerald-500/30 bg-emerald-500/5'} p-3 flex gap-3">
@@ -3015,43 +3014,6 @@ const UI = {
     if (Admin.is) { el.innerHTML = '<span class="text-amber-300/90">Admin copy</span> · visits from this page aren’t logged.'; return; }
     if (!Visit.form()) { el.innerHTML = ''; return; }
     el.textContent = 'Privacy: visits to this app are logged for its owner — IP address, approximate location (city level), device, browser, time and the parts of the app used. Nothing is shared or sold.';
-  },
-
-  /* ---------- Visitors (admin) ---------- */
-  async visitors(refresh = false) {
-    const el = $('visitorsView'); if (!el || !Admin.is) return;
-    const vl = S().settings.visitorLog;
-    if (!vl?.formUrl || !vl?.csvUrl) { el.innerHTML = UI.visitorsSetup(); return; }
-    if (refresh || !UI._vlog || UI._vlog.url !== vl.csvUrl) {
-      el.innerHTML = `<div class="rounded-xl border border-line bg-panel p-4 space-y-3"><div class="grid grid-cols-2 md:grid-cols-4 gap-3">${Array(4).fill('<div class="skeleton h-16"></div>').join('')}</div><div class="skeleton h-48"></div><p class="text-xs text-slate-500">Reading your visitor log…</p></div>`;
-      try { UI._vlog = { url: vl.csvUrl, at: new Date(), rows: VisitLog.parse(await VisitLog.fetch(vl.csvUrl)) }; }
-      catch (e) { el.innerHTML = `<div class="rounded-xl border border-rose-500/30 bg-panel p-4"><p class="font-medium text-rose-300">Couldn’t read the visitor log</p><p class="mt-1 text-sm text-slate-300">${U.esc(e.message)}</p><div class="mt-3 flex gap-2"><button type="button" data-action="vlRefresh" class="h-9 px-3 rounded-lg border border-line text-sm hover:bg-panel2">Try again</button><button type="button" data-action="vlEdit" class="h-9 px-3 rounded-lg border border-line text-sm hover:bg-panel2">Change log settings</button></div></div>`; return; }
-    }
-    el.innerHTML = VisitLog.render(UI._vlog);
-  },
-  visitorsSetup() {
-    const vl = S().settings.visitorLog || {};
-    const step = (n, t, b) => `<li class="flex gap-3"><span class="shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold inline-flex items-center justify-center">${n}</span><div><p class="font-medium text-slate-100">${t}</p><div class="mt-1 text-slate-400 space-y-1">${b}</div></div></li>`;
-    const k = s => `<span class="text-slate-200">${s}</span>`;
-    return `<div class="rounded-xl border border-emerald-500/30 bg-panel p-4">
-      <h2 class="text-base font-semibold">Set up your visitor log (one time, about 10 minutes, on a laptop)</h2>
-      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Your app has no server, so visits are recorded with a free Google Form whose answers collect in a Google Sheet. The app fills in the form quietly on each visit; this panel reads the sheet. Use the Google account you want to keep the log in.</p>
-      <ol class="mt-4 space-y-4 text-sm">
-        ${step(1, 'Create the form', `<p class="text-xs text-slate-500">Already set up earlier? Nothing changes — skip to the Save step.</p><p>Go to ${k('forms.google.com')} → click ${k('Blank form')}. Title it ${k('Scanner visits')}.</p><p>Add 4 questions, each of type ${k('Short answer')}, titled exactly: ${k('Name')}, ${k('Visitor ID')}, ${k('Event')}, ${k('Details')}. (Click ${k('+')} on the right to add each one. Leave them all not required.)</p><p>Click ${k('Settings')} (top) → ${k('Responses')} → make sure ${k('Collect email addresses')} is ${k('Do not collect')} and ${k('Limit to 1 response')} is off.</p>`)}
-        ${step(2, 'Copy the pre-filled link', `<p>Click the ${k('⋮')} menu (top right) → ${k('Get pre-filled link')}. Type these answers: Name = ${k('name')}, Visitor ID = ${k('id')}, Event = ${k('event')}, Details = ${k('details')}.</p><p>Click ${k('Get link')} → ${k('Copy link')}, and paste it in box A below.</p>`)}
-        ${step(3, 'Send the answers to a Google Sheet', `<p>Back in the form, click the ${k('Responses')} tab → ${k('Link to Sheets')} → ${k('Create a new spreadsheet')} → ${k('Create')}. The sheet opens.</p>`)}
-        ${step(4, 'Publish the sheet so this panel can read it', `<p>In the sheet: ${k('File')} → ${k('Share')} → ${k('Publish to web')}. In the first dropdown choose ${k('Form responses 1')}; in the second choose ${k('Comma-separated values (.csv)')}. Click ${k('Publish')} → ${k('OK')}, then copy the link and paste it in box B.</p><p class="text-xs text-amber-200/80">Anyone who has this exact link can read the log, so keep it private. It’s stored only on this device and is never put in the public app.</p>`)}
-        ${step(5, 'Save, then publish', `<p>Click ${k('Save')} below, then ${k('Send a test visit')}. Finally go to ${k('Settings')} → ${k('Publish to all users')} so visitors’ apps start logging.</p>`)}
-      </ol>
-      <form id="vlForm" class="mt-5 grid gap-3" novalidate>
-        <label class="text-xs text-slate-400">A — Pre-filled form link<input id="vlForm1" value="${U.esc(vl.prefill || '')}" placeholder="https://docs.google.com/forms/d/e/…/viewform?usp=pp_url&entry.…" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
-        <label class="text-xs text-slate-400">B — Published sheet link (.csv)<input id="vlCsv" value="${U.esc(vl.csvUrl || '')}" placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?gid=…&output=csv" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
-        <div class="flex flex-wrap gap-2"><button type="submit" class="h-9 px-4 rounded-lg bg-emerald-500 text-ink text-sm font-semibold hover:bg-emerald-400">Save</button>
-          ${vl.formUrl ? '<button type="button" data-action="vlTest" class="h-9 px-3 rounded-lg border border-line text-sm hover:bg-panel2">Send a test visit</button>' : ''}
-          ${vl.formUrl && vl.csvUrl ? '<button type="button" data-action="vlCancel" class="h-9 px-3 rounded-lg border border-line text-sm hover:bg-panel2">Back to the log</button>' : ''}</div>
-        <p id="vlErr" class="text-xs text-rose-300 empty:hidden break-words" role="alert"></p>
-      </form>
-    </div>`;
   },
 
   /* ---------- Strategy watch tab ---------- */
@@ -3103,6 +3065,106 @@ const UI = {
           ${st ? `<p class="mt-1.5 text-[11px] text-slate-500">Backtest: ${st.n} trade${st.n === 1 ? '' : 's'} · ${fmt.prob(st.winRate)} won · ${fmt.pct(st.total, 1)} total · buy &amp; hold ${fmt.pct(e.res.bh.ret, 1)}${st.n < 3 ? ' · <span class="text-amber-300/80">too few trades to trust</span>' : ''}</p>` : ''}
         </li>`; }).join('')}</ul>
       <p class="mt-3 text-[11px] text-slate-500">Alerts appear in the bell menu, as browser notifications and on your webhook if set (Settings → Alerts). The app checks when it scans, so it needs to be open (or opened) after the nightly data update. Not investment advice.</p>`;
+  },
+
+  /* ---------- Portfolio tab ---------- */
+  portfolioOpen() {
+    UI.portfolioForm();
+    Portfolio.evaluate(MARKET_CODES.filter(c => S().mkts[c]?.ds), true);
+    const need = [...new Set(Portfolio.list().map(h => h.m))].filter(c => !S().mkts[c]?.ds);
+    if (need.length && !S().busy) App.run({ codes: need, reason: 'Loading markets for your portfolio' }).then(() => UI.portfolioForm());
+  },
+  portfolioForm() {
+    const sel = $('pMarket');
+    if (!sel.options.length) {
+      sel.innerHTML = MARKET_CODES.map(c => `<option value="${c}">${MARKETS[c].flag} ${MARKETS[c].name}</option>`).join('');
+      sel.value = view()[0];
+    }
+    const m = sel.value, ds = S().mkts[m]?.ds, k = ds ? `${ds.key}|${ds.stamp || ds.cursor}` : '';
+    $('pCost').placeholder = `per share, ${MARKETS[m].ccy}`;
+    if ($('pList').dataset.k !== k) {
+      $('pList').innerHTML = ds ? ds.tickers.filter(t => !t.excluded).sort((a, b) => a.sym.localeCompare(b.sym)).map(t => `<option value="${U.esc(t.sym)}">${U.esc(t.name)}</option>`).join('') : '';
+      $('pList').dataset.k = k;
+    }
+    $('pCheck').disabled = S().busy;
+    UI.portfolio();
+  },
+  portfolio() {
+    const el = $('portfolioView'); if (!el) return;
+    const n = Portfolio.actionCount(), tab = document.querySelector('[data-tab="portfolio"]');
+    tab.innerHTML = `Portfolio${n ? ` <span class="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-[10px] font-bold text-white">${n}</span>` : ''}`;
+    if (S().tab !== 'portfolio') return;
+    const list = Portfolio.list(), V = Portfolio.VERDICT;
+    if (!list.length) {
+      el.innerHTML = `<div class="rounded-xl border border-dashed border-line bg-panel p-10 text-center"><p class="text-3xl" aria-hidden="true">💼</p><p class="mt-2 font-medium text-slate-200">No holdings yet</p>
+        <p class="mt-1 text-sm text-slate-400 max-w-lg mx-auto">Add a stock you own with the form above: pick the market, type the ticker, the number of shares and your average buy price. The buy date is optional — it lets the trailing stop start from the day you bought.</p></div>`;
+      return;
+    }
+    const items = list.map(h => ({ h, e: Portfolio.state[h.id] || { v: 'wait', text: 'Not checked yet — press “Check now”.' } }))
+      .sort((a, b) => V[a.e.v].order - V[b.e.v].order || a.h.sym.localeCompare(b.h.sym));
+    const tone = x => !Number.isFinite(x) || x === 0 ? 'text-slate-300' : x > 0 ? 'text-emerald-300' : 'text-rose-300';
+    const sums = MARKET_CODES.map(m => {
+      const its = items.filter(i => i.h.m === m && Number.isFinite(i.e.px)); if (!its.length) return null;
+      const val = its.reduce((a, i) => a + i.e.value, 0), cost = its.reduce((a, i) => a + i.e.cost, 0), dAbs = its.reduce((a, i) => a + i.e.value * i.e.day / (1 + i.e.day), 0);
+      return { M: MARKETS[m], n: its.length, val, pl: val - cost, plPct: cost ? val / cost - 1 : NaN, dAbs, day: val - dAbs ? dAbs / (val - dAbs) : NaN };
+    }).filter(Boolean);
+    const cnt = k => items.filter(i => i.e.v === k).length;
+    const money = (x, M) => Number.isFinite(x) ? (x < 0 ? '−' : '') + M.sym + Math.abs(x).toLocaleString(M.locale, { maximumFractionDigits: Math.abs(x) >= 1000 ? 0 : 2 }) : '—';
+    const icon = { sell: ['▼', 'text-rose-300'], buy: ['▲', 'text-emerald-300'], warn: ['!', 'text-amber-300 font-bold'], good: ['✓', 'text-emerald-300/80'], info: ['•', 'text-slate-500'], event: ['◆', 'text-sky-300'] };
+    const lead = { sell: 'text-rose-200', buy: 'text-emerald-200', review: 'text-amber-200', hold: 'text-slate-200', wait: 'text-slate-400' };
+    const groups = ['Strategies', 'Trend', 'Your position', 'Fundamentals', 'Events'];
+    el.innerHTML = `
+      <div class="grid gap-3 ${sums.length > 1 ? 'md:grid-cols-' + Math.min(3, sums.length) : ''}">${sums.map(s => `
+        <div class="rounded-xl border border-line bg-panel p-3">
+          <p class="text-xs text-slate-400">${flagTag(s.M)} ${s.M.name} · ${s.n} holding${s.n === 1 ? '' : 's'} · ${s.M.ccy}</p>
+          <div class="mt-1 grid grid-cols-3 gap-2">
+            <div><p class="text-[11px] text-slate-500">Value</p><p class="num font-semibold">${money(s.val, s.M)}</p></div>
+            <div><p class="text-[11px] text-slate-500">Gain / loss</p><p class="num font-semibold ${tone(s.pl)}">${money(s.pl, s.M)} <span class="text-xs">${fmt.pct(s.plPct, 1)}</span></p></div>
+            <div><p class="text-[11px] text-slate-500">Today</p><p class="num font-semibold ${tone(s.dAbs)}">${money(s.dAbs, s.M)} <span class="text-xs">${fmt.pct(s.day, 1)}</span></p></div>
+          </div></div>`).join('')}</div>
+      <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
+        ${['sell', 'buy', 'review', 'hold', 'wait'].filter(k => cnt(k)).map(k => `<span class="px-2 py-0.5 rounded-md ring-1 ${V[k].badge} font-semibold">${cnt(k)} ${V[k].label}</span>`).join('')}
+        <span class="text-slate-500">· checked after every scan${S().settings.alerts.portfolio ? '' : ' · <span class="text-amber-300">portfolio alerts are off (bell menu → Alert options)</span>'}</span>
+        <button type="button" data-action="pfExport" class="ml-auto inline-flex items-center gap-1 h-8 px-2.5 rounded-lg border border-line hover:bg-panel2 text-slate-300">Export CSV</button>
+      </div>
+      <ul class="mt-3 space-y-2">${items.map(({ h, e }) => {
+        const M = MARKETS[h.m], ok = Number.isFinite(e.px), vd = V[e.v];
+        const stat = (l, v, cls = '') => `<div><p class="text-[11px] text-slate-500">${l}</p><p class="num text-sm ${cls}">${v}</p></div>`;
+        const by = side => (e.sig || []).filter(s => s.side === side).length;
+        return `<li class="rounded-xl border ${vd.card} bg-panel p-3">
+          <div class="flex flex-wrap items-start gap-x-3 gap-y-2">
+            <div class="min-w-0 flex-1">
+              <p class="font-semibold">${U.esc(h.sym)} <span class="text-xs font-normal text-slate-400">${flagTag(M)} ${M.name}${e.tk ? ' · ' + U.esc(e.tk.name) : ''}</span></p>
+              <p class="text-[11px] text-slate-500 num">${fmt.num(h.qty, h.qty % 1 ? 2 : 0)} shares @ ${fmt.px(h.cost, M)}${h.date ? ` · bought ${fmt.date(h.date)}` : ''}</p>
+            </div>
+            <span class="shrink-0 px-2.5 py-1 rounded-md ring-1 text-xs font-bold tracking-wide ${vd.badge}">${vd.label}</span>
+            <div class="flex items-center gap-1.5 shrink-0">
+              ${ok ? `<button type="button" data-action="btStock" data-m="${h.m}" data-sym="${U.esc(h.sym)}" class="h-7 px-2.5 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Backtest</button>
+              <button type="button" data-action="watchAdd" data-m="${h.m}" data-sym="${U.esc(h.sym)}" data-key="auto" class="h-7 px-2.5 rounded-lg border border-violet-500/40 text-xs text-violet-300 hover:bg-violet-500/10">◆ Watch</button>` : ''}
+              <button type="button" data-action="pfEdit" data-id="${h.id}" class="h-7 px-2.5 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Edit</button>
+              <button type="button" data-action="pfRemove" data-id="${h.id}" class="h-7 w-7 inline-flex items-center justify-center rounded-lg text-slate-500 hover:text-rose-300 hover:bg-rose-500/10" aria-label="Remove ${U.esc(h.sym)} from your portfolio"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </div>
+          </div>
+          ${ok ? `<div class="mt-2 grid grid-cols-2 sm:grid-cols-5 gap-2">
+              ${stat(`Price · ${fmt.dateShort(e.date)}`, `${fmt.px(e.px, M)} <span class="text-xs ${tone(e.day)}">${fmt.pct(e.day, 1)}</span>`)}
+              ${stat('Value', money(e.value, M))}
+              ${stat('Gain / loss', `${money(e.pl, M)} <span class="text-xs">${fmt.pct(e.plPct, 1)}</span>`, tone(e.pl))}
+              ${stat('Trailing stop', fmt.px(e.stop, M), e.px < e.stop ? 'text-rose-300' : '')}
+              ${stat('Best strategy', e.best ? `<span class="font-sans text-xs text-slate-200">${U.esc(e.best.name)}</span>` : '—')}
+            </div>
+            <p class="mt-2 text-sm ${lead[e.v]}">${{ sell: '▼ ', buy: '▲ ', review: '! ' }[e.v] || ''}${U.esc(e.text)}</p>
+            <div class="mt-2 flex flex-wrap gap-1.5 text-[11px]">
+              ${(e.ma || []).map(z => { const up = z.st === 'up' || z.st === 'above'; return `<span class="px-1.5 py-0.5 rounded ring-1 ${up ? 'ring-emerald-500/30 text-emerald-300' : 'ring-rose-500/30 text-rose-300'}">${z.l} ${up ? '▲' : '▼'}${z.st === 'up' || z.st === 'down' ? ' today' : ''}</span>`; }).join('')}
+              ${Number.isFinite(e.rsi) ? `<span class="px-1.5 py-0.5 rounded ring-1 ring-line text-slate-300">RSI ${e.rsi.toFixed(0)}</span>` : ''}
+              ${e.fs && !e.fs.missing ? `<span class="px-1.5 py-0.5 rounded ring-1 ring-line text-slate-300">Fundamentals ${Math.round(e.fs.score)}/100</span>` : ''}
+            </div>
+            <details class="mt-2" ${['sell', 'buy', 'review'].includes(e.v) ? 'open' : ''}>
+              <summary class="cursor-pointer text-xs text-slate-300">All signals (${e.sig.length}) · <span class="text-rose-300">${by('sell')} sell</span> · <span class="text-emerald-300">${by('buy')} buy</span> · <span class="text-amber-300">${by('warn')} caution</span></summary>
+              <div class="mt-2 grid md:grid-cols-2 gap-x-6 gap-y-2">${groups.map(g => { const ss = e.sig.filter(s => s.group === g); return ss.length ? `<div><p class="text-[11px] uppercase tracking-wide text-slate-500">${g}</p>
+                <ul class="mt-1 space-y-1">${ss.map(s => `<li class="flex gap-2 text-xs text-slate-300"><span class="${icon[s.side][1]} w-3 shrink-0 text-center" aria-hidden="true">${icon[s.side][0]}</span><span>${U.esc(s.text)}</span></li>`).join('')}</ul></div>` : ''; }).join('')}</div>
+            </details>` : `<p class="mt-2 text-sm text-slate-400">${U.esc(e.text)}</p>`}
+        </li>`; }).join('')}</ul>
+      <p class="mt-3 text-[11px] text-slate-500 leading-relaxed"><b class="text-slate-400">How the verdict is decided.</b> <span class="text-rose-300">SELL</span> when strong sell signals — the stock’s best strategy saying sell, the trailing stop being hit, a death cross, a close below the 50-day average, or a loss past 15% — outweigh the buy signals. <span class="text-emerald-300">BUY MORE</span> when strong buy signals fire and there are no strong sell signals. <span class="text-amber-300">REVIEW</span> when there is a weaker sell signal or several cautions (weak fundamentals, downtrend, overbought). Otherwise <span class="text-sky-300">HOLD</span>. The trailing stop is the highest close since you bought (or of the last month) minus 3× the average daily range. Your holdings are saved on this device only. Not investment advice.</p>`;
   },
 
   /* ---------- My stocks panel ---------- */
@@ -3384,204 +3446,7 @@ const UI = {
   },
 
   /* ---------- Settings ---------- */
-  settings() {
-    const st = S().settings, el = $('settingsView');
-    const inp = (id, val, attrs = '') => `<input id="${id}" value="${U.esc(val)}" ${attrs} class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 num">`;
-    const card = (title, desc, body) => `<section class="rounded-xl border border-line bg-panel p-4"><h2 class="font-semibold">${title}</h2>${desc ? `<p class="text-xs text-slate-400 mt-0.5">${desc}</p>` : ''}<div class="mt-3">${body}</div></section>`;
-    const dm = view()[0];
-    const site = { owner: S().settings.site?.owner || S().settings.feed.owner || '', repo: S().settings.site?.repo || 'scanner-app' }, pub = Shared.cfg?.published;
-    const adminCards = `<div class="mb-6">
-      <section class="rounded-xl border border-emerald-500/40 bg-panel p-4">
-        <h2 class="font-semibold">Publish to all users</h2>
-        <p class="text-xs text-slate-400 mt-0.5">The public app has no Settings. Visitors use the settings you publish here: scoring, tiers, filters, markets and the live data address. ${pub ? `Last published ${new Date(pub).toLocaleString()}.` : '<span class="text-amber-300">Not published yet — visitors see demo data.</span>'}</p>
-        <label class="mt-3 block text-xs text-slate-400">Public data address (folder with meta.json, US.json, CA.json, IN.json)
-          <input id="pubFeed" type="url" value="${U.esc(Shared.publicFeedGuess())}" placeholder="https://raw.githubusercontent.com/your-name/scanner-data/data" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
-        <p class="mt-1 text-[11px] text-slate-500">Works once your scanner-data repo is public. Leave empty to give visitors demo data only. Markets set to “Live feed” below are live for visitors too.</p>
-        <div class="mt-2 grid grid-cols-2 gap-2">
-          <label class="text-xs text-slate-400">Public app repo owner<input id="pubOwner" value="${U.esc(site.owner)}" placeholder="your-name" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
-          <label class="text-xs text-slate-400">Public app repo name<input id="pubRepo" value="${U.esc(site.repo || 'scanner-app')}" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
-        </div>
-        <div class="mt-3 flex flex-wrap gap-2">
-          <button type="button" data-action="testPublic" class="h-9 px-3 rounded-lg border border-line text-sm hover:bg-panel2">Test public data</button>
-          <button type="button" data-action="publishAll" class="h-9 px-4 rounded-lg bg-emerald-500 text-ink text-sm font-semibold hover:bg-emerald-400">Publish to all users</button>
-          <button type="button" data-action="downloadConfig" class="h-9 px-3 rounded-lg border border-line text-sm hover:bg-panel2">Download config.json</button>
-        </div>
-        <p id="pubMsg" class="mt-2 text-xs break-words" aria-live="polite"></p>
-      </section>
-    </div>`;
-    el.innerHTML = adminCards + `<div class="grid lg:grid-cols-2 gap-4">
-      ${card('Scoring weights', 'Composite = Σ component × weight. Weights must total 100. Changing them re-ranks instantly and refits the probability model.', `
-        <div class="space-y-2.5">${COMPONENTS.map(c => `<label class="flex items-center gap-3 text-sm"><span class="flex-1 text-slate-300">${c.label}</span><input type="number" min="0" max="100" step="1" data-weight="${c.key}" value="${st.weights[c.key]}" class="w-20 h-9 rounded-lg bg-ink border border-line px-2 text-right num" aria-label="${c.label} weight"><span class="text-slate-500 text-xs w-3">%</span></label>`).join('')}</div>
-        <p id="wSum" class="mt-2 text-xs" aria-live="polite"></p>`)}
-      ${card('Tiers', 'Tier thresholds on the 0–100 composite score. The list itself is ordered by probability.', `
-        <div class="grid grid-cols-3 gap-2">
-          <label class="text-xs text-slate-400">Tier A ≥${inp('sTA', st.tiers.A, 'type="number" min="1" max="100"')}</label>
-          <label class="text-xs text-slate-400">Tier B ≥${inp('sTB', st.tiers.B, 'type="number" min="1" max="100"')}</label>
-          <label class="text-xs text-slate-400">Tier C ≥${inp('sTC', st.tiers.C, 'type="number" min="1" max="100"')}</label>
-        </div>`)}
-      ${card('Liquidity gates by market', 'In each market’s own currency. Stocks below either gate are never shortlisted.', `
-        <table class="w-full text-sm"><thead class="text-[11px] uppercase tracking-wide text-slate-400 text-left"><tr><th scope="col" class="py-1">Market</th><th scope="col" class="py-1 px-2">Min price</th><th scope="col" class="py-1">Min avg traded value / day</th></tr></thead>
-        <tbody>${MARKET_CODES.map(c => { const M = MARKETS[c]; return `<tr><td class="py-1.5 pr-2 whitespace-nowrap">${flagTag(M)} ${M.name} <span class="text-[11px] text-slate-500">${M.ccy}</span></td>
-          <td class="py-1.5 px-2"><input type="number" min="0" step="0.5" data-gate="${c}:minPrice" value="${st.gates[c].minPrice}" aria-label="${M.name} minimum price in ${M.ccy}" class="w-24 h-9 rounded-lg bg-ink border border-line px-2 text-right num"></td>
-          <td class="py-1.5"><input type="number" min="0" step="100000" data-gate="${c}:minValue" value="${st.gates[c].minValue}" aria-label="${M.name} minimum traded value in ${M.ccy}" class="w-full h-9 rounded-lg bg-ink border border-line px-2 text-right num"></td></tr>`; }).join('')}</tbody></table>
-        <p class="mt-1 text-[11px] text-slate-500">India default ₹5 crore/day; Canada C$1M; USA $2M.</p>`)}
-      ${card('Catalysts & regime', '', `
-        <div class="grid sm:grid-cols-2 gap-3">
-          <label class="text-xs text-slate-400">Earnings inside the window
-            <select id="sEarn" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"><option value="boost">Boost score (catalyst)</option><option value="risk">Flag as risk (no boost)</option></select></label>
-          <label class="text-xs text-slate-400">Catalyst window (sessions)${inp('sWin', st.catalystWindow, 'type="number" min="1" max="30"')}</label>
-          <label class="text-xs text-slate-400 sm:col-span-2">Market-regime filter (each market's index vs its 200-day MA)
-            <select id="sRegime" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"><option value="downgrade">Downgrade tiers when the index is below its 200-day</option><option value="strict">Strict: no longs when the index is below its 200-day</option><option value="off">Off (note only)</option></select></label>
-        </div>`)}
-      ${card('Alerts', 'In-app alerts are always kept. Browser notifications need permission; the webhook receives a JSON POST (Slack/Discord-style incoming webhooks).', `
-        <div class="space-y-2 text-sm">
-          <label class="flex items-center gap-2"><input id="aNewA" type="checkbox" class="accent-emerald-400" ${st.alerts.newA ? 'checked' : ''}> New A-tier setup appears</label>
-          <label class="flex items-center gap-2"><input id="aEntry" type="checkbox" class="accent-emerald-400" ${st.alerts.entry ? 'checked' : ''}> Tracked pick hits its entry zone</label>
-          <label class="flex items-center gap-2"><input id="aWatch" type="checkbox" class="accent-emerald-400" ${st.alerts.watch ? 'checked' : ''}> A watched strategy gives a buy or sell signal (Strategy watch)</label>
-          <label class="flex items-center gap-2"><input id="aBrowser" type="checkbox" class="accent-emerald-400" ${st.alerts.browser ? 'checked' : ''}> Browser notifications</label>
-          <label class="flex items-center gap-2"><input id="sAutoRun" type="checkbox" class="accent-emerald-400" ${st.autoRun ? 'checked' : ''}> Auto-run each market after its close while this page is open</label>
-          <label class="block text-xs text-slate-400 pt-1">Webhook URL (https, optional)
-            <input id="aHook" type="url" value="${U.esc(st.alerts.webhook)}" placeholder="https://hooks.example.com/…" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100"></label>
-          <button type="button" data-action="testAlert" class="h-8 px-3 rounded-lg border border-line text-xs hover:bg-panel2">Send test alert</button>
-        </div>`)}
-      </div>
-      <div class="mt-4 flex flex-wrap items-center gap-3">
-        <button type="button" id="saveSettings" class="h-10 px-5 rounded-lg bg-emerald-500 text-ink font-semibold text-sm hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed">Save & re-rank</button>
-        <button type="button" data-action="resetSettings" class="h-10 px-4 rounded-lg border border-line text-sm hover:bg-panel2">Restore defaults</button>
-        <p id="settingsErr" class="text-xs text-rose-300" role="alert"></p>
-      </div>
 
-      <section id="liveCard" class="mt-6 rounded-xl border border-emerald-500/30 bg-panel p-4">
-        <div class="flex flex-wrap items-start gap-2">
-          <div class="flex-1 min-w-[240px]"><h2 class="font-semibold">Live market data <span class="ml-1 text-[11px] font-normal px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300">self-updating</span></h2>
-          <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">A free nightly GitHub Action (the <strong class="text-slate-300">scanner-data-kit</strong>) downloads end-of-day prices for all three markets — USA from Massive, India from NSE's official bhavcopy, Canada from Yahoo Finance (optional paid EODHD covers all three) — and saves them to your private repo. The app reads that feed on open, caches it on this device, and checks for new data every 30 minutes. No CSV files, no daily work.</p></div>
-        </div>
-        <div class="mt-4 grid lg:grid-cols-2 gap-5">
-          <div>
-            <p class="text-xs text-slate-400 mb-1.5">Data source per market</p>
-            <div class="space-y-2">${MARKET_CODES.map(c => { const M = MARKETS[c], cur = st.sources[c], ds = S().mkts[c]?.ds; return `<div class="flex items-center gap-3"><span class="w-24 text-sm">${flagTag(M)} ${M.name}</span>
-              <div class="inline-flex rounded-lg ring-1 ring-line overflow-hidden" role="radiogroup" aria-label="${M.name} data source">${['demo', 'live'].map(v => `<label class="cursor-pointer"><input type="radio" name="src-${c}" value="${v}" class="sr-only peer" ${cur === v ? 'checked' : ''}><span class="block px-3 h-8 leading-8 text-xs peer-checked:bg-emerald-500/20 peer-checked:text-emerald-200 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-400 text-slate-400">${v === 'demo' ? 'Demo' : 'Live feed'}</span></label>`).join('')}</div>
-              <span class="text-[11px] text-slate-500 truncate">${ds ? (ds.source === 'live' ? 'live · ' + fmt.dateShort(ds.asOf) : ds.source) : ''}</span></div>`; }).join('')}</div>
-          </div>
-          <div>
-            <p class="text-xs text-slate-400 mb-1.5">Where the feed lives</p>
-            <div class="flex gap-4 text-sm mb-2">
-              <label class="inline-flex items-center gap-1.5"><input type="radio" name="feedMode" value="github" class="accent-emerald-400" ${st.feed.mode === 'github' ? 'checked' : ''}> Private GitHub repo</label>
-              <label class="inline-flex items-center gap-1.5"><input type="radio" name="feedMode" value="url" class="accent-emerald-400" ${st.feed.mode === 'url' ? 'checked' : ''}> Web URL</label>
-            </div>
-            <div id="feedGithub" class="grid grid-cols-3 gap-2 ${st.feed.mode === 'github' ? '' : 'hidden'}">
-              <label class="text-xs text-slate-400">Owner<input id="fdOwner" value="${U.esc(st.feed.owner)}" placeholder="your-github-name" autocomplete="off" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
-              <label class="text-xs text-slate-400">Repository<input id="fdRepo" value="${U.esc(st.feed.repo)}" placeholder="scanner-data" autocomplete="off" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
-              <label class="text-xs text-slate-400">Branch<input id="fdBranch" value="${U.esc(st.feed.branch || 'data')}" autocomplete="off" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
-              <label class="col-span-3 text-xs text-slate-400">Read-only access token <span class="text-slate-500">(fine-grained, this repo only, Contents: read)</span>
-                <input id="fdToken" type="password" value="${U.esc(st.feed.token)}" placeholder="github_pat_…" autocomplete="off" spellcheck="false" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100 font-mono"></label>
-              <p class="col-span-3 text-[11px] text-slate-500">The token is stored only in this browser and sent only to api.github.com.</p>
-            </div>
-            <div id="feedUrl" class="${st.feed.mode === 'url' ? '' : 'hidden'}">
-              <label class="text-xs text-slate-400">Base URL (folder containing meta.json, US.json, CA.json, IN.json; must allow CORS)
-                <input id="fdBase" type="url" value="${U.esc(st.feed.baseUrl)}" placeholder="https://example.com/scanner-feed" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
-            </div>
-          </div>
-        </div>
-        <div class="mt-4 flex flex-wrap items-center gap-2">
-          <button type="button" data-action="testFeed" class="h-9 px-4 rounded-lg border border-line text-sm hover:bg-panel2">Test connection</button>
-          <button type="button" data-action="saveFeed" class="h-9 px-4 rounded-lg bg-emerald-500 text-ink text-sm font-semibold hover:bg-emerald-400">Save & load data</button>
-          <p id="feedErr" class="text-xs text-rose-300 break-words" role="alert"></p>
-        </div>
-        <div id="feedResult" class="mt-3" aria-live="polite"></div>
-      </section>
-
-      <div class="mt-4 grid lg:grid-cols-2 gap-4">
-        ${card('Demo data', 'Synthetic, reproducible markets with planted setups and data defects so every feature can be exercised. Each market has its own currency, sector mix, calendar and index.', `
-          <div class="grid grid-cols-3 gap-3">
-            <label class="text-xs text-slate-400">Market
-              <select id="dMkt" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">${MARKET_CODES.map(c => `<option value="${c}">${MARKETS[c].name}</option>`).join('')}</select></label>
-            <label class="text-xs text-slate-400">Universe size
-              <select id="dUni" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"><option value="300">300</option><option value="700">700</option><option value="1200">1,200</option><option value="1500">1,500</option><option value="3000">3,000</option><option value="6000">6,000 (stress)</option></select></label>
-            <label class="text-xs text-slate-400">Random seed${inp('dSeed', st.demo[dm].seed, 'type="number" min="1" max="999999" step="1"')}</label>
-          </div>
-          <p id="dLabel" class="mt-2 text-[11px] text-slate-500"></p>
-          <button type="button" data-action="reloadDemo" class="mt-3 h-9 px-4 rounded-lg border border-emerald-500/40 text-emerald-300 text-sm hover:bg-emerald-500/10">Generate & run full pipeline</button>`)}
-        ${card('Import your own data (CSV)', 'Long-format daily bars, split-adjusted, in the chosen market’s currency. Parsed locally — nothing is uploaded.', `
-          <label class="block text-xs text-slate-400">Import into market
-            <select id="csvMkt" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">${MARKET_CODES.map(c => `<option value="${c}">${MARKETS[c].name} (${MARKETS[c].ccy})</option>`).join('')}</select></label>
-          <div id="dropZone" class="mt-3 rounded-lg border border-dashed border-line p-4 text-center text-sm text-slate-400">
-            <p>Drop a prices CSV here, or</p>
-            <label class="mt-2 inline-flex h-9 px-3 items-center rounded-lg border border-line text-slate-200 cursor-pointer hover:bg-panel2">Choose prices file<input id="csvPrices" type="file" accept=".csv,text/csv" class="sr-only"></label>
-            <p id="csvName" class="mt-2 text-xs text-slate-500"></p>
-          </div>
-          <label class="mt-3 block text-xs text-slate-400">Fundamentals CSV (optional)
-            <input id="csvFund" type="file" accept=".csv,text/csv" class="mt-1 block w-full text-xs text-slate-300 file:mr-3 file:h-8 file:px-3 file:rounded-lg file:border-0 file:bg-panel2 file:text-slate-200"></label>
-          <pre class="mt-3 text-[11px] text-slate-400 bg-ink border border-line rounded-lg p-2.5 overflow-x-auto scroll-thin">ticker,date,open,high,low,close,volume
-RELIANCE,2026-10-22,2841.10,2866.35,2830.90,2860.20,5834500
-
-# optional fundamentals.csv
-ticker,name,sector,marketCap,revGrowth,epsGrowth,opMargin,
-ocfPositive,debtToEquity,pe,peg,nextEarnings</pre>
-          <p class="mt-1 text-[11px] text-slate-500">Index for the regime filter: include SPY (USA), XIC or XIU (Canada) or NIFTYBEES (India); otherwise an equal-weight index is built. Needs ≥ 60 sessions (≥ 253 for 52-week breakouts, ≥ 1.2 years for probability calibration).</p>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <button type="button" data-action="importCsv" class="h-9 px-4 rounded-lg bg-emerald-500 text-ink text-sm font-semibold hover:bg-emerald-400">Import & scan</button>
-            <button type="button" data-action="sampleCsv" class="h-9 px-3 rounded-lg border border-line text-sm hover:bg-panel2">Download sample</button>
-          </div>
-          <p id="csvErr" class="mt-2 text-xs text-rose-300 break-words" role="alert"></p>`)}
-      </div>
-      <section class="mt-4 rounded-xl border border-rose-500/20 bg-panel p-4">
-        <h2 class="font-semibold text-sm">Local data</h2>
-        <p class="text-xs text-slate-400 mt-0.5">Settings, alerts and the paper log are stored in this browser only.</p>
-        <button type="button" data-action="wipe" class="mt-3 h-9 px-4 rounded-lg border border-rose-500/40 text-rose-300 text-sm hover:bg-rose-500/10">Clear all saved data</button>
-      </section>`;
-    $('sEarn').value = st.earningsMode; $('sRegime').value = st.regimeFilter;
-    $('dMkt').value = dm; $('csvMkt').value = dm;
-    UI.demoFields();
-    UI.validateSettings();
-  },
-  readFeedForm() {
-    const mode = document.querySelector('input[name="feedMode"]:checked')?.value || 'github';
-    const cfg = { mode, owner: $('fdOwner').value.trim(), repo: $('fdRepo').value.trim(), branch: $('fdBranch').value.trim() || 'data', token: $('fdToken').value.trim(), baseUrl: $('fdBase').value.trim() };
-    if (mode === 'github') {
-      if (!/^[A-Za-z0-9-]{1,39}$/.test(cfg.owner)) return { error: 'Enter the GitHub owner (user or organisation name).' };
-      if (!/^[A-Za-z0-9_.-]{1,100}$/.test(cfg.repo)) return { error: 'Enter the repository name.' };
-      if (!/^[A-Za-z0-9._\/-]{1,100}$/.test(cfg.branch)) return { error: 'Branch name is not valid.' };
-      if (cfg.token && !/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(cfg.token)) return { error: 'That doesn’t look like a GitHub token (it should start with github_pat_).' };
-    } else {
-      try { if (new URL(cfg.baseUrl).protocol !== 'https:') return { error: 'The feed URL must use https.' }; } catch { return { error: 'Enter a valid feed URL.' }; }
-    }
-    return { cfg };
-  },
-  demoFields() {
-    const c = $('dMkt').value, d = S().settings.demo[c], ds = S().mkts[c]?.ds;
-    $('dUni').value = String(d.universe); $('dSeed').value = d.seed;
-    $('dLabel').textContent = `Currently loaded: ${ds ? ds.label : 'not loaded'}. 6,000 tickers needs ~150 MB of memory; best on desktop.`;
-  },
-
-  validateSettings() {
-    const errs = [], w = {};
-    document.querySelectorAll('[data-weight]').forEach(i => { const v = Number(i.value); w[i.dataset.weight] = v; i.classList.toggle('border-rose-500', !(Number.isInteger(v) && v >= 0 && v <= 100)); });
-    const sum = Object.values(w).reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0);
-    if (Object.values(w).some(v => !Number.isInteger(v) || v < 0 || v > 100)) errs.push('Weights must be whole numbers from 0 to 100.');
-    const ws = $('wSum');
-    if (ws) { ws.textContent = `Total: ${sum}%${sum === 100 ? ' ✓' : ` — must equal 100 (${sum > 100 ? 'remove' : 'add'} ${Math.abs(100 - sum)})`}`; ws.className = `mt-2 text-xs ${sum === 100 ? 'text-emerald-300' : 'text-rose-300'}`; }
-    if (sum !== 100) errs.push('Weights must total 100%.');
-    const A = +$('sTA').value, B = +$('sTB').value, C = +$('sTC').value;
-    if (![A, B, C].every(x => Number.isFinite(x) && x > 0 && x <= 100)) errs.push('Tier thresholds must be between 1 and 100.');
-    else if (!(A > B && B > C)) errs.push('Tier thresholds must satisfy A > B > C.');
-    const gates = structuredClone(S().settings.gates);
-    document.querySelectorAll('[data-gate]').forEach(i => {
-      const [c, k] = i.dataset.gate.split(':'), v = Number(i.value), ok = i.value !== '' && Number.isFinite(v) && v >= 0;
-      i.classList.toggle('border-rose-500', !ok);
-      if (!ok) errs.push(`${MARKETS[c].name} ${k === 'minPrice' ? 'minimum price' : 'minimum traded value'} must be 0 or more.`); else gates[c][k] = v;
-    });
-    const win = +$('sWin').value;
-    if (!(Number.isInteger(win) && win >= 1 && win <= 30)) errs.push('Catalyst window must be a whole number from 1 to 30.');
-    const hook = $('aHook').value.trim();
-    if (hook) { try { if (new URL(hook).protocol !== 'https:') errs.push('Webhook must use https.'); } catch { errs.push('Webhook URL is not valid.'); } }
-    $('settingsErr').textContent = errs[0] || '';
-    $('saveSettings').disabled = errs.length > 0;
-    if (errs.length) return null;
-    return { weights: w, tiers: { A, B, C }, gates, catalystWindow: win, earningsMode: $('sEarn').value, regimeFilter: $('sRegime').value, autoRun: $('sAutoRun').checked,
-      alerts: { newA: $('aNewA').checked, entry: $('aEntry').checked, watch: $('aWatch').checked, browser: $('aBrowser').checked, webhook: hook } };
-  }
-  
 };
 
 /* =====================================================================
@@ -3650,49 +3515,27 @@ function wire() {
       switch (act.dataset.action) {
         case 'closeDrawer': UI.closeDrawer(); break;
         case 'copyText': try { await navigator.clipboard.writeText(act.dataset.text); UI.toast('Copied.', 'ok'); } catch { UI.toast('Couldn’t copy — select the text and copy it yourself.', 'warn'); } break;
-        case 'testPublic': {
-          const url = $('pubFeed').value.trim(), msg = $('pubMsg');
-          if (!url) { msg.className = 'mt-2 text-xs text-amber-300'; msg.textContent = 'Empty: visitors would get demo data only.'; break; }
-          msg.className = 'mt-2 text-xs text-slate-400'; msg.textContent = 'Checking…';
-          try { const meta = await Feed.get({ mode: 'url', baseUrl: url }, 'meta.json'); msg.className = 'mt-2 text-xs text-emerald-300'; msg.textContent = `✓ Public data works: ${Object.entries(meta.markets || {}).map(([c, m]) => `${MARKETS[c]?.name || c} ${fmt.dateShort(m.asOf)}`).join(' · ')}.`; }
-          catch (ex) { msg.className = 'mt-2 text-xs text-rose-300'; msg.textContent = `${ex.message} If your scanner-data repo is still private: on github.com open it → Settings → General → scroll to Danger Zone → Change visibility → Make public.`; }
-          break;
-        }
-        case 'publishAll': case 'downloadConfig': {
-          const url = $('pubFeed').value.trim(), msg = $('pubMsg');
-          if (url) { try { if (new URL(url).protocol !== 'https:') throw 0; } catch { msg.className = 'mt-2 text-xs text-rose-300'; msg.textContent = 'The public data address must be an https:// link.'; break; } }
-          S().settings.publicFeed = url; Store.persist();
-          const cfg = Shared.build(url);
-          if (act.dataset.action === 'downloadConfig') { U.download('config.json', JSON.stringify(cfg, null, 1) + '\n', 'application/json'); msg.className = 'mt-2 text-xs text-slate-300'; msg.textContent = 'Downloaded. Upload config.json to your app repo (same place as index.html) → Commit changes.'; break; }
-          const site = { owner: $('pubOwner').value.trim(), repo: $('pubRepo').value.trim() };
-          if (!site.owner || !site.repo) { msg.className = 'mt-2 text-xs text-rose-300'; msg.textContent = 'Fill in your public app repo owner and name.'; break; }
-          S().settings.site = site; Store.persist();
-          act.disabled = true; msg.className = 'mt-2 text-xs text-slate-400'; msg.textContent = 'Publishing…';
-          try {
-            await Shared.publish(cfg, site);
-            UI.settings();
-            const m2 = $('pubMsg'); m2.className = 'mt-2 text-xs text-emerald-300'; m2.textContent = '✓ Published. Visitors get these settings the next time they open the app (GitHub Pages takes about a minute to update).';
-          } catch (ex) {
-            msg.className = 'mt-2 text-xs text-rose-300';
-            msg.innerHTML = `${U.esc(ex.message)} ${ex.code === 'perm' || ex.code === 'token' ? `Your token also needs write access to <b>${U.esc(site.repo)}</b>: on github.com go to Settings → Developer settings → Personal access tokens → Fine-grained tokens → your token → Edit → Repository access: add <b>${U.esc(site.repo)}</b> (Contents is already “Read and write”) → Update. Or click “Download config.json” and upload it to that repo yourself.` : ''}`;
-          } finally { act.disabled = false; }
-          break;
-        }
-        case 'vlRefresh': UI.visitors(true); break;
-        case 'vlEdit': $('visitorsView').innerHTML = UI.visitorsSetup(); break;
-        case 'vlCancel': UI.visitors(); break;
-        case 'vlTest': {
-          const vl = S().settings.visitorLog; if (!vl?.formUrl) break;
-          const b = new URLSearchParams(); b.set(vl.fields.name, 'Test from admin'); b.set(vl.fields.id, 'admin-test'); b.set(vl.fields.event, 'test'); b.set(vl.fields.details, Visit.details());
-          try { await fetch(vl.formUrl, { method: 'POST', mode: 'no-cors', body: b }); UI.toast('Test visit sent. It shows in the sheet at once and here within about 5 minutes (Refresh).', 'ok'); }
-          catch { UI.toast('Couldn’t send the test visit — check box A.', 'error'); }
-          break;
-        }
         case 'toggleMatch': Store.set({ filters: { ...S().filters, match: !S().filters.match } }); break;
         case 'watchAdd': {
           const { m, sym, key } = act.dataset;
           try { Watch.add(m, sym, key, +act.dataset.hold || S().settings.bt.hold); UI.toast(`◆ Watching ${sym} with ${key === 'auto' ? 'its best strategy' : Watch.label(key)} — you’ll get an alert when it signals. See the Strategy watch tab.`, 'ok'); }
           catch (ex) { UI.toast(ex.message, 'warn'); }
+          break;
+        }
+        case 'pfRemove': { const h = Portfolio.list().find(x => x.id === act.dataset.id); if (h && confirm(`Remove ${h.sym} from your portfolio?`)) Portfolio.remove(h.id); break; }
+        case 'pfEdit': {
+          const h = Portfolio.list().find(x => x.id === act.dataset.id); if (!h) break;
+          $('pMarket').value = h.m; UI.portfolioForm();
+          $('pStock').value = h.sym; $('pQty').value = h.qty; $('pCost').value = h.cost; $('pDate').value = h.date || '';
+          window.scrollTo({ top: 0, behavior: 'smooth' }); $('pQty').focus();
+          UI.toast(`Change the numbers, then press “Add / update”.`, 'info');
+          break;
+        }
+        case 'pfExport': {
+          const head = ['Market', 'Currency', 'Ticker', 'Name', 'Shares', 'Avg buy price', 'Buy date', 'Price', 'Price date', 'Value', 'Gain/loss', 'Gain/loss %', 'Verdict', 'Main reason', 'Best strategy', 'Trailing stop', 'RSI'];
+          const lines = Portfolio.list().map(h => { const e = Portfolio.state[h.id] || {}, M = MARKETS[h.m], n2 = v => Number.isFinite(v) ? v.toFixed(2) : '';
+            return [M.name, M.ccy, h.sym, e.tk?.name || '', h.qty, h.cost, h.date || '', n2(e.px), e.date || '', n2(e.value), n2(e.pl), Number.isFinite(e.plPct) ? (e.plPct * 100).toFixed(1) : '', Portfolio.VERDICT[e.v || 'wait'].label, e.text || '', e.best?.name || '', n2(e.stop), Number.isFinite(e.rsi) ? e.rsi.toFixed(0) : ''].map(U.csvCell).join(','); });
+          U.download(`portfolio-${new Date().toISOString().slice(0, 10)}.csv`, [head.join(','), ...lines].join('\n'));
           break;
         }
         case 'watchRemove': if (confirm('Stop watching this stock?')) Watch.remove(act.dataset.id); break;
@@ -3721,73 +3564,6 @@ function wire() {
           U.download('paper-log.csv', ['market,currency,ticker,picked,tier,score,est_probability_pct,trigger_event,status,entry,stop,target,fill_date,fill_px,exit_date,exit_px,return_pct', ...lines].join('\n'));
           break;
         }
-        case 'testAlert': {
-          const patch = UI.validateSettings(); if (!patch) return;
-          if (patch.alerts.browser && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
-          Object.assign(S().settings.alerts, patch.alerts);
-          Alerts.push('newA', 'Test alert: delivery channels are working.');
-          UI.toast('Test alert sent.', 'ok'); break;
-        }
-        case 'resetSettings': {
-          const keep = { market: S().settings.market, demo: S().settings.demo };
-          S().settings = Object.assign(structuredClone(DEFAULTS), keep); Store.persist(); UI.settings(); App.rescore(); UI.toast('Defaults restored.', 'ok'); break;
-        }
-        case 'reloadDemo': {
-          const c = $('dMkt').value, uni = +$('dUni').value, seed = Number($('dSeed').value);
-          if (!Number.isInteger(seed) || seed < 1 || seed > 999999) { $('settingsErr').textContent = 'Seed must be a whole number from 1 to 999,999.'; return; }
-          S().settings.demo[c] = { universe: uni, seed }; Store.persist();
-          Store.set({ tab: 'pipeline' });
-          await App.run({ codes: [c], fresh: true, reason: `${MARKETS[c].name} demo regeneration` });
-          break;
-        }
-        case 'sampleCsv': { const M = MARKETS[$('csvMkt').value]; U.download(`sample-prices-${M.code}.csv`, CsvProvider.sample(M)); break; }
-        case 'importCsv': {
-          const err = $('csvErr'); err.textContent = '';
-          const pf = $('csvPrices').files[0] || UI.droppedFile, ff = $('csvFund').files[0], M = MARKETS[$('csvMkt').value];
-          if (!pf) { err.textContent = 'Choose a prices CSV first.'; return; }
-          act.disabled = true; act.textContent = 'Parsing…';
-          try {
-            const [pt, ft] = await Promise.all([readFile(pf), ff ? readFile(ff) : Promise.resolve(null)]);
-            const raw = CsvProvider.build(pt, ft, M);
-            if (!view().includes(M.code)) { S().settings.market = M.code; Store.persist(); }
-            Store.set({ tab: 'watchlist', settings: S().settings });
-            await App.run({ codes: [M.code], pending: raw, reason: 'CSV import' });
-            UI.filterOptions();
-            UI.toast(`Imported ${raw.tickers.length} ${M.name} tickers.`, 'ok');
-          } catch (ex) { err.textContent = ex.message; }
-          finally { act.disabled = false; act.textContent = 'Import & scan'; }
-          break;
-        }
-        case 'testFeed': case 'saveFeed': {
-          const err = $('feedErr'), out = $('feedResult'); err.textContent = '';
-          const f = UI.readFeedForm(); if (f.error) { err.textContent = f.error; return; }
-          const sources = Object.fromEntries(MARKET_CODES.map(c => [c, document.querySelector(`input[name="src-${c}"]:checked`)?.value || 'demo']));
-          if (act.dataset.action === 'saveFeed' && Object.values(sources).every(v => v === 'demo')) {
-            S().settings.feed = f.cfg; Store.persist(); UI.toast('Saved. Switch a market to “Live feed” to use it.', 'ok'); return;
-          }
-          act.disabled = true; const label = act.textContent; act.textContent = 'Checking…';
-          try {
-            const meta = await Feed.get(f.cfg, 'meta.json');
-            out.innerHTML = `<div class="rounded-lg border border-line bg-ink p-3 text-xs"><p class="text-emerald-300 font-medium">Connected · feed generated ${meta.generated ? new Date(meta.generated).toLocaleString() : '—'}</p>
-              <table class="mt-2 w-full"><thead class="text-slate-500 text-left"><tr><th class="py-1">Market</th><th>As of</th><th class="text-right">Tickers</th><th class="text-right">Sessions</th><th class="pl-3">Source</th></tr></thead><tbody>
-              ${MARKET_CODES.map(c => { const m = meta.markets?.[c]; return `<tr class="border-t border-line/60"><td class="py-1">${flagTag(MARKETS[c])} ${MARKETS[c].name}</td><td>${m ? fmt.date(m.asOf) : '<span class="text-amber-300">not yet</span>'}</td><td class="text-right num">${m ? fmt.num(m.tickers) : '—'}</td><td class="text-right num">${m ? m.sessions : '—'}</td><td class="pl-3 text-slate-400">${m ? U.esc(m.source) : ''}${m?.warnings?.length ? ` <span class="text-amber-300" title="${U.esc(m.warnings.join(' | '))}">⚠ ${m.warnings.length}</span>` : ''}</td></tr>`; }).join('')}
-              </tbody></table>
-              ${MARKET_CODES.map(c => { const e = meta.errors?.[c], w = meta.markets?.[c]?.warnings || []; return e || w.length ? `<div class="mt-2 border-t border-line/60 pt-2"><p class="font-medium ${e ? 'text-rose-300' : 'text-amber-300'}">${flagTag(MARKETS[c])} ${MARKETS[c].name}${e ? ` — last data job failed (${new Date(e.at).toLocaleString()})` : ' — notes from the data job'}</p>${e ? `<p class="text-rose-200/90">${U.esc(e.message)}</p>` : ''}${w.map(x => `<p class="text-amber-200/80">• ${U.esc(x)}</p>`).join('')}</div>` : ''; }).join('')}
-              </div>`;
-            if (act.dataset.action === 'saveFeed') {
-              const missing = MARKET_CODES.filter(c => sources[c] === 'live' && !meta.markets?.[c]);
-              if (missing.length) { err.textContent = missing.map(c => meta.errors?.[c] ? `No ${MARKETS[c].name} data: the last data job failed — ${meta.errors[c].message} Keep ${MARKETS[c].name} on Demo until a run succeeds.` : `No ${MARKETS[c].name} data yet — the data job hasn’t run for it. Keep it on Demo until it has.`).join(' '); return; }
-              const changed = MARKET_CODES.filter(c => sources[c] !== S().settings.sources[c] || (sources[c] === 'live' && JSON.stringify(f.cfg) !== JSON.stringify(S().settings.feed)));
-              S().settings.feed = f.cfg; S().settings.sources = sources; Store.persist(); GH._branch = null; MyStocks.pull();
-              const reload = changed.filter(c => view().includes(c) || S().mkts[c]?.ds);
-              UI.toast('Live feed saved.', 'ok');
-              if (reload.length) { Store.set({ tab: 'watchlist' }); await App.run({ codes: reload, fresh: true, reason: 'Switched data source' }); UI.filterOptions(); }
-            }
-          } catch (ex) { err.textContent = ex.message; out.innerHTML = ''; }
-          finally { act.disabled = false; act.textContent = label; }
-          break;
-        }
-        case 'wipe': if (confirm('Delete saved settings, alerts and the paper log from this browser?')) { try { localStorage.removeItem(Persist.key); } catch { } Idb.clear(); setTimeout(() => location.reload(), 200); } break;
       }
     } catch (ex) { console.error(ex); UI.toast(ex.message || 'Something went wrong.', 'error'); }
   });
@@ -3805,29 +3581,6 @@ function wire() {
     }
   });
 
-  $('settingsView').addEventListener('input', () => UI.validateSettings());
-  $('settingsView').addEventListener('change', e => {
-    if (e.target.name === 'feedMode') { $('feedGithub').classList.toggle('hidden', e.target.value !== 'github'); $('feedUrl').classList.toggle('hidden', e.target.value !== 'url'); }
-    if (e.target.id === 'csvPrices' && e.target.files[0]) { UI.droppedFile = null; $('csvName').textContent = e.target.files[0].name; }
-    if (e.target.id === 'dMkt') UI.demoFields();
-    UI.validateSettings();
-  });
-  $('settingsView').addEventListener('click', async e => {
-    if (e.target.id !== 'saveSettings') return;
-    const patch = UI.validateSettings(); if (!patch) return;
-    if (patch.alerts.browser && 'Notification' in window && Notification.permission === 'default') {
-      if (await Notification.requestPermission() !== 'granted') { patch.alerts.browser = false; UI.toast('Browser notifications were not allowed.', 'warn'); }
-    }
-    deepMerge(S().settings, patch); Store.persist(); App.rescore(); UI.settings(); Store.set({ bt: null });
-    UI.toast('Settings saved — watchlist re-ranked and probabilities refitted.', 'ok');
-  });
-  $('settingsView').addEventListener('dragover', e => { if (e.target.closest('#dropZone')) { e.preventDefault(); $('dropZone').classList.add('border-emerald-400'); } });
-  $('settingsView').addEventListener('dragleave', e => { if (e.target.closest('#dropZone')) $('dropZone').classList.remove('border-emerald-400'); });
-  $('settingsView').addEventListener('drop', e => {
-    if (!e.target.closest('#dropZone')) return;
-    e.preventDefault(); $('dropZone').classList.remove('border-emerald-400');
-    const file = e.dataTransfer.files[0]; if (file) { UI.droppedFile = file; $('csvName').textContent = file.name; }
-  });
   $('paperView').addEventListener('change', e => { if (e.target.id === 'pAuto') { S().settings.autoTrackA = e.target.checked; Store.persist(); } });
 
   // My stocks
@@ -3842,27 +3595,6 @@ function wire() {
   $('myInput').addEventListener('input', () => { $('myErr').textContent = ''; });
   $('fMine').addEventListener('click', () => Store.set({ filters: { ...S().filters, mine: !S().filters.mine } }));
 
-  // Visitors panel (admin)
-  $('visitorsView').addEventListener('submit', e => {
-    if (e.target.id !== 'vlForm') return;
-    e.preventDefault();
-    const err = $('vlErr'); err.textContent = '';
-    try {
-      const f = VisitLog.parsePrefill($('vlForm1').value), csvUrl = VisitLog.checkCsv($('vlCsv').value);
-      S().settings.visitorLog = { ...f, csvUrl }; Store.persist(); UI._vlog = null;
-      UI.toast('Saved. Now send a test visit, then publish (Settings → Publish to all users).', 'ok');
-      $('visitorsView').innerHTML = UI.visitorsSetup();
-    } catch (ex) { err.textContent = ex.message; }
-  });
-  $('visitorsView').addEventListener('submit', e => {
-    const f = e.target.closest('.vlName'); if (!f) return;
-    e.preventDefault();
-    const v = f.n.value.trim().slice(0, 40), map = { ...(S().settings.visitorNames || {}) };
-    if (v) map[f.dataset.id] = v; else delete map[f.dataset.id];
-    S().settings.visitorNames = map; Store.persist(); UI.visitors(); UI.toast(v ? `Saved — this visitor now shows as “${v}”.` : 'Name removed.', 'ok');
-  });
-  $('visitorsView').addEventListener('input', U.debounce(e => { if (e.target.id === 'vlSearch') { UI._vq = e.target.value; UI.visitors(); const s = $('vlSearch'); s.focus(); s.setSelectionRange(s.value.length, s.value.length); } }, 200));
-  $('visitorsView').addEventListener('click', e => { const tr = e.target.closest('[data-vid]'); if (tr) { UI._vopen = UI._vopen === tr.dataset.vid ? null : tr.dataset.vid; UI.visitors(); } });
   // Alert options (everyone)
   document.querySelectorAll('[data-alertopt]').forEach(c => {
     c.checked = !!S().settings.alerts[c.dataset.alertopt];
@@ -3893,6 +3625,38 @@ function wire() {
     if (need.length) await App.run({ codes: need, reason: 'Loading markets for Strategy watch' });
     const n = Watch.evaluate(MARKET_CODES, true);
     UI.toast(n ? `${n} new strategy signal(s) — see the bell menu.` : 'Checked — no new signals.', n ? 'ok' : 'info');
+  });
+
+  // Portfolio
+  $('pMarket').addEventListener('change', () => { $('pStock').value = ''; UI.portfolioForm(); });
+  $('pForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const m = $('pMarket').value, M = MARKETS[m], errEl = $('pErr'), fail = msg => { errEl.textContent = msg; };
+    errEl.textContent = '';
+    const raw = $('pStock').value.trim().replace(/^★\s*/, '');
+    if (/\s/.test(raw)) return fail(`“${raw}” looks like a company name. Type the ticker symbol instead (e.g. ${{ US: 'AAPL for Apple', CA: 'RY for Royal Bank', IN: 'INFY for Infosys' }[m]}).`);
+    const sym = raw.toUpperCase().replace(/\.(TO|V|NS|NSE|BO|US)$/, '');
+    const qty = parseFloat($('pQty').value), cost = parseFloat($('pCost').value), date = $('pDate').value || '';
+    if (!sym) return fail('Type or pick a stock first.');
+    if (!/^[A-Z0-9][A-Z0-9.&-]{0,19}$/.test(sym)) return fail(`“${sym}” isn’t a valid ticker. Use the symbol (e.g. ${{ US: 'MSFT', CA: 'RY', IN: 'INFY' }[m]}), not the company name.`);
+    if (!(qty > 0)) return fail('Enter how many shares you own (a number above 0).');
+    if (!(cost > 0)) return fail(`Enter your average buy price per share, in ${M.ccy}.`);
+    if (date && date > new Date().toISOString().slice(0, 10)) return fail('The buy date can’t be in the future.');
+    if (!S().mkts[m]?.ds) { await App.run({ codes: [m], reason: `Loading ${M.name}` }); UI.portfolioForm(); }
+    const ds = S().mkts[m]?.ds;
+    if (!ds?.tickers.some(t => t.sym === sym) && !(Admin.is && ds?.source === 'live'))
+      return fail(`${sym} isn’t in the ${M.name} data. Pick a stock from the list${ds?.source === 'demo' ? ' (demo data uses made-up tickers)' : ''}.`);
+    try {
+      const upd = Portfolio.upsert({ m, sym, qty, cost, date });
+      ['pStock', 'pQty', 'pCost', 'pDate'].forEach(id => { $(id).value = ''; });
+      UI.toast(upd ? `${sym} updated.` : `💼 ${sym} added to your portfolio.`, 'ok');
+    } catch (ex) { fail(ex.message); }
+  });
+  $('pCheck').addEventListener('click', async () => {
+    const need = [...new Set(Portfolio.list().map(h => h.m))].filter(c => !S().mkts[c]?.ds);
+    if (need.length) await App.run({ codes: need, reason: 'Loading markets for your portfolio' });
+    const n = Portfolio.evaluate(MARKET_CODES, true);
+    UI.toast(n ? `${n} holding(s) need action — see the bell menu.` : 'Checked — no new sell or buy-more signals.', n ? 'warn' : 'info');
   });
 
   // Backtest one stock
@@ -3954,6 +3718,8 @@ Store.on(['bt', 'btBusy', 'busy'], () => { if (S().tab === 'backtest') UI.btForm
 Store.on(['sbt', 'sbtBusy'], () => { if (S().tab === 'backtest') UI.sbForm(); });
 Store.on(['bestTick', 'bestProg'], () => { if (S().tab === 'watchlist') UI.results(); });
 Store.on(['watchTick', 'settings'], () => UI.watch());
+Store.on(['pfTick', 'settings'], () => UI.portfolio());
+Store.on(['busy'], () => { if (S().tab === 'portfolio') $('pCheck').disabled = S().busy; });
 Store.on(['busy'], () => { if (S().tab === 'watch') $('wCheck').disabled = S().busy; });
 Store.on(['results', 'settings', 'mkts', 'mySync'], () => UI.myStocks());
 

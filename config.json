@@ -1,0 +1,44 @@
+{
+ "v": 2,
+ "published": "2026-11-01T03:58:44.707Z",
+ "settings": {
+  "weights": {
+   "tech": 40,
+   "vol": 15,
+   "fund": 25,
+   "regime": 10,
+   "catalyst": 10
+  },
+  "tiers": {
+   "A": 72,
+   "B": 60,
+   "C": 48
+  },
+  "gates": {
+   "US": {
+    "minPrice": 3,
+    "minValue": 2000000
+   },
+   "CA": {
+    "minPrice": 1,
+    "minValue": 1000000
+   },
+   "IN": {
+    "minPrice": 20,
+    "minValue": 50000000
+   }
+  },
+  "regimeFilter": "downgrade",
+  "earningsMode": "boost",
+  "catalystWindow": 10,
+  "sources": {
+   "US": "live",
+   "CA": "live",
+   "IN": "live"
+  }
+ },
+ "feed": {
+  "baseUrl": "https://raw.githubusercontent.com/amodkk1/scanner-data/data"
+ },
+ "visitorLog": null
+}

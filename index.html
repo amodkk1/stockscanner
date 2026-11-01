@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="description" content="Opportunity Scanner — end-of-day stock screener for the USA, Canada and India that ranks setups by estimated probability, with the trigger event and reasons for every pick.">
-<title>Opportunity Scanner</title>
+<meta name="description" content="StrikeZone — when strategy and signal line up. An end-of-day stock screener for the USA, Canada and India that ranks setups by estimated probability, with the trigger event and reasons for every pick.">
+<title>StrikeZone · When strategy and signal line up</title>
 <meta name="theme-color" content="#0a0e14">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Scanner">
+<meta name="apple-mobile-web-app-title" content="StrikeZone">
+<meta name="application-name" content="StrikeZone">
 <link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAADVUlEQVR42u3dy23bQBRAUZnwPj0EyCYNuZTU4FJSk5vJNnAUmZLm8z7nLg2ECvSORzOEbb58+/n9Il3r8BYIDsEhOASH4BAcgkNwCA7BIcEhOASH4BAcgkNwCA7BITgkOASH4BAcgkNwCA7BoWq9eguy9OP3r6tf/3h7n/SKL/4EQ14Ws4nAkZ7FPCL2HHVkPPZP4GghY7gPOErJGOsDjmoyBl4EjoIyRl0KDsHRbNkYckE4BEe/ZeP5y8IhOASH4BAcgkNwCA491KSf9nvmsnAIjpaLx5MXhCNQk+6gw0HG+HUIDjLgIAMOMgbuauFw3vlvfle2yLIx4x4aHOllzPtFajgyyZjnwJ6DDDjIgMMZBI7uy8YuGXBkPbjCQcbOZQMOMuAgAw7HEzgcT+BwPIGDjJjLBhxkwEEGHI4ncDieLOq13kg2vtfZjyefSv/UhPVPISm/1aiA48thrHzf68lIjOP8MBYMoKSMrBvSu4YRcx8QX0ZKHNsfUVP4eNL0KBvw7wM7rYQbxsDv2qpbjZQrR5yn1HSQkQlHqKfUdJCRBke0B5F0kJFjzzF1kA/MrPDxJNnKMftb/N7r1z6eZMKxZhLnX6XJViPlaWWqjy8H301GaBzrF/Abr9hQRlwcuz7ag/8dJjg2b/r+ffU+x5PoOJ6RMWokf29BWh1PPhXrPscoGXsnWmPZiLVyDFwzNo6njIxAOIZ/mmwZUiUZlwL3OW7MY/GoismIsud4eNk4OY8FW5B6MkKsHCYHx+aD61QfVfHt/FjZcksj8iMsrBw7ZQyfZe0PrKOVjLETLb+VObrJiCYMjohr+Mfbu1NMLByzb2msuWwTVUcKGaEWpD7rzZFCxux5nL9+q0+igwxbkJ044ss4+XLd9Ey/Q5pIxo3/ec9FZS6OvDJ0CXufg4ziOKLd0lAUHJ1/aBsOWw041g6YjBYfKw+MmYxGG9I4P8aniEfZkyMnoyOOM4Mnoy+OS6TfO1I4HBDAcbcPYuC4roEMOK77ICNF6R/jpTorh+AQHIJDcEhwCA7BITgEh+AQHIJDcAgOCQ7BITgEh+AQHIJDcAgOwSE4JDgEh+AQHIJDcAgOwSE4BIcEh+AQHIJDcAgOwSE4BIfgkOAQHIJDcGhdfwAI92N3/RzxuAAAAABJRU5ErkJggg==">
 <link rel="icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAADVUlEQVR42u3dy23bQBRAUZnwPj0EyCYNuZTU4FJSk5vJNnAUmZLm8z7nLg2ECvSORzOEbb58+/n9Il3r8BYIDsEhOASH4BAcgkNwCA7BIcEhOASH4BAcgkNwCA7BITgkOASH4BAcgkNwCA7BoWq9eguy9OP3r6tf/3h7n/SKL/4EQ14Ws4nAkZ7FPCL2HHVkPPZP4GghY7gPOErJGOsDjmoyBl4EjoIyRl0KDsHRbNkYckE4BEe/ZeP5y8IhOASH4BAcgkNwCA491KSf9nvmsnAIjpaLx5MXhCNQk+6gw0HG+HUIDjLgIAMOMgbuauFw3vlvfle2yLIx4x4aHOllzPtFajgyyZjnwJ6DDDjIgMMZBI7uy8YuGXBkPbjCQcbOZQMOMuAgAw7HEzgcT+BwPIGDjJjLBhxkwEEGHI4ncDieLOq13kg2vtfZjyefSv/UhPVPISm/1aiA48thrHzf68lIjOP8MBYMoKSMrBvSu4YRcx8QX0ZKHNsfUVP4eNL0KBvw7wM7rYQbxsDv2qpbjZQrR5yn1HSQkQlHqKfUdJCRBke0B5F0kJFjzzF1kA/MrPDxJNnKMftb/N7r1z6eZMKxZhLnX6XJViPlaWWqjy8H301GaBzrF/Abr9hQRlwcuz7ag/8dJjg2b/r+ffU+x5PoOJ6RMWokf29BWh1PPhXrPscoGXsnWmPZiLVyDFwzNo6njIxAOIZ/mmwZUiUZlwL3OW7MY/GoismIsud4eNk4OY8FW5B6MkKsHCYHx+aD61QfVfHt/FjZcksj8iMsrBw7ZQyfZe0PrKOVjLETLb+VObrJiCYMjohr+Mfbu1NMLByzb2msuWwTVUcKGaEWpD7rzZFCxux5nL9+q0+igwxbkJ044ss4+XLd9Ey/Q5pIxo3/ec9FZS6OvDJ0CXufg4ziOKLd0lAUHJ1/aBsOWw041g6YjBYfKw+MmYxGG9I4P8aniEfZkyMnoyOOM4Mnoy+OS6TfO1I4HBDAcbcPYuC4roEMOK77ICNF6R/jpTorh+AQHIJDcEhwCA7BITgEh+AQHIJDcAgOCQ7BITgEh+AQHIJDcAgOwSE4JDgEh+AQHIJDcAgOwSE4BIcEh+AQHIJDcAgOwSE4BIfgkOAQHIJDcGhdfwAI92N3/RzxuAAAAABJRU5ErkJggg==">
 <script src="https://cdn.tailwindcss.com"></script>
@@ -59,7 +60,7 @@
 </style>
 </head>
 <body class="h-full font-sans antialiased">
-<noscript><p class="noscript">Opportunity Scanner needs JavaScript enabled.</p></noscript>
+<noscript><p class="noscript">StrikeZone needs JavaScript enabled.</p></noscript>
 <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:bg-emerald-500 focus:text-ink focus:px-3 focus:py-2 focus:rounded-md">Skip to content</a>
 
 <div class="fixed top-0 inset-x-0 h-0.5 z-50 pointer-events-none" aria-hidden="true">
@@ -75,7 +76,7 @@
         <circle cx="26" cy="8" r="2.4" fill="#34d399"/>
       </svg>
       <div class="min-w-0">
-        <h1 class="text-sm sm:text-base font-semibold leading-tight truncate">Opportunity Scanner</h1>
+        <h1 class="text-sm sm:text-base font-semibold leading-tight truncate">StrikeZone<span class="hidden lg:inline ml-2 text-xs font-normal text-slate-500">When strategy and signal line up</span></h1>
         <p id="asOf" class="text-[11px] text-slate-400 leading-tight truncate">Loading…</p>
       </div>
     </div>
@@ -230,7 +231,7 @@
         </label>
         <label class="text-xs text-slate-400">Lookback window
           <select id="btWindow" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">
-            <option value="125">6 months</option><option value="250">1 year</option><option value="500">2 years</option>
+            <option value="125">6 months</option><option value="250">1 year</option><option value="500">2 years</option><option value="750">3 years</option>
           </select>
         </label>
         <label class="text-xs text-slate-400">Holding period (sessions)
@@ -294,9 +295,30 @@
         <button id="wAdd" type="submit" class="h-9 px-4 rounded-lg bg-violet-500 text-white text-sm font-semibold hover:bg-violet-400 disabled:opacity-50">Watch</button>
         <button id="wCheck" type="button" class="h-9 px-3 rounded-lg border border-line text-sm text-slate-300 hover:bg-panel2 disabled:opacity-50">Check now</button>
       </form>
+      <p class="mt-3 text-xs text-slate-400">Not sure which stocks to watch? <button type="button" data-action="finderGo" class="text-sky-300 hover:underline">⌕ Find stocks for a strategy</button> — backtest one strategy on the whole market.</p>
       <p id="wErr" class="mt-2 text-xs text-rose-300 empty:hidden" role="alert"></p>
     </div>
     <div id="watchView" class="mt-4" aria-live="polite"></div>
+
+    <section id="finderCard" class="mt-8 rounded-xl border border-sky-500/30 bg-panel p-4" aria-labelledby="finderH">
+      <h2 id="finderH" class="text-base font-semibold"><span class="text-sky-300" aria-hidden="true">⌕</span> Find stocks for a strategy</h2>
+      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Pick a strategy. The app backtests it on every stock in the market, shows how often it succeeded on each one, and lists the stocks where it applies now. <span class="text-amber-300">★ Best fit</span> marks stocks where this strategy beat every other strategy tested on that stock. Add any of them to Strategy watch or your Portfolio.</p>
+      <form id="fForm" class="mt-4 grid grid-cols-2 md:grid-cols-6 gap-3 items-end" autocomplete="off" onsubmit="return false">
+        <label class="text-xs text-slate-400">Market
+          <select id="fdMarket" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select></label>
+        <label class="col-span-2 text-xs text-slate-400">Strategy
+          <select id="fdKey" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select></label>
+        <label class="text-xs text-slate-400">Show stocks where it…
+          <select id="fdWhen" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">
+            <option value="buy">signals BUY today</option><option value="today">signals today (buy or sell)</option><option value="open">is in a trade now</option><option value="active">buys today or is in a trade</option><option value="all">has any track record</option>
+          </select></label>
+        <label class="text-xs text-slate-400">Min. past trades
+          <input id="fdMin" type="number" min="1" max="30" step="1" value="3" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 num"></label>
+        <button id="fdRun" type="button" class="h-9 px-4 rounded-lg bg-sky-500 text-ink text-sm font-semibold hover:bg-sky-400 disabled:opacity-50 disabled:cursor-wait">Find stocks</button>
+      </form>
+      <p id="fdErr" class="mt-2 text-xs text-rose-300 empty:hidden" role="alert"></p>
+    </section>
+    <div id="finderView" class="mt-3" aria-live="polite"></div>
   </section>
 
 
@@ -308,10 +330,10 @@
 
 <footer class="border-t border-line">
   <div class="mx-auto max-w-7xl px-4 py-4 text-[11px] text-slate-500 leading-relaxed">
-    Opportunity Scanner ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
+    StrikeZone ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-01.7 · public</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-01.11 · public</p>
   </div>
 </footer>
 
@@ -599,7 +621,7 @@ const Store = (() => {
     filters: { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: 25, mine: false },
     mySync: { state: 'idle', msg: '' },
     sbt: null, sbtBusy: false,
-    bestTick: 0, bestProg: null, watchTick: 0, pfTick: 0, acct: 0,
+    bestTick: 0, bestProg: null, watchTick: 0, pfTick: 0, acct: 0, finder: null,
     sort: 'prob',
     busy: false,
     pipes: {},           // code -> { stages, runs, ms }
@@ -1021,7 +1043,7 @@ const MyStocks = {
       const branch = await GH.branch();
       const cur = await GH.req(`/contents/${this.FILE}?ref=${encodeURIComponent(branch)}`);
       const sha = cur.ok ? (await cur.json()).sha : undefined;
-      const body = { message: 'Update my stocks from Opportunity Scanner', branch, content: GH.b64(JSON.stringify(S().settings.myStocks, null, 1) + '\n'), ...(sha ? { sha } : {}) };
+      const body = { message: 'Update my stocks from StrikeZone', branch, content: GH.b64(JSON.stringify(S().settings.myStocks, null, 1) + '\n'), ...(sha ? { sha } : {}) };
       const put = await GH.req(`/contents/${this.FILE}`, { method: 'PUT', body: JSON.stringify(body) });
       if (!put.ok) { this.setSync('noWrite', put.status === 403 || put.status === 404 ? '' : `GitHub error ${put.status}.`); return; }
       S().settings.myStocksDirty = false; Store.persist();
@@ -1269,6 +1291,49 @@ const Watch = {
   },
   todayCount() { return this.list().filter(w => ['buy', 'sell', 'sold'].includes(this.state[w.id]?.kind) || this.state[w.id]?.hot?.length).length; },
   hotCount() { return new Set(this.list().filter(w => this.state[w.id]?.hot?.length).map(w => w.m + w.sym)).size; }
+};
+
+/** Strategy finder: backtest ONE strategy on every stock in a market and list where it works and applies now. */
+const Finder = {
+  tok: 0,
+  st: () => S().finder || {},
+  set(patch) { Store.set({ finder: { ...Finder.st(), ...patch } }); },
+  async run(m, key) {
+    const tok = ++this.tok, M = MARKETS[m];
+    this.set({ m, key, busy: true, done: 0, total: 0, rows: null, err: null, show: 50 });
+    if (!S().mkts[m]?.ds) await App.run({ codes: [m], reason: `Loading ${M.name} for the strategy finder` });
+    const ds = S().mkts[m]?.ds;
+    if (!ds) { this.set({ busy: false, err: `Couldn’t load ${M.name} data — see the Pipeline tab.` }); return; }
+    const hold = S().settings.bt.hold, idx = ds.tickers.map((_, i) => i).filter(i => !ds.tickers[i].excluded), rows = [];
+    this.set({ total: idx.length });
+    let t0 = performance.now();
+    for (let k = 0; k < idx.length; k++) {
+      if (tok !== this.tok) return;
+      const ti = idx[k], res = StockBT.cached(ds, ti, hold), r = res?.rows.find(x => x.key === key);
+      if (r) {
+        const t = res.today[key] || {}, tk = ds.tickers[ti];
+        const state = t.sellNext ? 'sell' : t.buy && !t.inTrade ? 'buy' : r.openTrade ? 'open' : 'none';
+        if (r.n >= 1 || state !== 'none') {
+          const ranked = res.rows.filter(x => x.key !== 'scanner' || key === 'scanner');
+          const top = key === 'scanner' ? res.best : res.bestSig;
+          rows.push({ ti, sym: tk.sym, name: tk.name, sector: tk.sector, n: r.n, wins: r.wins, winRate: r.winRate, total: r.total, avg: r.avg,
+            state, plan: t.plan, nextOpen: t.nextOpen, open: r.openTrade, price: tk.c[ds.cursor],
+            best: !!top && top.key === key && r.n >= 1, rank: ranked.findIndex(x => x.key === key) + 1, of: ranked.length, bestName: top?.name || '' });
+        }
+      }
+      if (performance.now() - t0 > 60) { this.set({ done: k + 1 }); App.setProgress((k + 1) / idx.length); await U.yieldUI(); t0 = performance.now(); }
+    }
+    App.setProgress(1);
+    this.set({ busy: false, done: idx.length, rows, scanned: idx.length, date: ds.dates[ds.cursor], dsKey: ds.key, hold });
+  },
+  cancel() { this.tok++; App.setProgress(1); this.set({ busy: false }); },
+  /** Rows after the "show stocks where it…" and minimum-trades filters, sorted. */
+  view() {
+    const f = this.st(), when = $('fdWhen')?.value || 'buy', min = Math.max(1, +($('fdMin')?.value) || 1), sort = f.sort || 'win';
+    const ok = r => ({ buy: r.state === 'buy', today: r.state === 'buy' || r.state === 'sell', open: r.state === 'open' || r.state === 'sell', active: r.state === 'buy' || r.state === 'open', all: true })[when];
+    const by = { win: (a, b) => b.winRate - a.winRate || b.n - a.n || b.total - a.total, total: (a, b) => b.total - a.total, trades: (a, b) => b.n - a.n || b.winRate - a.winRate, best: (a, b) => b.best - a.best || b.winRate - a.winRate || b.total - a.total };
+    return (f.rows || []).filter(r => r.n >= min && ok(r)).sort(by[sort] || by.win);
+  }
 };
 
 /** Portfolio: the stocks the user owns, checked after every scan against every strategy, the trend, position risk,
@@ -2097,8 +2162,11 @@ const Calib = {
   HOLD: 10, MOVE: .10,
   async build(ds, onProgress) {
     const end = ds.cursor - this.HOLD - 5;
-    const minIdx = ds.tickers.reduce((m, t) => t.excluded ? m : Math.min(m, t.start), Infinity) + 260;
-    const start = Math.max(minIdx, end - 250);
+    // Past scans start once most stocks have a 200-day average. With a short history (e.g. India's ~1 year from the NSE
+    // archive) start after 70 sessions instead, so there are still enough past setups to estimate probabilities.
+    const first = ds.tickers.reduce((m, t) => t.excluded ? m : Math.min(m, t.start), Infinity);
+    const minIdx = first + (end - (first + 260) >= 100 ? 260 : 70);
+    const start = Math.max(minIdx, end - 500);   // up to ~2 years of past scans (needs a 3-year feed)
     if (end <= start) return { dates: [], samples: [] };
     const dates = []; for (let i = end; i >= start; i -= 5) dates.unshift(i);
     const map = await Backtest.cands(ds, dates, onProgress);
@@ -2566,12 +2634,12 @@ const Alerts = {
     S().alerts.unshift(a);
     if (S().alerts.length > 200) S().alerts.length = 200;
     const st = S().settings.alerts;
-    if (st.browser && 'Notification' in window && Notification.permission === 'granted') { try { new Notification('Opportunity Scanner', { body: text, tag: a.id }); } catch { } }
+    if (st.browser && 'Notification' in window && Notification.permission === 'granted') { try { new Notification('StrikeZone', { body: text, tag: a.id }); } catch { } }
     if (st.webhook && type !== 'system') this.webhook(st.webhook, a);
     Store.set({ alerts: S().alerts });
   },
   async webhook(url, a) {
-    try { await fetch(url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ text: `[Opportunity Scanner] ${a.text}`, alert: a }) }); }
+    try { await fetch(url, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify({ text: `[StrikeZone] ${a.text}`, alert: a }) }); }
     catch (e) { Pipeline.log(a.m || 'US', `Webhook delivery failed: ${e.message}`, 'warn'); }
   },
   unread: () => S().alerts.filter(a => !a.read).length
@@ -2624,7 +2692,8 @@ const Backtest = {
   async run(cfg) {
     const mk = S().mkts[cfg.market], ds = mk.ds, st = S().settings, g = st.gates[cfg.market];
     const end = ds.cursor - cfg.hold - 5;
-    const minIdx = ds.tickers.reduce((m, t) => t.excluded ? m : Math.min(m, t.start), Infinity) + 260;
+    const first = ds.tickers.reduce((m, t) => t.excluded ? m : Math.min(m, t.start), Infinity);
+    const minIdx = first + (end - (first + 260) >= 60 ? 260 : 70);
     const startIdx = Math.max(minIdx, end - cfg.window);
     if (end <= startIdx) throw new Error('Not enough history for this window. Use a shorter lookback or a longer dataset (≥ 1.2 years).');
     const dates = []; for (let i = end; i >= startIdx; i -= 5) dates.unshift(i);
@@ -3212,6 +3281,7 @@ const UI = {
     }
     $('wCheck').disabled = S().busy;
     UI.watch();
+    UI.finderForm();
   },
   watch() {
     const el = $('watchView'); if (!el) return;
@@ -3330,6 +3400,67 @@ const UI = {
           <button type="button" data-action="acctDelete" class="h-10 px-4 rounded-lg text-sm text-rose-300 hover:bg-rose-500/10">Delete my account</button></div>
         ${Admin.is ? '' : privacy}`;
     }
+  },
+
+  /* ---------- Strategy finder (Strategy watch tab) ---------- */
+  finderForm() {
+    const sel = $('fdMarket');
+    if (!sel.options.length) {
+      sel.innerHTML = MARKET_CODES.map(c => `<option value="${c}">${MARKETS[c].flag} ${MARKETS[c].name}</option>`).join('');
+      sel.value = view()[0];
+      $('fdKey').innerHTML = Watch.options().filter(([k]) => k !== 'auto').map(([k, l]) => `<option value="${k}">${U.esc(l)}</option>`).join('');
+      $('fdKey').value = 'emasma';
+    }
+    UI.finder();
+  },
+  finder() {
+    const el = $('finderView'); if (!el || S().tab !== 'watch') return;
+    const f = Finder.st(), M = MARKETS[f.m || $('fdMarket').value], name = Watch.label(f.key || $('fdKey').value);
+    $('fdRun').disabled = !!f.busy || S().busy; $('fdRun').textContent = f.busy ? 'Testing…' : 'Find stocks';
+    if (f.busy) {
+      const pct = f.total ? Math.round(100 * f.done / f.total) : 0;
+      el.innerHTML = `<div class="rounded-xl border border-line bg-panel p-4"><div class="flex items-center gap-3"><p class="text-sm text-slate-300 flex-1">Backtesting <b>${U.esc(name)}</b> on ${f.total ? fmt.num(f.total) : 'every'} ${M.name} stocks… <span class="num text-slate-400">${fmt.num(f.done || 0)}${f.total ? ' / ' + fmt.num(f.total) : ''}</span></p><button type="button" data-action="finderCancel" class="h-8 px-3 rounded-lg border border-line text-xs hover:bg-panel2">Cancel</button></div>
+        <div class="mt-2 h-1.5 rounded-full bg-ink overflow-hidden"><div class="h-full bg-sky-400 transition-all" style="width:${pct}%"></div></div><p class="mt-2 text-[11px] text-slate-500">The first run on a market takes a little while (every stock’s full history is replayed). Later runs reuse the results and are much faster.</p></div>`;
+      return;
+    }
+    if (f.err) { el.innerHTML = `<p class="text-sm text-rose-300">${U.esc(f.err)}</p>`; return; }
+    if (!f.rows) { el.innerHTML = ''; return; }
+    const stale = f.m !== $('fdMarket').value || f.key !== $('fdKey').value;
+    const rows = Finder.view(), all = f.rows, shown = rows.slice(0, f.show || 50);
+    const worked = all.filter(r => r.n >= 3 && r.total > 0 && r.winRate >= .5).length, buys = all.filter(r => r.state === 'buy').length, bests = all.filter(r => r.best && r.n >= 3).length;
+    const watching = new Set(Watch.list().filter(w => w.key === f.key && w.m === f.m).map(w => w.sym)), owned = new Set(Portfolio.list().filter(h => h.m === f.m).map(h => h.sym));
+    const tone = x => !Number.isFinite(x) ? 'text-slate-400' : x > 0 ? 'text-emerald-300' : x < 0 ? 'text-rose-300' : 'text-slate-300';
+    const stateCell = r => r.state === 'buy' ? `<span class="font-semibold text-emerald-300">▲ BUY today</span>${r.plan ? `<p class="text-[11px] text-slate-400 num">entry ${fmt.px(r.plan.entryLow, M)}–${fmt.n2(r.plan.entryHigh, M)} · stop ${fmt.px(r.plan.stop, M)} · target ${fmt.px(r.plan.target, M)}</p>` : '<p class="text-[11px] text-slate-400">buys at the next open</p>'}`
+      : r.state === 'sell' ? '<span class="font-semibold text-amber-300">▼ SELL today</span><p class="text-[11px] text-slate-400">exits at the next open</p>'
+      : r.state === 'open' ? `<span class="text-sky-300">In a trade</span><p class="text-[11px] text-slate-400 num">since ${fmt.dateShort(S().mkts[f.m]?.ds?.dates[r.open.entry])} · ${fmt.pct(r.open.ret, 1)}</p>` : '<span class="text-slate-500">No signal</span>';
+    el.innerHTML = `<div class="rounded-xl border border-line bg-panel">
+      <div class="p-3 border-b border-line flex flex-wrap items-center gap-x-4 gap-y-2">
+        <p class="text-sm text-slate-300 flex-1 min-w-[260px]"><b class="text-slate-100">${U.esc(Watch.label(f.key))}</b> on ${fmt.num(f.scanned)} ${MARKETS[f.m].flag} ${MARKETS[f.m].name} stocks (close of ${fmt.date(f.date)}): worked on <b class="text-emerald-300">${fmt.num(worked)}</b> <span class="text-slate-500">(3+ trades, profitable, ≥50% won)</span> · best fit for <b class="text-amber-300">${fmt.num(bests)}</b> · BUY today on <b class="text-emerald-300">${fmt.num(buys)}</b>.</p>
+        <label class="text-xs text-slate-400">Sort <select id="fdSort" class="ml-1 h-8 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">
+          ${[['win', 'Success rate'], ['best', 'Best fit first'], ['total', 'Total return'], ['trades', 'Most trades']].map(([k, l]) => `<option value="${k}" ${(f.sort || 'win') === k ? 'selected' : ''}>${l}</option>`).join('')}</select></label>
+      </div>
+      ${stale ? '<p class="px-3 pt-2 text-xs text-amber-300">These results are for the strategy and market shown above them — press “Find stocks” to run your new choice.</p>' : ''}
+      ${rows.length ? `<div class="overflow-x-auto scroll-thin"><table class="w-full text-sm">
+        <thead><tr class="text-left text-xs text-slate-400 border-b border-line"><th class="px-3 py-2 font-medium">Stock</th><th class="px-3 py-2 font-medium">Today</th><th class="px-3 py-2 font-medium">Success with this strategy</th><th class="px-3 py-2 font-medium text-right">Total return</th><th class="px-3 py-2 font-medium text-right">Avg / trade</th><th class="px-3 py-2"></th></tr></thead>
+        <tbody>${shown.map(r => `<tr class="border-b border-line/60 align-top ${r.best ? 'bg-amber-400/[0.05]' : ''}">
+          <td class="px-3 py-2 ${r.best ? 'border-l-2 border-amber-400' : 'border-l-2 border-transparent'}"><p class="font-semibold">${U.esc(r.sym)} ${r.best ? '<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400 text-ink align-middle">★ BEST FIT</span>' : ''}</p>
+            <p class="text-[11px] text-slate-400 truncate max-w-[220px]">${U.esc(r.name)}</p>
+            <p class="text-[11px] ${r.best ? 'text-amber-200' : 'text-slate-500'}">${r.best ? `Best of all ${r.of} strategies for ${U.esc(r.sym)}` : `Ranks #${r.rank} of ${r.of} · best: ${U.esc(r.bestName || '—')}`}</p></td>
+          <td class="px-3 py-2 whitespace-nowrap">${stateCell(r)}</td>
+          <td class="px-3 py-2"><p class="num"><b class="${r.winRate >= .6 ? 'text-emerald-300' : r.winRate >= .5 ? 'text-slate-100' : 'text-rose-300'}">${r.wins} of ${r.n}</b> trades won <span class="text-slate-400">(${fmt.prob(r.winRate)})</span></p>
+            <div class="mt-1 h-1.5 w-32 rounded-full bg-ink overflow-hidden"><div class="h-full ${r.winRate >= .6 ? 'bg-emerald-400' : r.winRate >= .5 ? 'bg-slate-300' : 'bg-rose-400'}" style="width:${Math.round((r.winRate || 0) * 100)}%"></div></div></td>
+          <td class="px-3 py-2 text-right num ${tone(r.total)}">${fmt.pct(r.total, 1)}</td>
+          <td class="px-3 py-2 text-right num ${tone(r.avg)}">${fmt.pct(r.avg, 1)}</td>
+          <td class="px-3 py-2"><div class="flex justify-end gap-1.5 whitespace-nowrap">
+            ${watching.has(r.sym) ? '<span class="h-7 px-2 inline-flex items-center text-xs text-violet-300">◆ Watching</span>' : `<button type="button" data-action="finderWatch" data-sym="${U.esc(r.sym)}" class="h-7 px-2.5 rounded-lg border border-violet-500/40 text-xs text-violet-300 hover:bg-violet-500/10">◆ Watch</button>`}
+            ${owned.has(r.sym) ? '<span class="h-7 px-2 inline-flex items-center text-xs text-amber-300">💼 Owned</span>' : `<button type="button" data-action="finderPf" data-sym="${U.esc(r.sym)}" class="h-7 px-2.5 rounded-lg border border-amber-500/40 text-xs text-amber-300 hover:bg-amber-500/10">💼 Portfolio</button>`}
+            <button type="button" data-action="btStock" data-m="${f.m}" data-sym="${U.esc(r.sym)}" class="h-7 px-2.5 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Backtest</button></div></td>
+        </tr>`).join('')}</tbody></table></div>
+        <div class="p-3 flex flex-wrap items-center gap-3 text-xs text-slate-400">Showing ${fmt.num(shown.length)} of ${fmt.num(rows.length)} matching stocks.
+          ${rows.length > shown.length ? '<button type="button" data-action="finderMore" class="h-8 px-3 rounded-lg border border-line text-slate-200 hover:bg-panel2">Show 50 more</button>' : ''}</div>`
+      : `<p class="p-4 text-sm text-slate-400">No stocks match these filters. Try “has any track record”, or lower the minimum number of past trades.</p>`}
+      <p class="px-3 pb-3 text-[11px] text-slate-500">Each stock’s full price history is replayed with the same rules as the Backtest tab (${f.hold}-day limit for pattern trades). “Won” means the trade closed with a profit. Past results don’t guarantee future ones. Not investment advice.</p>
+    </div>`;
   },
 
   /* ---------- Portfolio tab ---------- */
@@ -3815,6 +3946,26 @@ function wire() {
           break;
         }
 
+        case 'finderGo': $('finderCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); break;
+        case 'finderCancel': Finder.cancel(); break;
+        case 'finderMore': Finder.set({ show: (Finder.st().show || 50) + 50 }); break;
+        case 'finderWatch': {
+          const f = Finder.st(), sym = act.dataset.sym;
+          if (Account.locked()) { UI.acctOpen('register'); UI.toast('Create a free account (or sign in) to keep a Strategy watch list.', 'info'); break; }
+          try { Watch.add(f.m, sym, f.key, f.hold || S().settings.bt.hold); UI.toast(`◆ Watching ${sym} with ${Watch.label(f.key)} — you’ll get an alert when it signals.`, 'ok'); UI.finder(); }
+          catch (ex) { UI.toast(ex.message, 'warn'); }
+          break;
+        }
+        case 'finderPf': {
+          const f = Finder.st(), r = (f.rows || []).find(x => x.sym === act.dataset.sym);
+          if (Account.locked()) { UI.acctOpen('register'); UI.toast('Create a free account (or sign in) to keep a portfolio.', 'info'); break; }
+          Store.set({ tab: 'portfolio' });
+          $('pMarket').value = f.m; UI.portfolioForm();
+          $('pStock').value = act.dataset.sym; $('pQty').value = ''; $('pCost').value = r ? r.price.toFixed(2) : ''; $('pDate').value = '';
+          window.scrollTo({ top: 0 }); $('pQty').focus();
+          UI.toast(`Type how many shares of ${act.dataset.sym} you own, check the buy price (filled in with today’s close), then press “Add / update”.`, 'info');
+          break;
+        }
         case 'pfRemove': { const h = Portfolio.list().find(x => x.id === act.dataset.id); if (h && confirm(`Remove ${h.sym} from your portfolio?`)) Portfolio.remove(h.id); break; }
         case 'pfEdit': {
           const h = Portfolio.list().find(x => x.id === act.dataset.id); if (!h) break;
@@ -3941,6 +4092,17 @@ function wire() {
     } catch (ex) { say(Account.msg(ex)); }
   });
 
+  // Strategy finder
+  $('fdRun').addEventListener('click', async () => {
+    const m = $('fdMarket').value, key = $('fdKey').value, min = +$('fdMin').value; $('fdErr').textContent = '';
+    if (!Number.isInteger(min) || min < 1 || min > 30) { $('fdErr').textContent = 'Min. past trades must be a whole number from 1 to 30.'; return; }
+    if (S().busy) { $('fdErr').textContent = 'Please wait for the current scan to finish.'; return; }
+    try { await Finder.run(m, key); } catch (ex) { console.error(ex); Finder.set({ busy: false, err: ex.message }); }
+  });
+  ['fdWhen', 'fdMin'].forEach(id => $(id).addEventListener('input', () => { Finder.set({ show: 50 }); }));
+  ['fdMarket', 'fdKey'].forEach(id => $(id).addEventListener('change', () => UI.finder()));
+  $('finderView').addEventListener('change', e => { if (e.target.id === 'fdSort') Finder.set({ sort: e.target.value, show: 50 }); });
+
   // Portfolio
   $('pMarket').addEventListener('change', () => { $('pStock').value = ''; UI.portfolioForm(); });
   $('pForm').addEventListener('submit', async e => {
@@ -4034,6 +4196,7 @@ Store.on(['bestTick', 'bestProg'], () => { if (S().tab === 'watchlist') UI.resul
 Store.on(['bestTick'], () => UI.myStocks());
 Store.on(['watchTick', 'settings'], () => UI.watch());
 Store.on(['pfTick', 'settings'], () => UI.portfolio());
+Store.on(['finder', 'watchTick', 'busy'], () => UI.finder());
 Store.on(['acct'], () => { UI.acctButton(); UI.acctRender(); UI.portfolio(); UI.watch(); UI.myStocks();  });
 Store.on(['busy'], () => { if (S().tab === 'portfolio') $('pCheck').disabled = S().busy; });
 Store.on(['busy'], () => { if (S().tab === 'watch') $('wCheck').disabled = S().busy; });

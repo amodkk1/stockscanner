@@ -191,7 +191,7 @@
   <section id="tab-backtest" role="tabpanel" aria-label="Backtest" hidden>
     <div class="rounded-xl border border-emerald-500/30 bg-panel p-4">
       <h2 class="text-base font-semibold">Backtest one stock — which strategy worked best?</h2>
-      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Pick a stock. The app replays its price history and tests 16 strategies on it — the scanner’s 12 chart-pattern signals, the scanner’s own shortlist and 3 classic trading rules — then compares them with simply buying and holding.</p>
+      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Pick a stock. The app replays its price history and tests 19 strategies on it — the scanner’s 12 chart-pattern signals, the scanner’s own shortlist and 6 classic trading rules — then compares them with simply buying and holding.</p>
       <form id="sbForm" class="mt-4 grid grid-cols-2 md:grid-cols-6 gap-3 items-end" autocomplete="off" onsubmit="return false">
         <label class="text-xs text-slate-400">Market
           <select id="sbMarket" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select>
@@ -279,7 +279,7 @@
     Opportunity Scanner ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-01.1 · admin</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-01.4 · admin</p>
   </div>
 </footer>
 
@@ -1029,6 +1029,9 @@ const MyStocks = {
 const StockBT = {
   CLASSIC: {
     ma: { name: 'Trend following (20/50-day crossover)', rule: 'Buys the day after the 20-day average crosses above the 50-day average; sells the day after it crosses back below.' },
+    sma1030: { name: '10/30-day SMA crossover', rule: 'Buys at the next session’s open after the 10-day simple moving average (SMA) closes above the 30-day SMA; sells at the next session’s open after it closes back below.' },
+    sma50200: { name: '50/200-day SMA crossover (golden cross)', rule: 'Buys at the next session’s open after the 50-day simple moving average (SMA) closes above the 200-day SMA (a “golden cross”); sells at the next session’s open after it closes back below (a “death cross”).' },
+    emasma: { name: '20-day EMA × 50-day SMA crossover', rule: 'Buys at the next session’s open after the 20-day exponential moving average (EMA) closes above the 50-day simple moving average (SMA); sells at the next session’s open after the 20-day EMA closes back below the 50-day SMA.' },
     rsi: { name: 'Buy the dip (RSI below 30)', rule: 'Buys the day after RSI(14) closes below 30 (oversold); sells the day after RSI closes above 55, or after 20 sessions.' },
     donchian: { name: 'Breakout (new 20-day high)', rule: 'Buys the day after a close above the highest price of the previous 20 days; sells the day after a close below the lowest price of the previous 10 days.' }
   },
@@ -1086,6 +1089,10 @@ const StockBT = {
     };
     const ok = (...v) => v.every(Number.isFinite);
     rule('ma', i => ok(x.sma20[i], x.sma50[i], x.sma20[i - 1], x.sma50[i - 1]) && x.sma20[i] > x.sma50[i] && x.sma20[i - 1] <= x.sma50[i - 1], i => x.sma20[i] < x.sma50[i]);
+    const cross = (key, f, sl) => rule(key, i => ok(f[i], sl[i], f[i - 1], sl[i - 1]) && f[i] > sl[i] && f[i - 1] <= sl[i - 1], i => f[i] < sl[i]);
+    cross('sma1030', x.sma10, x.sma30);
+    cross('sma50200', x.sma50, x.sma200);
+    rule('emasma', i => ok(x.ema20[i], x.sma50[i], x.ema20[i - 1], x.sma50[i - 1]) && x.ema20[i] > x.sma50[i] && x.ema20[i - 1] <= x.sma50[i - 1], i => x.ema20[i] < x.sma50[i]);
     rule('rsi', i => ok(x.rsi[i]) && x.rsi[i] < 30, i => x.rsi[i] > 55, 20);
     rule('donchian', i => i - tk.start > 20 && x.c[i] > hi(i, 20), i => x.c[i] < lo(i, 10));
     // Buy & hold benchmark
@@ -1529,7 +1536,7 @@ const Ind = {
     const m = Ind.macd(c), st = Ind.stoch(h, l, c);
     return {
       M, start: s, o: tk.o, h: tk.h, l: tk.l, c: tk.c, v: tk.v,
-      sma20: E(Ind.sma(c, 20)), sma50: E(Ind.sma(c, 50)), sma200: E(Ind.sma(c, 200)), av50: E(Ind.sma(v, 50)),
+      sma10: E(Ind.sma(c, 10)), sma20: E(Ind.sma(c, 20)), sma30: E(Ind.sma(c, 30)), sma50: E(Ind.sma(c, 50)), ema20: E(Ind.emaFrom(c, 20, 0)), sma200: E(Ind.sma(c, 200)), av50: E(Ind.sma(v, 50)),
       rsi: E(Ind.rsi(c)), macd: E(m.m), sig: E(m.s), bbw: E(Ind.bbw(c)), atr: E(Ind.atr(h, l, c)),
       k: E(st.k), d: E(st.d), hh252: E(Ind.maxPrior(h, 252)), hh60: E(Ind.maxPrior(h, 60))
     };
@@ -2888,7 +2895,7 @@ const UI = {
           return `<section aria-labelledby="bsH" class="rounded-xl border ${b.match ? 'border-violet-500/40 bg-violet-500/[0.05]' : 'border-line bg-ink'} p-4">
             <h3 id="bsH" class="font-semibold ${b.match ? 'text-violet-200' : ''}">${b.match ? '◆ ' : ''}Best-performing signal for ${U.esc(tk.sym)} in its own backtest</h3>
             <p class="mt-1 text-sm text-slate-200"><span class="font-medium">${U.esc(x.name)}</span> — ${x.n} trade${x.n === 1 ? '' : 's'}, ${fmt.prob(x.winRate)} won, ${fmt.pct(x.total, 1)} in total (buy &amp; hold ${fmt.pct(b.bh.ret, 1)}).</p>
-            <p class="mt-1 text-xs ${b.match ? 'text-violet-200' : 'text-slate-400'}">${b.match ? `${x.key === 'pat:' + cd.pats[0].key ? 'Today’s event is this signal' : 'This signal also fired today'}, so this setup matches what has worked best on this stock.` : !b.sigReliable ? 'Too few trades to trust this result.' : x.total <= 0 ? 'No signal was profitable on this stock.' : x.winRate < .5 ? 'It won less than half its trades, so it doesn’t count as a match.' : b.today[x.key]?.buy ? 'It also fires today.' : 'It is not signalling today.'}${b.best && b.best.key !== x.key ? ` (Across all 16 strategies, ${U.esc(b.best.name)} did best: ${fmt.pct(b.best.total, 1)}.)` : ''}</p>
+            <p class="mt-1 text-xs ${b.match ? 'text-violet-200' : 'text-slate-400'}">${b.match ? `${x.key === 'pat:' + cd.pats[0].key ? 'Today’s event is this signal' : 'This signal also fired today'}, so this setup matches what has worked best on this stock.` : !b.sigReliable ? 'Too few trades to trust this result.' : x.total <= 0 ? 'No signal was profitable on this stock.' : x.winRate < .5 ? 'It won less than half its trades, so it doesn’t count as a match.' : b.today[x.key]?.buy ? 'It also fires today.' : 'It is not signalling today.'}${b.best && b.best.key !== x.key ? ` (Across all 19 strategies, ${U.esc(b.best.name)} did best: ${fmt.pct(b.best.total, 1)}.)` : ''}</p>
             <div class="mt-3 flex flex-wrap gap-2">
               <button type="button" data-action="watchAdd" data-m="${row.m}" data-sym="${U.esc(tk.sym)}" data-key="auto" data-hold="${b.hold}" class="h-8 px-3 rounded-lg bg-violet-500/90 text-white text-xs font-semibold hover:bg-violet-400">◆ Watch &amp; alert me</button>
               <button type="button" data-action="btStock" data-m="${row.m}" data-sym="${U.esc(tk.sym)}" class="h-8 px-3 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">See full backtest</button>

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="description" content="Opportunity Scanner — end-of-day stock screener for the USA, Canada and India that ranks setups by estimated probability, with the trigger event and reasons for every pick.">
-<title>Opportunity Scanner</title>
+<title>Opportunity Scanner · Admin</title>
 <meta name="theme-color" content="#0a0e14">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -67,7 +67,7 @@
         <circle cx="26" cy="8" r="2.4" fill="#34d399"/>
       </svg>
       <div class="min-w-0">
-        <h1 class="text-sm sm:text-base font-semibold leading-tight truncate">Opportunity Scanner</h1>
+        <h1 class="text-sm sm:text-base font-semibold leading-tight truncate">Opportunity Scanner <span class="ml-1 align-middle text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-400 text-ink">ADMIN</span></h1>
         <p id="asOf" class="text-[11px] text-slate-400 leading-tight truncate">Loading…</p>
       </div>
     </div>
@@ -96,6 +96,9 @@
     <button role="tab" data-tab="backtest" class="tab">Backtest</button>
     <button role="tab" data-tab="paper" class="tab">Paper log</button>
     <button role="tab" data-tab="pipeline" class="tab">Pipeline</button>
+
+    <button role="tab" data-tab="visitors" class="tab adminOnly">Visitors</button>
+    <button role="tab" data-tab="settings" class="tab adminOnly">Settings</button>
 
   </nav>
 </header>
@@ -188,7 +191,7 @@
   <section id="tab-backtest" role="tabpanel" aria-label="Backtest" hidden>
     <div class="rounded-xl border border-emerald-500/30 bg-panel p-4">
       <h2 class="text-base font-semibold">Backtest one stock — which strategy worked best?</h2>
-      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Pick a stock. The app replays its price history and tests 16 strategies on it — the scanner’s 12 chart-pattern signals, the scanner’s own shortlist and 3 classic trading rules — then compares them with simply buying and holding.</p>
+      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Pick a stock. The app replays its price history and tests 19 strategies on it — the scanner’s 12 chart-pattern signals, the scanner’s own shortlist and 6 classic trading rules — then compares them with simply buying and holding.</p>
       <form id="sbForm" class="mt-4 grid grid-cols-2 md:grid-cols-6 gap-3 items-end" autocomplete="off" onsubmit="return false">
         <label class="text-xs text-slate-400">Market
           <select id="sbMarket" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select>
@@ -264,11 +267,11 @@
     <div id="watchView" class="mt-4" aria-live="polite"></div>
   </section>
 
-
+  <section id="tab-visitors" role="tabpanel" aria-label="Visitors" hidden><div id="visitorsView"></div></section>
 
   <section id="tab-paper" role="tabpanel" aria-label="Paper trading log" hidden><div id="paperView"></div></section>
   <section id="tab-pipeline" role="tabpanel" aria-label="Pipeline" hidden><div id="pipelineView"></div></section>
-
+  <section id="tab-settings" role="tabpanel" aria-label="Settings" hidden><div id="settingsView"></div></section>
 </main>
 
 <footer class="border-t border-line">
@@ -276,7 +279,7 @@
     Opportunity Scanner ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-01.1 · public</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-01.4 · admin</p>
   </div>
 </footer>
 
@@ -312,7 +315,7 @@
 <script>
 (() => {
 /* Which copy this is: 'public' (index.html — no admin features) or 'admin' (admin.html — Settings + Visitors). Set by build.py. */
-const BUILD = 'public';
+const BUILD = 'admin';
 'use strict';
 
 /* =====================================================================
@@ -1026,6 +1029,9 @@ const MyStocks = {
 const StockBT = {
   CLASSIC: {
     ma: { name: 'Trend following (20/50-day crossover)', rule: 'Buys the day after the 20-day average crosses above the 50-day average; sells the day after it crosses back below.' },
+    sma1030: { name: '10/30-day SMA crossover', rule: 'Buys at the next session’s open after the 10-day simple moving average (SMA) closes above the 30-day SMA; sells at the next session’s open after it closes back below.' },
+    sma50200: { name: '50/200-day SMA crossover (golden cross)', rule: 'Buys at the next session’s open after the 50-day simple moving average (SMA) closes above the 200-day SMA (a “golden cross”); sells at the next session’s open after it closes back below (a “death cross”).' },
+    emasma: { name: '20-day EMA × 50-day SMA crossover', rule: 'Buys at the next session’s open after the 20-day exponential moving average (EMA) closes above the 50-day simple moving average (SMA); sells at the next session’s open after the 20-day EMA closes back below the 50-day SMA.' },
     rsi: { name: 'Buy the dip (RSI below 30)', rule: 'Buys the day after RSI(14) closes below 30 (oversold); sells the day after RSI closes above 55, or after 20 sessions.' },
     donchian: { name: 'Breakout (new 20-day high)', rule: 'Buys the day after a close above the highest price of the previous 20 days; sells the day after a close below the lowest price of the previous 10 days.' }
   },
@@ -1083,6 +1089,10 @@ const StockBT = {
     };
     const ok = (...v) => v.every(Number.isFinite);
     rule('ma', i => ok(x.sma20[i], x.sma50[i], x.sma20[i - 1], x.sma50[i - 1]) && x.sma20[i] > x.sma50[i] && x.sma20[i - 1] <= x.sma50[i - 1], i => x.sma20[i] < x.sma50[i]);
+    const cross = (key, f, sl) => rule(key, i => ok(f[i], sl[i], f[i - 1], sl[i - 1]) && f[i] > sl[i] && f[i - 1] <= sl[i - 1], i => f[i] < sl[i]);
+    cross('sma1030', x.sma10, x.sma30);
+    cross('sma50200', x.sma50, x.sma200);
+    rule('emasma', i => ok(x.ema20[i], x.sma50[i], x.ema20[i - 1], x.sma50[i - 1]) && x.ema20[i] > x.sma50[i] && x.ema20[i - 1] <= x.sma50[i - 1], i => x.ema20[i] < x.sma50[i]);
     rule('rsi', i => ok(x.rsi[i]) && x.rsi[i] < 30, i => x.rsi[i] > 55, 20);
     rule('donchian', i => i - tk.start > 20 && x.c[i] > hi(i, 20), i => x.c[i] < lo(i, 10));
     // Buy & hold benchmark
@@ -1228,6 +1238,38 @@ const Shared = {
     else st.sources = { US: 'demo', CA: 'demo', IN: 'demo' };
   },
   
+  publicFeedGuess() {
+    const f = S().settings.feed;
+    if (S().settings.publicFeed) return S().settings.publicFeed;
+    if (f.mode === 'github' && f.owner && f.repo) return `https://raw.githubusercontent.com/${f.owner}/${f.repo}/${f.branch || 'data'}`;
+    return f.mode === 'url' ? f.baseUrl : '';
+  },
+  build(publicFeed) {
+    const st = S().settings, vl = st.visitorLog;
+    return {
+      v: 2, published: new Date().toISOString(),
+      settings: { weights: st.weights, tiers: st.tiers, gates: st.gates, regimeFilter: st.regimeFilter, earningsMode: st.earningsMode, catalystWindow: st.catalystWindow,
+        sources: publicFeed ? { ...st.sources } : { US: 'demo', CA: 'demo', IN: 'demo' } },
+      feed: publicFeed ? { baseUrl: publicFeed.replace(/\/+$/, '') } : null,
+      visitorLog: vl?.formUrl ? { formUrl: vl.formUrl, fields: vl.fields } : null
+    };
+  },
+  async publish(cfg, site) {
+    const tok = S().settings.feed.token;
+    if (!tok) throw Object.assign(new Error('No GitHub token on this device (Settings → Live market data).'), { code: 'token' });
+    const base = `https://api.github.com/repos/${encodeURIComponent(site.owner)}/${encodeURIComponent(site.repo)}`;
+    const h = { Accept: 'application/vnd.github+json', Authorization: `Bearer ${tok}`, 'X-GitHub-Api-Version': '2022-11-28' };
+    const repo = await fetch(base, { headers: h, cache: 'no-store' });
+    if (!repo.ok) throw Object.assign(new Error(`Can’t open ${site.owner}/${site.repo} with your token (HTTP ${repo.status}).`), { code: 'perm' });
+    const branch = (await repo.json()).default_branch || 'main';
+    const cur = await fetch(`${base}/contents/config.json?ref=${encodeURIComponent(branch)}`, { headers: h, cache: 'no-store' });
+    const sha = cur.ok ? (await cur.json()).sha : undefined;
+    const put = await fetch(`${base}/contents/config.json`, { method: 'PUT', headers: { ...h, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: 'Publish Opportunity Scanner settings', branch, content: GH.b64(JSON.stringify(cfg, null, 1) + '\n'), ...(sha ? { sha } : {}) }) });
+    if (!put.ok) throw Object.assign(new Error(`GitHub refused to save config.json (HTTP ${put.status}).`), { code: 'perm' });
+    this.cfg = cfg;
+  }
+  
 };
 
 /** Visit log: each visit is sent to the owner's Google Form (rows land in a Google Sheet). Admin devices are never logged. */
@@ -1297,6 +1339,141 @@ const Visit = {
   track(kind, v) { if (kind === 'tab') this.tabs.add(v); if (kind === 'market') this.markets.add(v); }
 };
 
+/** Reads the published Google Sheet (CSV) of visits and renders the admin panel. */
+const VisitLog = {
+  /** Pre-filled Google Form link -> form submit URL + field ids. */
+  parsePrefill(link) {
+    let u; try { u = new URL(link.trim()); } catch { throw new Error('Box A isn’t a web link. Copy it again from “Get pre-filled link”.'); }
+    const m = u.pathname.match(/\/forms\/d\/e\/([^/]+)\//);
+    if (!/docs\.google\.com$/.test(u.hostname) || !m) throw new Error('Box A must be the Google Form pre-filled link (it starts with https://docs.google.com/forms/d/e/).');
+    const want = { name: 'name', id: 'id', event: 'event', details: 'details' }, fields = {};
+    for (const [k, v] of u.searchParams) if (/^entry\.\d+$/.test(k)) { const key = Object.keys(want).find(w => want[w] === v.trim().toLowerCase()); if (key) fields[key] = k; }
+    const miss = Object.keys(want).filter(k => !fields[k]);
+    if (miss.length) throw new Error(`The link doesn’t have the answers ${miss.map(x => '“' + want[x] + '”').join(', ')}. In “Get pre-filled link”, type exactly: name, id, event, details — then Get link → Copy link.`);
+    return { formUrl: `https://docs.google.com/forms/d/e/${m[1]}/formResponse`, fields, prefill: link.trim() };
+  },
+  checkCsv(link) {
+    let u; try { u = new URL(link.trim()); } catch { throw new Error('Box B isn’t a web link.'); }
+    if (!/docs\.google\.com$/.test(u.hostname) || !/\/pub/.test(u.pathname)) throw new Error('Box B must be the “Publish to web” link of the sheet (it contains /pub).');
+    if (u.searchParams.get('output') !== 'csv') throw new Error('In “Publish to web”, choose “Comma-separated values (.csv)” in the second dropdown, then copy the link again.');
+    return u.toString();
+  },
+  async fetch(url) {
+    let r;
+    try { r = await fetch(url + (url.includes('?') ? '&' : '?') + 't=' + Date.now(), { cache: 'no-store' }); }
+    catch (e) { throw new Error(`Couldn’t reach Google (${e.message}).`); }
+    if (!r.ok) throw new Error(`Google answered HTTP ${r.status}. Check the sheet is still published to the web as CSV.`);
+    const text = await r.text();
+    if (/^\s*</.test(text)) throw new Error('Google returned a web page instead of CSV — publish the sheet as “Comma-separated values (.csv)”.');
+    return text;
+  },
+  csv(text) {
+    const rows = []; let row = [], f = '', q = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (q) { if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+      else if (c === '"') q = true;
+      else if (c === ',') { row.push(f); f = ''; }
+      else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; }
+      else f += c;
+    }
+    if (f || row.length) { row.push(f); rows.push(row); }
+    return rows.filter(r => r.some(x => x.trim()));
+  },
+  parse(text) {
+    const rows = this.csv(text); if (!rows.length) return [];
+    const head = rows[0].map(h => h.trim().toLowerCase());
+    const col = n => head.findIndex(h => h.includes(n));
+    const ci = { ts: col('timestamp'), name: col('name'), id: col('visitor'), ev: col('event'), det: col('detail') };
+    if (ci.id < 0 || ci.det < 0) throw new Error('The sheet doesn’t have “Visitor ID” and “Details” columns. Check the 4 question titles in the form.');
+    return rows.slice(1).map(r => {
+      const d = {}; for (const part of (r[ci.det] || '').split(';')) { const k = part.indexOf('='); if (k > 0) d[part.slice(0, k).trim()] = part.slice(k + 1).trim(); }
+      const t = d.t ? new Date(d.t) : null;
+      return { name: (r[ci.name] || '').trim() || 'Anonymous', id: (r[ci.id] || '').trim(), event: (r[ci.ev] || '').trim(), d, t: t && !isNaN(t) ? t : null, raw: r[ci.ts] };
+    }).filter(x => x.id && x.t);
+  },
+  render(log) {
+    const rows = log.rows, now = Date.now(), day = 864e5;
+    const opens = rows.filter(r => /visit$/.test(r.event) && r.event !== 'visit summary');
+    const sums = rows.filter(r => r.event === 'visit summary');
+    const people = new Map();
+    for (const r of rows.slice().sort((a, b) => a.t - b.t)) {
+      const p = people.get(r.id) || { id: r.id, name: '', first: r.t, last: r.t, visits: 0, mins: 0, device: '', browser: '', tabs: new Set(), markets: new Set(), tz: '', lang: '', ips: new Set(), ip: '', place: '', isp: '', events: [] };
+      if (r.name && r.name !== 'Anonymous') p.name = r.name;
+      if (r.d.ip) { p.ip = r.d.ip; p.ips.add(r.d.ip); }
+      if (r.d.city || r.d.country) p.place = [r.d.city, r.d.region, r.d.country].filter(Boolean).join(', ');
+      if (r.d.isp) p.isp = r.d.isp;
+      p.last = r.t; p.events.push(r);
+      if (/visit$/.test(r.event) && r.event !== 'visit summary') p.visits++;
+      if (r.event === 'visit summary') { p.mins += +r.d.mins || 0; (r.d.tabs || '').split(',').map(x => x.trim()).filter(Boolean).forEach(x => p.tabs.add(x)); (r.d.markets || '').split(',').map(x => x.trim()).filter(Boolean).forEach(x => p.markets.add(x)); }
+      if (r.d.device) { p.device = r.d.device; p.browser = r.d.browser || ''; p.tz = r.d.tz || ''; p.lang = r.d.lang || ''; }
+      people.set(r.id, p);
+    }
+    const nick = S().settings.visitorNames || {};
+    for (const p of people.values()) p.label = nick[p.id] || p.name || (p.place ? `Visitor from ${p.place.split(',')[0]}` : `Visitor ${p.id.slice(0, 4)}`);
+    const list = [...people.values()].filter(p => p.visits || p.mins).sort((a, b) => b.last - a.last);
+    const q = (UI._vq || '').toLowerCase();
+    const shown = q ? list.filter(p => [p.label, p.device, p.id, p.place, p.isp, ...p.ips].join(' ').toLowerCase().includes(q)) : list;
+    const inDays = (arr, n) => arr.filter(r => now - r.t < n * day);
+    const today0 = new Date(); today0.setHours(0, 0, 0, 0);
+    const visitsToday = opens.filter(r => r.t >= today0).length;
+    const avgMin = sums.length ? sums.reduce((a, r) => a + (+r.d.mins || 0), 0) / sums.length : NaN;
+    const uniq30 = new Set(inDays(opens, 30).map(r => r.id)).size;
+    const returning = list.filter(p => p.visits > 1).length;
+    // visits per day, last 30 days
+    const days = []; for (let k = 29; k >= 0; k--) { const d0 = new Date(today0.getTime() - k * day); days.push({ d: d0, n: 0, u: new Set() }); }
+    for (const r of opens) { const k = Math.floor((r.t - (today0.getTime() - 29 * day)) / day); if (k >= 0 && k < 30) { days[k].n++; days[k].u.add(r.id); } }
+    const maxN = Math.max(1, ...days.map(d => d.n));
+    const W = 600, H = 150, bw = W / 30;
+    const bars = days.map((d, k) => { const h = (d.n / maxN) * (H - 24); return `<g><title>${d.d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}: ${d.n} visit${d.n === 1 ? '' : 's'}, ${d.u.size} ${d.u.size === 1 ? 'person' : 'people'}</title><rect x="${k * bw + 2}" y="${H - 16 - h}" width="${bw - 4}" height="${Math.max(h, d.n ? 2 : 0)}" rx="2" fill="${k === 29 ? '#34d399' : '#38bdf8'}" opacity="${k === 29 ? 1 : .75}"/></g>`; }).join('');
+    const ticks = [0, 7, 14, 21, 29].map(k => `<text x="${k * bw + bw / 2}" y="${H - 2}" text-anchor="middle" font-size="10" fill="#64748b">${days[k].d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</text>`).join('');
+    const kpi = (l, v, sub) => `<div class="rounded-xl border border-line bg-panel p-3"><p class="text-[11px] uppercase tracking-wide text-slate-400">${l}</p><p class="mt-1 text-xl font-semibold num">${v}</p><p class="text-[11px] text-slate-500">${sub}</p></div>`;
+    const when = t => { const s = (now - t) / 1000; return s < 3600 ? `${Math.max(1, Math.round(s / 60))} min ago` : s < 86400 ? `${Math.round(s / 3600)} h ago` : t.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: t.getFullYear() === new Date().getFullYear() ? undefined : 'numeric' }); };
+    const recent = rows.slice().sort((a, b) => b.t - a.t).slice(0, 40);
+    const evLabel = { 'first visit': 'First visit', visit: 'Visit', 'visit summary': 'Left', test: 'Test' };
+    return `<div class="flex flex-wrap items-center gap-2 mb-3">
+        <div><h2 class="text-base font-semibold">Visitors</h2><p class="text-xs text-slate-400">From your Google Sheet · read ${log.at.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} · Google refreshes the published sheet about every 5 minutes · IP and location are looked up automatically</p></div>
+        <div class="ml-auto flex gap-2"><button type="button" data-action="vlRefresh" class="h-8 px-3 rounded-lg border border-line text-xs hover:bg-panel2">Refresh</button><button type="button" data-action="vlEdit" class="h-8 px-3 rounded-lg border border-line text-xs hover:bg-panel2">Log settings</button></div>
+      </div>
+      ${!Shared.cfg?.visitorLog ? '<p class="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-200">Visitors’ apps aren’t logging yet — go to Settings → Publish to all users.</p>' : ''}
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+        ${kpi('People, last 30 days', fmt.num(uniq30), `${fmt.num(list.length)} ever · ${fmt.num(returning)} came back`)}
+        ${kpi('Visits today', fmt.num(visitsToday), `${fmt.num(inDays(opens, 7).length)} in the last 7 days`)}
+        ${kpi('Average visit', Number.isFinite(avgMin) ? (avgMin < 1 ? '<1 min' : `${avgMin.toFixed(avgMin < 10 ? 1 : 0)} min`) : '—', `${fmt.num(sums.length)} visits with a length`)}
+        ${kpi('Total visits', fmt.num(opens.length), list[0] ? `Latest: ${U.esc(list[0].label)}, ${when(list[0].last)}` : 'None yet')}
+      </div>
+      <div class="mt-4 rounded-xl border border-line bg-panel p-3">
+        <p class="text-sm font-medium">Visits per day <span class="text-xs font-normal text-slate-500">— last 30 days, today in green</span></p>
+        <svg viewBox="0 0 ${W} ${H}" class="mt-2 w-full h-36" role="img" aria-label="Bar chart of visits per day over the last 30 days">${bars}${ticks}</svg>
+      </div>
+      <div class="mt-4 rounded-xl border border-line bg-panel overflow-x-auto scroll-thin">
+        <div class="flex flex-wrap items-center gap-2 px-3 pt-3"><p class="text-sm font-medium">Who visited <span class="text-xs font-normal text-slate-500">(${fmt.num(shown.length)}, most recent first)</span></p>
+          <input id="vlSearch" type="search" value="${U.esc(UI._vq || '')}" placeholder="Search name, IP, place, device" class="ml-auto h-8 w-48 rounded-lg bg-ink border border-line px-2 text-xs text-slate-100"></div>
+        <table class="mt-2 w-full text-sm">
+          <thead class="text-left text-[11px] uppercase tracking-wide text-slate-400 border-b border-line"><tr><th scope="col" class="px-3 py-2">Visitor</th><th scope="col" class="hidden sm:table-cell px-3 py-2">IP address</th><th scope="col" class="px-3 py-2">Last visit</th><th scope="col" class="px-3 py-2 text-right">Visits</th><th scope="col" class="hidden sm:table-cell px-3 py-2 text-right">Time spent</th><th scope="col" class="hidden md:table-cell px-3 py-2">Device</th><th scope="col" class="hidden lg:table-cell px-3 py-2">Used</th><th scope="col" class="hidden md:table-cell px-3 py-2">First visit</th></tr></thead>
+          <tbody class="divide-y divide-line/70">${shown.length ? shown.slice(0, 300).map(p => `<tr class="row-click" tabindex="0" data-vid="${U.esc(p.id)}">
+            <td class="px-3 py-2.5"><p class="font-medium text-slate-100">${U.esc(p.label)}</p><p class="text-[11px] text-slate-500">${U.esc(p.place || p.tz || 'Location unknown')}${p.isp ? ' · ' + U.esc(p.isp) : ''}</p></td>
+            <td class="hidden sm:table-cell px-3 py-2.5 font-mono text-xs text-slate-300">${U.esc(p.ip || '—')}${p.ips.size > 1 ? `<p class="font-sans text-[10px] text-slate-500">+${p.ips.size - 1} other IP${p.ips.size > 2 ? 's' : ''}</p>` : ''}</td>
+            <td class="px-3 py-2.5 whitespace-nowrap text-slate-300">${when(p.last)}</td>
+            <td class="px-3 py-2.5 text-right num">${p.visits}</td>
+            <td class="hidden sm:table-cell px-3 py-2.5 text-right num text-slate-300">${p.mins ? (p.mins < 1 ? '<1 min' : Math.round(p.mins) + ' min') : '—'}</td>
+            <td class="hidden md:table-cell px-3 py-2.5 text-slate-300 whitespace-nowrap">${U.esc(p.device)}${p.browser ? ` · ${U.esc(p.browser)}` : ''}</td>
+            <td class="hidden lg:table-cell px-3 py-2.5 text-xs text-slate-400">${U.esc([...p.tabs].join(', ') || '—')}${p.markets.size ? ` · ${U.esc([...p.markets].join(', '))}` : ''}</td>
+            <td class="hidden md:table-cell px-3 py-2.5 whitespace-nowrap text-slate-400">${p.first.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+          </tr>${UI._vopen === p.id ? `<tr><td colspan="8" class="px-3 pb-3 bg-ink/60">
+            <form class="vlName pt-3 flex flex-wrap items-center gap-2" data-id="${U.esc(p.id)}"><label class="text-xs text-slate-400">Name this visitor (only you see it)</label><input name="n" value="${U.esc(nick[p.id] || '')}" maxlength="40" placeholder="e.g. Ravi" class="h-8 w-44 rounded-lg bg-panel border border-line px-2 text-xs text-slate-100"><button class="h-8 px-3 rounded-lg border border-line text-xs hover:bg-panel2">Save</button></form>
+            <p class="mt-1 text-[11px] text-slate-500">Browser ID ${U.esc(p.id)} · IPs seen: ${U.esc([...p.ips].join(', ') || '—')}</p>
+            <p class="pt-2 text-xs text-slate-400">Visit history (newest first)</p><ul class="mt-1 text-xs text-slate-300 space-y-0.5">${p.events.slice().reverse().slice(0, 50).map(r => `<li>${r.t.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · ${evLabel[r.event] || U.esc(r.event)}${r.event === 'visit summary' ? ` after ${U.esc(r.d.mins)} min${r.d.tabs ? ' · ' + U.esc(r.d.tabs) : ''}` : r.d.device ? ` · ${U.esc(r.d.device)}, ${U.esc(r.d.browser || '')}` : ''}${r.d.ip ? ` · ${U.esc(r.d.ip)}` : ''}${r.d.city ? ` · ${U.esc(r.d.city)}` : ''}</li>`).join('')}</ul></td></tr>` : ''}`).join('') : '<tr><td colspan="8" class="px-3 py-6 text-center text-slate-400">No visits recorded yet. Visitors are logged once you’ve published the log settings (Settings → Publish to all users).</td></tr>'}</tbody>
+        </table>
+      </div>
+      <details class="mt-4 rounded-xl border border-line bg-panel">
+        <summary class="cursor-pointer px-4 py-3 text-sm font-medium">Latest activity (${recent.length})</summary>
+        <ul class="border-t border-line divide-y divide-line/60 text-xs">${recent.map(r => `<li class="px-4 py-2 flex flex-wrap gap-x-3"><span class="text-slate-500 w-36 shrink-0">${r.t.toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span><span class="text-slate-200 font-medium">${U.esc(people.get(r.id)?.label || r.name)}</span><span class="text-slate-500 font-mono">${U.esc(r.d.ip || '')}</span><span class="text-slate-400">${evLabel[r.event] || U.esc(r.event)}${r.event === 'visit summary' ? ` after ${U.esc(r.d.mins)} min` : ''}</span><span class="text-slate-500">${U.esc(r.d.device || '')}</span></li>`).join('')}</ul>
+      </details>
+      <p class="mt-3 text-[11px] text-slate-500">One row per browser. An IP address shows the network, not the person: people on the same Wi-Fi share one, phones change IPs often, and VPNs hide the real location. Location is approximate (city level) and comes from GeoJS. Visits from the admin page aren’t logged. Visitors see a privacy note at the bottom of the app.</p>`;
+  }
+};
+
 /* =====================================================================
  * 7. INDICATORS (causal: value at i only uses bars <= i)
  * ===================================================================== */
@@ -1359,7 +1536,7 @@ const Ind = {
     const m = Ind.macd(c), st = Ind.stoch(h, l, c);
     return {
       M, start: s, o: tk.o, h: tk.h, l: tk.l, c: tk.c, v: tk.v,
-      sma20: E(Ind.sma(c, 20)), sma50: E(Ind.sma(c, 50)), sma200: E(Ind.sma(c, 200)), av50: E(Ind.sma(v, 50)),
+      sma10: E(Ind.sma(c, 10)), sma20: E(Ind.sma(c, 20)), sma30: E(Ind.sma(c, 30)), sma50: E(Ind.sma(c, 50)), ema20: E(Ind.emaFrom(c, 20, 0)), sma200: E(Ind.sma(c, 200)), av50: E(Ind.sma(v, 50)),
       rsi: E(Ind.rsi(c)), macd: E(m.m), sig: E(m.s), bbw: E(Ind.bbw(c)), atr: E(Ind.atr(h, l, c)),
       k: E(st.k), d: E(st.d), hh252: E(Ind.maxPrior(h, 252)), hh60: E(Ind.maxPrior(h, 60))
     };
@@ -2484,10 +2661,10 @@ const UI = {
       b.className = `tab shrink-0 px-3 py-2.5 text-sm border-b-2 -mb-px ${on ? 'border-emerald-400 text-slate-100 font-medium' : 'border-transparent text-slate-400 hover:text-slate-200'}`;
     });
     for (const k of ['watchlist', 'watch', 'backtest', 'paper', 'pipeline', 'visitors', 'settings']) { const sec = $('tab-' + k); if (sec) sec.hidden = k !== t; }
-    
+    if (t === 'visitors') UI.visitors();
     if (t === 'watch') UI.watchForm();
     if (t === 'watchlist') UI.results();
-    
+    if (t === 'settings') UI.settings();
     if (t === 'paper') UI.paper();
     if (t === 'pipeline') UI.pipeline();
     if (t === 'backtest') UI.btForm();
@@ -2718,7 +2895,7 @@ const UI = {
           return `<section aria-labelledby="bsH" class="rounded-xl border ${b.match ? 'border-violet-500/40 bg-violet-500/[0.05]' : 'border-line bg-ink'} p-4">
             <h3 id="bsH" class="font-semibold ${b.match ? 'text-violet-200' : ''}">${b.match ? '◆ ' : ''}Best-performing signal for ${U.esc(tk.sym)} in its own backtest</h3>
             <p class="mt-1 text-sm text-slate-200"><span class="font-medium">${U.esc(x.name)}</span> — ${x.n} trade${x.n === 1 ? '' : 's'}, ${fmt.prob(x.winRate)} won, ${fmt.pct(x.total, 1)} in total (buy &amp; hold ${fmt.pct(b.bh.ret, 1)}).</p>
-            <p class="mt-1 text-xs ${b.match ? 'text-violet-200' : 'text-slate-400'}">${b.match ? `${x.key === 'pat:' + cd.pats[0].key ? 'Today’s event is this signal' : 'This signal also fired today'}, so this setup matches what has worked best on this stock.` : !b.sigReliable ? 'Too few trades to trust this result.' : x.total <= 0 ? 'No signal was profitable on this stock.' : x.winRate < .5 ? 'It won less than half its trades, so it doesn’t count as a match.' : b.today[x.key]?.buy ? 'It also fires today.' : 'It is not signalling today.'}${b.best && b.best.key !== x.key ? ` (Across all 16 strategies, ${U.esc(b.best.name)} did best: ${fmt.pct(b.best.total, 1)}.)` : ''}</p>
+            <p class="mt-1 text-xs ${b.match ? 'text-violet-200' : 'text-slate-400'}">${b.match ? `${x.key === 'pat:' + cd.pats[0].key ? 'Today’s event is this signal' : 'This signal also fired today'}, so this setup matches what has worked best on this stock.` : !b.sigReliable ? 'Too few trades to trust this result.' : x.total <= 0 ? 'No signal was profitable on this stock.' : x.winRate < .5 ? 'It won less than half its trades, so it doesn’t count as a match.' : b.today[x.key]?.buy ? 'It also fires today.' : 'It is not signalling today.'}${b.best && b.best.key !== x.key ? ` (Across all 19 strategies, ${U.esc(b.best.name)} did best: ${fmt.pct(b.best.total, 1)}.)` : ''}</p>
             <div class="mt-3 flex flex-wrap gap-2">
               <button type="button" data-action="watchAdd" data-m="${row.m}" data-sym="${U.esc(tk.sym)}" data-key="auto" data-hold="${b.hold}" class="h-8 px-3 rounded-lg bg-violet-500/90 text-white text-xs font-semibold hover:bg-violet-400">◆ Watch &amp; alert me</button>
               <button type="button" data-action="btStock" data-m="${row.m}" data-sym="${U.esc(tk.sym)}" class="h-8 px-3 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">See full backtest</button>
@@ -2838,6 +3015,43 @@ const UI = {
     if (Admin.is) { el.innerHTML = '<span class="text-amber-300/90">Admin copy</span> · visits from this page aren’t logged.'; return; }
     if (!Visit.form()) { el.innerHTML = ''; return; }
     el.textContent = 'Privacy: visits to this app are logged for its owner — IP address, approximate location (city level), device, browser, time and the parts of the app used. Nothing is shared or sold.';
+  },
+
+  /* ---------- Visitors (admin) ---------- */
+  async visitors(refresh = false) {
+    const el = $('visitorsView'); if (!el || !Admin.is) return;
+    const vl = S().settings.visitorLog;
+    if (!vl?.formUrl || !vl?.csvUrl) { el.innerHTML = UI.visitorsSetup(); return; }
+    if (refresh || !UI._vlog || UI._vlog.url !== vl.csvUrl) {
+      el.innerHTML = `<div class="rounded-xl border border-line bg-panel p-4 space-y-3"><div class="grid grid-cols-2 md:grid-cols-4 gap-3">${Array(4).fill('<div class="skeleton h-16"></div>').join('')}</div><div class="skeleton h-48"></div><p class="text-xs text-slate-500">Reading your visitor log…</p></div>`;
+      try { UI._vlog = { url: vl.csvUrl, at: new Date(), rows: VisitLog.parse(await VisitLog.fetch(vl.csvUrl)) }; }
+      catch (e) { el.innerHTML = `<div class="rounded-xl border border-rose-500/30 bg-panel p-4"><p class="font-medium text-rose-300">Couldn’t read the visitor log</p><p class="mt-1 text-sm text-slate-300">${U.esc(e.message)}</p><div class="mt-3 flex gap-2"><button type="button" data-action="vlRefresh" class="h-9 px-3 rounded-lg border border-line text-sm hover:bg-panel2">Try again</button><button type="button" data-action="vlEdit" class="h-9 px-3 rounded-lg border border-line text-sm hover:bg-panel2">Change log settings</button></div></div>`; return; }
+    }
+    el.innerHTML = VisitLog.render(UI._vlog);
+  },
+  visitorsSetup() {
+    const vl = S().settings.visitorLog || {};
+    const step = (n, t, b) => `<li class="flex gap-3"><span class="shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold inline-flex items-center justify-center">${n}</span><div><p class="font-medium text-slate-100">${t}</p><div class="mt-1 text-slate-400 space-y-1">${b}</div></div></li>`;
+    const k = s => `<span class="text-slate-200">${s}</span>`;
+    return `<div class="rounded-xl border border-emerald-500/30 bg-panel p-4">
+      <h2 class="text-base font-semibold">Set up your visitor log (one time, about 10 minutes, on a laptop)</h2>
+      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Your app has no server, so visits are recorded with a free Google Form whose answers collect in a Google Sheet. The app fills in the form quietly on each visit; this panel reads the sheet. Use the Google account you want to keep the log in.</p>
+      <ol class="mt-4 space-y-4 text-sm">
+        ${step(1, 'Create the form', `<p class="text-xs text-slate-500">Already set up earlier? Nothing changes — skip to the Save step.</p><p>Go to ${k('forms.google.com')} → click ${k('Blank form')}. Title it ${k('Scanner visits')}.</p><p>Add 4 questions, each of type ${k('Short answer')}, titled exactly: ${k('Name')}, ${k('Visitor ID')}, ${k('Event')}, ${k('Details')}. (Click ${k('+')} on the right to add each one. Leave them all not required.)</p><p>Click ${k('Settings')} (top) → ${k('Responses')} → make sure ${k('Collect email addresses')} is ${k('Do not collect')} and ${k('Limit to 1 response')} is off.</p>`)}
+        ${step(2, 'Copy the pre-filled link', `<p>Click the ${k('⋮')} menu (top right) → ${k('Get pre-filled link')}. Type these answers: Name = ${k('name')}, Visitor ID = ${k('id')}, Event = ${k('event')}, Details = ${k('details')}.</p><p>Click ${k('Get link')} → ${k('Copy link')}, and paste it in box A below.</p>`)}
+        ${step(3, 'Send the answers to a Google Sheet', `<p>Back in the form, click the ${k('Responses')} tab → ${k('Link to Sheets')} → ${k('Create a new spreadsheet')} → ${k('Create')}. The sheet opens.</p>`)}
+        ${step(4, 'Publish the sheet so this panel can read it', `<p>In the sheet: ${k('File')} → ${k('Share')} → ${k('Publish to web')}. In the first dropdown choose ${k('Form responses 1')}; in the second choose ${k('Comma-separated values (.csv)')}. Click ${k('Publish')} → ${k('OK')}, then copy the link and paste it in box B.</p><p class="text-xs text-amber-200/80">Anyone who has this exact link can read the log, so keep it private. It’s stored only on this device and is never put in the public app.</p>`)}
+        ${step(5, 'Save, then publish', `<p>Click ${k('Save')} below, then ${k('Send a test visit')}. Finally go to ${k('Settings')} → ${k('Publish to all users')} so visitors’ apps start logging.</p>`)}
+      </ol>
+      <form id="vlForm" class="mt-5 grid gap-3" novalidate>
+        <label class="text-xs text-slate-400">A — Pre-filled form link<input id="vlForm1" value="${U.esc(vl.prefill || '')}" placeholder="https://docs.google.com/forms/d/e/…/viewform?usp=pp_url&entry.…" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
+        <label class="text-xs text-slate-400">B — Published sheet link (.csv)<input id="vlCsv" value="${U.esc(vl.csvUrl || '')}" placeholder="https://docs.google.com/spreadsheets/d/e/…/pub?gid=…&output=csv" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
+        <div class="flex flex-wrap gap-2"><button type="submit" class="h-9 px-4 rounded-lg bg-emerald-500 text-ink text-sm font-semibold hover:bg-emerald-400">Save</button>
+          ${vl.formUrl ? '<button type="button" data-action="vlTest" class="h-9 px-3 rounded-lg border border-line text-sm hover:bg-panel2">Send a test visit</button>' : ''}
+          ${vl.formUrl && vl.csvUrl ? '<button type="button" data-action="vlCancel" class="h-9 px-3 rounded-lg border border-line text-sm hover:bg-panel2">Back to the log</button>' : ''}</div>
+        <p id="vlErr" class="text-xs text-rose-300 empty:hidden break-words" role="alert"></p>
+      </form>
+    </div>`;
   },
 
   /* ---------- Strategy watch tab ---------- */
@@ -3170,7 +3384,204 @@ const UI = {
   },
 
   /* ---------- Settings ---------- */
+  settings() {
+    const st = S().settings, el = $('settingsView');
+    const inp = (id, val, attrs = '') => `<input id="${id}" value="${U.esc(val)}" ${attrs} class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 num">`;
+    const card = (title, desc, body) => `<section class="rounded-xl border border-line bg-panel p-4"><h2 class="font-semibold">${title}</h2>${desc ? `<p class="text-xs text-slate-400 mt-0.5">${desc}</p>` : ''}<div class="mt-3">${body}</div></section>`;
+    const dm = view()[0];
+    const site = { owner: S().settings.site?.owner || S().settings.feed.owner || '', repo: S().settings.site?.repo || 'scanner-app' }, pub = Shared.cfg?.published;
+    const adminCards = `<div class="mb-6">
+      <section class="rounded-xl border border-emerald-500/40 bg-panel p-4">
+        <h2 class="font-semibold">Publish to all users</h2>
+        <p class="text-xs text-slate-400 mt-0.5">The public app has no Settings. Visitors use the settings you publish here: scoring, tiers, filters, markets and the live data address. ${pub ? `Last published ${new Date(pub).toLocaleString()}.` : '<span class="text-amber-300">Not published yet — visitors see demo data.</span>'}</p>
+        <label class="mt-3 block text-xs text-slate-400">Public data address (folder with meta.json, US.json, CA.json, IN.json)
+          <input id="pubFeed" type="url" value="${U.esc(Shared.publicFeedGuess())}" placeholder="https://raw.githubusercontent.com/your-name/scanner-data/data" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
+        <p class="mt-1 text-[11px] text-slate-500">Works once your scanner-data repo is public. Leave empty to give visitors demo data only. Markets set to “Live feed” below are live for visitors too.</p>
+        <div class="mt-2 grid grid-cols-2 gap-2">
+          <label class="text-xs text-slate-400">Public app repo owner<input id="pubOwner" value="${U.esc(site.owner)}" placeholder="your-name" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
+          <label class="text-xs text-slate-400">Public app repo name<input id="pubRepo" value="${U.esc(site.repo || 'scanner-app')}" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
+        </div>
+        <div class="mt-3 flex flex-wrap gap-2">
+          <button type="button" data-action="testPublic" class="h-9 px-3 rounded-lg border border-line text-sm hover:bg-panel2">Test public data</button>
+          <button type="button" data-action="publishAll" class="h-9 px-4 rounded-lg bg-emerald-500 text-ink text-sm font-semibold hover:bg-emerald-400">Publish to all users</button>
+          <button type="button" data-action="downloadConfig" class="h-9 px-3 rounded-lg border border-line text-sm hover:bg-panel2">Download config.json</button>
+        </div>
+        <p id="pubMsg" class="mt-2 text-xs break-words" aria-live="polite"></p>
+      </section>
+    </div>`;
+    el.innerHTML = adminCards + `<div class="grid lg:grid-cols-2 gap-4">
+      ${card('Scoring weights', 'Composite = Σ component × weight. Weights must total 100. Changing them re-ranks instantly and refits the probability model.', `
+        <div class="space-y-2.5">${COMPONENTS.map(c => `<label class="flex items-center gap-3 text-sm"><span class="flex-1 text-slate-300">${c.label}</span><input type="number" min="0" max="100" step="1" data-weight="${c.key}" value="${st.weights[c.key]}" class="w-20 h-9 rounded-lg bg-ink border border-line px-2 text-right num" aria-label="${c.label} weight"><span class="text-slate-500 text-xs w-3">%</span></label>`).join('')}</div>
+        <p id="wSum" class="mt-2 text-xs" aria-live="polite"></p>`)}
+      ${card('Tiers', 'Tier thresholds on the 0–100 composite score. The list itself is ordered by probability.', `
+        <div class="grid grid-cols-3 gap-2">
+          <label class="text-xs text-slate-400">Tier A ≥${inp('sTA', st.tiers.A, 'type="number" min="1" max="100"')}</label>
+          <label class="text-xs text-slate-400">Tier B ≥${inp('sTB', st.tiers.B, 'type="number" min="1" max="100"')}</label>
+          <label class="text-xs text-slate-400">Tier C ≥${inp('sTC', st.tiers.C, 'type="number" min="1" max="100"')}</label>
+        </div>`)}
+      ${card('Liquidity gates by market', 'In each market’s own currency. Stocks below either gate are never shortlisted.', `
+        <table class="w-full text-sm"><thead class="text-[11px] uppercase tracking-wide text-slate-400 text-left"><tr><th scope="col" class="py-1">Market</th><th scope="col" class="py-1 px-2">Min price</th><th scope="col" class="py-1">Min avg traded value / day</th></tr></thead>
+        <tbody>${MARKET_CODES.map(c => { const M = MARKETS[c]; return `<tr><td class="py-1.5 pr-2 whitespace-nowrap">${flagTag(M)} ${M.name} <span class="text-[11px] text-slate-500">${M.ccy}</span></td>
+          <td class="py-1.5 px-2"><input type="number" min="0" step="0.5" data-gate="${c}:minPrice" value="${st.gates[c].minPrice}" aria-label="${M.name} minimum price in ${M.ccy}" class="w-24 h-9 rounded-lg bg-ink border border-line px-2 text-right num"></td>
+          <td class="py-1.5"><input type="number" min="0" step="100000" data-gate="${c}:minValue" value="${st.gates[c].minValue}" aria-label="${M.name} minimum traded value in ${M.ccy}" class="w-full h-9 rounded-lg bg-ink border border-line px-2 text-right num"></td></tr>`; }).join('')}</tbody></table>
+        <p class="mt-1 text-[11px] text-slate-500">India default ₹5 crore/day; Canada C$1M; USA $2M.</p>`)}
+      ${card('Catalysts & regime', '', `
+        <div class="grid sm:grid-cols-2 gap-3">
+          <label class="text-xs text-slate-400">Earnings inside the window
+            <select id="sEarn" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"><option value="boost">Boost score (catalyst)</option><option value="risk">Flag as risk (no boost)</option></select></label>
+          <label class="text-xs text-slate-400">Catalyst window (sessions)${inp('sWin', st.catalystWindow, 'type="number" min="1" max="30"')}</label>
+          <label class="text-xs text-slate-400 sm:col-span-2">Market-regime filter (each market's index vs its 200-day MA)
+            <select id="sRegime" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"><option value="downgrade">Downgrade tiers when the index is below its 200-day</option><option value="strict">Strict: no longs when the index is below its 200-day</option><option value="off">Off (note only)</option></select></label>
+        </div>`)}
+      ${card('Alerts', 'In-app alerts are always kept. Browser notifications need permission; the webhook receives a JSON POST (Slack/Discord-style incoming webhooks).', `
+        <div class="space-y-2 text-sm">
+          <label class="flex items-center gap-2"><input id="aNewA" type="checkbox" class="accent-emerald-400" ${st.alerts.newA ? 'checked' : ''}> New A-tier setup appears</label>
+          <label class="flex items-center gap-2"><input id="aEntry" type="checkbox" class="accent-emerald-400" ${st.alerts.entry ? 'checked' : ''}> Tracked pick hits its entry zone</label>
+          <label class="flex items-center gap-2"><input id="aWatch" type="checkbox" class="accent-emerald-400" ${st.alerts.watch ? 'checked' : ''}> A watched strategy gives a buy or sell signal (Strategy watch)</label>
+          <label class="flex items-center gap-2"><input id="aBrowser" type="checkbox" class="accent-emerald-400" ${st.alerts.browser ? 'checked' : ''}> Browser notifications</label>
+          <label class="flex items-center gap-2"><input id="sAutoRun" type="checkbox" class="accent-emerald-400" ${st.autoRun ? 'checked' : ''}> Auto-run each market after its close while this page is open</label>
+          <label class="block text-xs text-slate-400 pt-1">Webhook URL (https, optional)
+            <input id="aHook" type="url" value="${U.esc(st.alerts.webhook)}" placeholder="https://hooks.example.com/…" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100"></label>
+          <button type="button" data-action="testAlert" class="h-8 px-3 rounded-lg border border-line text-xs hover:bg-panel2">Send test alert</button>
+        </div>`)}
+      </div>
+      <div class="mt-4 flex flex-wrap items-center gap-3">
+        <button type="button" id="saveSettings" class="h-10 px-5 rounded-lg bg-emerald-500 text-ink font-semibold text-sm hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed">Save & re-rank</button>
+        <button type="button" data-action="resetSettings" class="h-10 px-4 rounded-lg border border-line text-sm hover:bg-panel2">Restore defaults</button>
+        <p id="settingsErr" class="text-xs text-rose-300" role="alert"></p>
+      </div>
 
+      <section id="liveCard" class="mt-6 rounded-xl border border-emerald-500/30 bg-panel p-4">
+        <div class="flex flex-wrap items-start gap-2">
+          <div class="flex-1 min-w-[240px]"><h2 class="font-semibold">Live market data <span class="ml-1 text-[11px] font-normal px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300">self-updating</span></h2>
+          <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">A free nightly GitHub Action (the <strong class="text-slate-300">scanner-data-kit</strong>) downloads end-of-day prices for all three markets — USA from Massive, India from NSE's official bhavcopy, Canada from Yahoo Finance (optional paid EODHD covers all three) — and saves them to your private repo. The app reads that feed on open, caches it on this device, and checks for new data every 30 minutes. No CSV files, no daily work.</p></div>
+        </div>
+        <div class="mt-4 grid lg:grid-cols-2 gap-5">
+          <div>
+            <p class="text-xs text-slate-400 mb-1.5">Data source per market</p>
+            <div class="space-y-2">${MARKET_CODES.map(c => { const M = MARKETS[c], cur = st.sources[c], ds = S().mkts[c]?.ds; return `<div class="flex items-center gap-3"><span class="w-24 text-sm">${flagTag(M)} ${M.name}</span>
+              <div class="inline-flex rounded-lg ring-1 ring-line overflow-hidden" role="radiogroup" aria-label="${M.name} data source">${['demo', 'live'].map(v => `<label class="cursor-pointer"><input type="radio" name="src-${c}" value="${v}" class="sr-only peer" ${cur === v ? 'checked' : ''}><span class="block px-3 h-8 leading-8 text-xs peer-checked:bg-emerald-500/20 peer-checked:text-emerald-200 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-400 text-slate-400">${v === 'demo' ? 'Demo' : 'Live feed'}</span></label>`).join('')}</div>
+              <span class="text-[11px] text-slate-500 truncate">${ds ? (ds.source === 'live' ? 'live · ' + fmt.dateShort(ds.asOf) : ds.source) : ''}</span></div>`; }).join('')}</div>
+          </div>
+          <div>
+            <p class="text-xs text-slate-400 mb-1.5">Where the feed lives</p>
+            <div class="flex gap-4 text-sm mb-2">
+              <label class="inline-flex items-center gap-1.5"><input type="radio" name="feedMode" value="github" class="accent-emerald-400" ${st.feed.mode === 'github' ? 'checked' : ''}> Private GitHub repo</label>
+              <label class="inline-flex items-center gap-1.5"><input type="radio" name="feedMode" value="url" class="accent-emerald-400" ${st.feed.mode === 'url' ? 'checked' : ''}> Web URL</label>
+            </div>
+            <div id="feedGithub" class="grid grid-cols-3 gap-2 ${st.feed.mode === 'github' ? '' : 'hidden'}">
+              <label class="text-xs text-slate-400">Owner<input id="fdOwner" value="${U.esc(st.feed.owner)}" placeholder="your-github-name" autocomplete="off" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
+              <label class="text-xs text-slate-400">Repository<input id="fdRepo" value="${U.esc(st.feed.repo)}" placeholder="scanner-data" autocomplete="off" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
+              <label class="text-xs text-slate-400">Branch<input id="fdBranch" value="${U.esc(st.feed.branch || 'data')}" autocomplete="off" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
+              <label class="col-span-3 text-xs text-slate-400">Read-only access token <span class="text-slate-500">(fine-grained, this repo only, Contents: read)</span>
+                <input id="fdToken" type="password" value="${U.esc(st.feed.token)}" placeholder="github_pat_…" autocomplete="off" spellcheck="false" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100 font-mono"></label>
+              <p class="col-span-3 text-[11px] text-slate-500">The token is stored only in this browser and sent only to api.github.com.</p>
+            </div>
+            <div id="feedUrl" class="${st.feed.mode === 'url' ? '' : 'hidden'}">
+              <label class="text-xs text-slate-400">Base URL (folder containing meta.json, US.json, CA.json, IN.json; must allow CORS)
+                <input id="fdBase" type="url" value="${U.esc(st.feed.baseUrl)}" placeholder="https://example.com/scanner-feed" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 flex flex-wrap items-center gap-2">
+          <button type="button" data-action="testFeed" class="h-9 px-4 rounded-lg border border-line text-sm hover:bg-panel2">Test connection</button>
+          <button type="button" data-action="saveFeed" class="h-9 px-4 rounded-lg bg-emerald-500 text-ink text-sm font-semibold hover:bg-emerald-400">Save & load data</button>
+          <p id="feedErr" class="text-xs text-rose-300 break-words" role="alert"></p>
+        </div>
+        <div id="feedResult" class="mt-3" aria-live="polite"></div>
+      </section>
+
+      <div class="mt-4 grid lg:grid-cols-2 gap-4">
+        ${card('Demo data', 'Synthetic, reproducible markets with planted setups and data defects so every feature can be exercised. Each market has its own currency, sector mix, calendar and index.', `
+          <div class="grid grid-cols-3 gap-3">
+            <label class="text-xs text-slate-400">Market
+              <select id="dMkt" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">${MARKET_CODES.map(c => `<option value="${c}">${MARKETS[c].name}</option>`).join('')}</select></label>
+            <label class="text-xs text-slate-400">Universe size
+              <select id="dUni" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"><option value="300">300</option><option value="700">700</option><option value="1200">1,200</option><option value="1500">1,500</option><option value="3000">3,000</option><option value="6000">6,000 (stress)</option></select></label>
+            <label class="text-xs text-slate-400">Random seed${inp('dSeed', st.demo[dm].seed, 'type="number" min="1" max="999999" step="1"')}</label>
+          </div>
+          <p id="dLabel" class="mt-2 text-[11px] text-slate-500"></p>
+          <button type="button" data-action="reloadDemo" class="mt-3 h-9 px-4 rounded-lg border border-emerald-500/40 text-emerald-300 text-sm hover:bg-emerald-500/10">Generate & run full pipeline</button>`)}
+        ${card('Import your own data (CSV)', 'Long-format daily bars, split-adjusted, in the chosen market’s currency. Parsed locally — nothing is uploaded.', `
+          <label class="block text-xs text-slate-400">Import into market
+            <select id="csvMkt" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">${MARKET_CODES.map(c => `<option value="${c}">${MARKETS[c].name} (${MARKETS[c].ccy})</option>`).join('')}</select></label>
+          <div id="dropZone" class="mt-3 rounded-lg border border-dashed border-line p-4 text-center text-sm text-slate-400">
+            <p>Drop a prices CSV here, or</p>
+            <label class="mt-2 inline-flex h-9 px-3 items-center rounded-lg border border-line text-slate-200 cursor-pointer hover:bg-panel2">Choose prices file<input id="csvPrices" type="file" accept=".csv,text/csv" class="sr-only"></label>
+            <p id="csvName" class="mt-2 text-xs text-slate-500"></p>
+          </div>
+          <label class="mt-3 block text-xs text-slate-400">Fundamentals CSV (optional)
+            <input id="csvFund" type="file" accept=".csv,text/csv" class="mt-1 block w-full text-xs text-slate-300 file:mr-3 file:h-8 file:px-3 file:rounded-lg file:border-0 file:bg-panel2 file:text-slate-200"></label>
+          <pre class="mt-3 text-[11px] text-slate-400 bg-ink border border-line rounded-lg p-2.5 overflow-x-auto scroll-thin">ticker,date,open,high,low,close,volume
+RELIANCE,2026-10-22,2841.10,2866.35,2830.90,2860.20,5834500
+
+# optional fundamentals.csv
+ticker,name,sector,marketCap,revGrowth,epsGrowth,opMargin,
+ocfPositive,debtToEquity,pe,peg,nextEarnings</pre>
+          <p class="mt-1 text-[11px] text-slate-500">Index for the regime filter: include SPY (USA), XIC or XIU (Canada) or NIFTYBEES (India); otherwise an equal-weight index is built. Needs ≥ 60 sessions (≥ 253 for 52-week breakouts, ≥ 1.2 years for probability calibration).</p>
+          <div class="mt-3 flex flex-wrap gap-2">
+            <button type="button" data-action="importCsv" class="h-9 px-4 rounded-lg bg-emerald-500 text-ink text-sm font-semibold hover:bg-emerald-400">Import & scan</button>
+            <button type="button" data-action="sampleCsv" class="h-9 px-3 rounded-lg border border-line text-sm hover:bg-panel2">Download sample</button>
+          </div>
+          <p id="csvErr" class="mt-2 text-xs text-rose-300 break-words" role="alert"></p>`)}
+      </div>
+      <section class="mt-4 rounded-xl border border-rose-500/20 bg-panel p-4">
+        <h2 class="font-semibold text-sm">Local data</h2>
+        <p class="text-xs text-slate-400 mt-0.5">Settings, alerts and the paper log are stored in this browser only.</p>
+        <button type="button" data-action="wipe" class="mt-3 h-9 px-4 rounded-lg border border-rose-500/40 text-rose-300 text-sm hover:bg-rose-500/10">Clear all saved data</button>
+      </section>`;
+    $('sEarn').value = st.earningsMode; $('sRegime').value = st.regimeFilter;
+    $('dMkt').value = dm; $('csvMkt').value = dm;
+    UI.demoFields();
+    UI.validateSettings();
+  },
+  readFeedForm() {
+    const mode = document.querySelector('input[name="feedMode"]:checked')?.value || 'github';
+    const cfg = { mode, owner: $('fdOwner').value.trim(), repo: $('fdRepo').value.trim(), branch: $('fdBranch').value.trim() || 'data', token: $('fdToken').value.trim(), baseUrl: $('fdBase').value.trim() };
+    if (mode === 'github') {
+      if (!/^[A-Za-z0-9-]{1,39}$/.test(cfg.owner)) return { error: 'Enter the GitHub owner (user or organisation name).' };
+      if (!/^[A-Za-z0-9_.-]{1,100}$/.test(cfg.repo)) return { error: 'Enter the repository name.' };
+      if (!/^[A-Za-z0-9._\/-]{1,100}$/.test(cfg.branch)) return { error: 'Branch name is not valid.' };
+      if (cfg.token && !/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(cfg.token)) return { error: 'That doesn’t look like a GitHub token (it should start with github_pat_).' };
+    } else {
+      try { if (new URL(cfg.baseUrl).protocol !== 'https:') return { error: 'The feed URL must use https.' }; } catch { return { error: 'Enter a valid feed URL.' }; }
+    }
+    return { cfg };
+  },
+  demoFields() {
+    const c = $('dMkt').value, d = S().settings.demo[c], ds = S().mkts[c]?.ds;
+    $('dUni').value = String(d.universe); $('dSeed').value = d.seed;
+    $('dLabel').textContent = `Currently loaded: ${ds ? ds.label : 'not loaded'}. 6,000 tickers needs ~150 MB of memory; best on desktop.`;
+  },
+
+  validateSettings() {
+    const errs = [], w = {};
+    document.querySelectorAll('[data-weight]').forEach(i => { const v = Number(i.value); w[i.dataset.weight] = v; i.classList.toggle('border-rose-500', !(Number.isInteger(v) && v >= 0 && v <= 100)); });
+    const sum = Object.values(w).reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0);
+    if (Object.values(w).some(v => !Number.isInteger(v) || v < 0 || v > 100)) errs.push('Weights must be whole numbers from 0 to 100.');
+    const ws = $('wSum');
+    if (ws) { ws.textContent = `Total: ${sum}%${sum === 100 ? ' ✓' : ` — must equal 100 (${sum > 100 ? 'remove' : 'add'} ${Math.abs(100 - sum)})`}`; ws.className = `mt-2 text-xs ${sum === 100 ? 'text-emerald-300' : 'text-rose-300'}`; }
+    if (sum !== 100) errs.push('Weights must total 100%.');
+    const A = +$('sTA').value, B = +$('sTB').value, C = +$('sTC').value;
+    if (![A, B, C].every(x => Number.isFinite(x) && x > 0 && x <= 100)) errs.push('Tier thresholds must be between 1 and 100.');
+    else if (!(A > B && B > C)) errs.push('Tier thresholds must satisfy A > B > C.');
+    const gates = structuredClone(S().settings.gates);
+    document.querySelectorAll('[data-gate]').forEach(i => {
+      const [c, k] = i.dataset.gate.split(':'), v = Number(i.value), ok = i.value !== '' && Number.isFinite(v) && v >= 0;
+      i.classList.toggle('border-rose-500', !ok);
+      if (!ok) errs.push(`${MARKETS[c].name} ${k === 'minPrice' ? 'minimum price' : 'minimum traded value'} must be 0 or more.`); else gates[c][k] = v;
+    });
+    const win = +$('sWin').value;
+    if (!(Number.isInteger(win) && win >= 1 && win <= 30)) errs.push('Catalyst window must be a whole number from 1 to 30.');
+    const hook = $('aHook').value.trim();
+    if (hook) { try { if (new URL(hook).protocol !== 'https:') errs.push('Webhook must use https.'); } catch { errs.push('Webhook URL is not valid.'); } }
+    $('settingsErr').textContent = errs[0] || '';
+    $('saveSettings').disabled = errs.length > 0;
+    if (errs.length) return null;
+    return { weights: w, tiers: { A, B, C }, gates, catalystWindow: win, earningsMode: $('sEarn').value, regimeFilter: $('sRegime').value, autoRun: $('sAutoRun').checked,
+      alerts: { newA: $('aNewA').checked, entry: $('aEntry').checked, watch: $('aWatch').checked, browser: $('aBrowser').checked, webhook: hook } };
+  }
+  
 };
 
 /* =====================================================================
@@ -3239,6 +3650,44 @@ function wire() {
       switch (act.dataset.action) {
         case 'closeDrawer': UI.closeDrawer(); break;
         case 'copyText': try { await navigator.clipboard.writeText(act.dataset.text); UI.toast('Copied.', 'ok'); } catch { UI.toast('Couldn’t copy — select the text and copy it yourself.', 'warn'); } break;
+        case 'testPublic': {
+          const url = $('pubFeed').value.trim(), msg = $('pubMsg');
+          if (!url) { msg.className = 'mt-2 text-xs text-amber-300'; msg.textContent = 'Empty: visitors would get demo data only.'; break; }
+          msg.className = 'mt-2 text-xs text-slate-400'; msg.textContent = 'Checking…';
+          try { const meta = await Feed.get({ mode: 'url', baseUrl: url }, 'meta.json'); msg.className = 'mt-2 text-xs text-emerald-300'; msg.textContent = `✓ Public data works: ${Object.entries(meta.markets || {}).map(([c, m]) => `${MARKETS[c]?.name || c} ${fmt.dateShort(m.asOf)}`).join(' · ')}.`; }
+          catch (ex) { msg.className = 'mt-2 text-xs text-rose-300'; msg.textContent = `${ex.message} If your scanner-data repo is still private: on github.com open it → Settings → General → scroll to Danger Zone → Change visibility → Make public.`; }
+          break;
+        }
+        case 'publishAll': case 'downloadConfig': {
+          const url = $('pubFeed').value.trim(), msg = $('pubMsg');
+          if (url) { try { if (new URL(url).protocol !== 'https:') throw 0; } catch { msg.className = 'mt-2 text-xs text-rose-300'; msg.textContent = 'The public data address must be an https:// link.'; break; } }
+          S().settings.publicFeed = url; Store.persist();
+          const cfg = Shared.build(url);
+          if (act.dataset.action === 'downloadConfig') { U.download('config.json', JSON.stringify(cfg, null, 1) + '\n', 'application/json'); msg.className = 'mt-2 text-xs text-slate-300'; msg.textContent = 'Downloaded. Upload config.json to your app repo (same place as index.html) → Commit changes.'; break; }
+          const site = { owner: $('pubOwner').value.trim(), repo: $('pubRepo').value.trim() };
+          if (!site.owner || !site.repo) { msg.className = 'mt-2 text-xs text-rose-300'; msg.textContent = 'Fill in your public app repo owner and name.'; break; }
+          S().settings.site = site; Store.persist();
+          act.disabled = true; msg.className = 'mt-2 text-xs text-slate-400'; msg.textContent = 'Publishing…';
+          try {
+            await Shared.publish(cfg, site);
+            UI.settings();
+            const m2 = $('pubMsg'); m2.className = 'mt-2 text-xs text-emerald-300'; m2.textContent = '✓ Published. Visitors get these settings the next time they open the app (GitHub Pages takes about a minute to update).';
+          } catch (ex) {
+            msg.className = 'mt-2 text-xs text-rose-300';
+            msg.innerHTML = `${U.esc(ex.message)} ${ex.code === 'perm' || ex.code === 'token' ? `Your token also needs write access to <b>${U.esc(site.repo)}</b>: on github.com go to Settings → Developer settings → Personal access tokens → Fine-grained tokens → your token → Edit → Repository access: add <b>${U.esc(site.repo)}</b> (Contents is already “Read and write”) → Update. Or click “Download config.json” and upload it to that repo yourself.` : ''}`;
+          } finally { act.disabled = false; }
+          break;
+        }
+        case 'vlRefresh': UI.visitors(true); break;
+        case 'vlEdit': $('visitorsView').innerHTML = UI.visitorsSetup(); break;
+        case 'vlCancel': UI.visitors(); break;
+        case 'vlTest': {
+          const vl = S().settings.visitorLog; if (!vl?.formUrl) break;
+          const b = new URLSearchParams(); b.set(vl.fields.name, 'Test from admin'); b.set(vl.fields.id, 'admin-test'); b.set(vl.fields.event, 'test'); b.set(vl.fields.details, Visit.details());
+          try { await fetch(vl.formUrl, { method: 'POST', mode: 'no-cors', body: b }); UI.toast('Test visit sent. It shows in the sheet at once and here within about 5 minutes (Refresh).', 'ok'); }
+          catch { UI.toast('Couldn’t send the test visit — check box A.', 'error'); }
+          break;
+        }
         case 'toggleMatch': Store.set({ filters: { ...S().filters, match: !S().filters.match } }); break;
         case 'watchAdd': {
           const { m, sym, key } = act.dataset;
@@ -3272,6 +3721,73 @@ function wire() {
           U.download('paper-log.csv', ['market,currency,ticker,picked,tier,score,est_probability_pct,trigger_event,status,entry,stop,target,fill_date,fill_px,exit_date,exit_px,return_pct', ...lines].join('\n'));
           break;
         }
+        case 'testAlert': {
+          const patch = UI.validateSettings(); if (!patch) return;
+          if (patch.alerts.browser && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
+          Object.assign(S().settings.alerts, patch.alerts);
+          Alerts.push('newA', 'Test alert: delivery channels are working.');
+          UI.toast('Test alert sent.', 'ok'); break;
+        }
+        case 'resetSettings': {
+          const keep = { market: S().settings.market, demo: S().settings.demo };
+          S().settings = Object.assign(structuredClone(DEFAULTS), keep); Store.persist(); UI.settings(); App.rescore(); UI.toast('Defaults restored.', 'ok'); break;
+        }
+        case 'reloadDemo': {
+          const c = $('dMkt').value, uni = +$('dUni').value, seed = Number($('dSeed').value);
+          if (!Number.isInteger(seed) || seed < 1 || seed > 999999) { $('settingsErr').textContent = 'Seed must be a whole number from 1 to 999,999.'; return; }
+          S().settings.demo[c] = { universe: uni, seed }; Store.persist();
+          Store.set({ tab: 'pipeline' });
+          await App.run({ codes: [c], fresh: true, reason: `${MARKETS[c].name} demo regeneration` });
+          break;
+        }
+        case 'sampleCsv': { const M = MARKETS[$('csvMkt').value]; U.download(`sample-prices-${M.code}.csv`, CsvProvider.sample(M)); break; }
+        case 'importCsv': {
+          const err = $('csvErr'); err.textContent = '';
+          const pf = $('csvPrices').files[0] || UI.droppedFile, ff = $('csvFund').files[0], M = MARKETS[$('csvMkt').value];
+          if (!pf) { err.textContent = 'Choose a prices CSV first.'; return; }
+          act.disabled = true; act.textContent = 'Parsing…';
+          try {
+            const [pt, ft] = await Promise.all([readFile(pf), ff ? readFile(ff) : Promise.resolve(null)]);
+            const raw = CsvProvider.build(pt, ft, M);
+            if (!view().includes(M.code)) { S().settings.market = M.code; Store.persist(); }
+            Store.set({ tab: 'watchlist', settings: S().settings });
+            await App.run({ codes: [M.code], pending: raw, reason: 'CSV import' });
+            UI.filterOptions();
+            UI.toast(`Imported ${raw.tickers.length} ${M.name} tickers.`, 'ok');
+          } catch (ex) { err.textContent = ex.message; }
+          finally { act.disabled = false; act.textContent = 'Import & scan'; }
+          break;
+        }
+        case 'testFeed': case 'saveFeed': {
+          const err = $('feedErr'), out = $('feedResult'); err.textContent = '';
+          const f = UI.readFeedForm(); if (f.error) { err.textContent = f.error; return; }
+          const sources = Object.fromEntries(MARKET_CODES.map(c => [c, document.querySelector(`input[name="src-${c}"]:checked`)?.value || 'demo']));
+          if (act.dataset.action === 'saveFeed' && Object.values(sources).every(v => v === 'demo')) {
+            S().settings.feed = f.cfg; Store.persist(); UI.toast('Saved. Switch a market to “Live feed” to use it.', 'ok'); return;
+          }
+          act.disabled = true; const label = act.textContent; act.textContent = 'Checking…';
+          try {
+            const meta = await Feed.get(f.cfg, 'meta.json');
+            out.innerHTML = `<div class="rounded-lg border border-line bg-ink p-3 text-xs"><p class="text-emerald-300 font-medium">Connected · feed generated ${meta.generated ? new Date(meta.generated).toLocaleString() : '—'}</p>
+              <table class="mt-2 w-full"><thead class="text-slate-500 text-left"><tr><th class="py-1">Market</th><th>As of</th><th class="text-right">Tickers</th><th class="text-right">Sessions</th><th class="pl-3">Source</th></tr></thead><tbody>
+              ${MARKET_CODES.map(c => { const m = meta.markets?.[c]; return `<tr class="border-t border-line/60"><td class="py-1">${flagTag(MARKETS[c])} ${MARKETS[c].name}</td><td>${m ? fmt.date(m.asOf) : '<span class="text-amber-300">not yet</span>'}</td><td class="text-right num">${m ? fmt.num(m.tickers) : '—'}</td><td class="text-right num">${m ? m.sessions : '—'}</td><td class="pl-3 text-slate-400">${m ? U.esc(m.source) : ''}${m?.warnings?.length ? ` <span class="text-amber-300" title="${U.esc(m.warnings.join(' | '))}">⚠ ${m.warnings.length}</span>` : ''}</td></tr>`; }).join('')}
+              </tbody></table>
+              ${MARKET_CODES.map(c => { const e = meta.errors?.[c], w = meta.markets?.[c]?.warnings || []; return e || w.length ? `<div class="mt-2 border-t border-line/60 pt-2"><p class="font-medium ${e ? 'text-rose-300' : 'text-amber-300'}">${flagTag(MARKETS[c])} ${MARKETS[c].name}${e ? ` — last data job failed (${new Date(e.at).toLocaleString()})` : ' — notes from the data job'}</p>${e ? `<p class="text-rose-200/90">${U.esc(e.message)}</p>` : ''}${w.map(x => `<p class="text-amber-200/80">• ${U.esc(x)}</p>`).join('')}</div>` : ''; }).join('')}
+              </div>`;
+            if (act.dataset.action === 'saveFeed') {
+              const missing = MARKET_CODES.filter(c => sources[c] === 'live' && !meta.markets?.[c]);
+              if (missing.length) { err.textContent = missing.map(c => meta.errors?.[c] ? `No ${MARKETS[c].name} data: the last data job failed — ${meta.errors[c].message} Keep ${MARKETS[c].name} on Demo until a run succeeds.` : `No ${MARKETS[c].name} data yet — the data job hasn’t run for it. Keep it on Demo until it has.`).join(' '); return; }
+              const changed = MARKET_CODES.filter(c => sources[c] !== S().settings.sources[c] || (sources[c] === 'live' && JSON.stringify(f.cfg) !== JSON.stringify(S().settings.feed)));
+              S().settings.feed = f.cfg; S().settings.sources = sources; Store.persist(); GH._branch = null; MyStocks.pull();
+              const reload = changed.filter(c => view().includes(c) || S().mkts[c]?.ds);
+              UI.toast('Live feed saved.', 'ok');
+              if (reload.length) { Store.set({ tab: 'watchlist' }); await App.run({ codes: reload, fresh: true, reason: 'Switched data source' }); UI.filterOptions(); }
+            }
+          } catch (ex) { err.textContent = ex.message; out.innerHTML = ''; }
+          finally { act.disabled = false; act.textContent = label; }
+          break;
+        }
+        case 'wipe': if (confirm('Delete saved settings, alerts and the paper log from this browser?')) { try { localStorage.removeItem(Persist.key); } catch { } Idb.clear(); setTimeout(() => location.reload(), 200); } break;
       }
     } catch (ex) { console.error(ex); UI.toast(ex.message || 'Something went wrong.', 'error'); }
   });
@@ -3289,6 +3805,29 @@ function wire() {
     }
   });
 
+  $('settingsView').addEventListener('input', () => UI.validateSettings());
+  $('settingsView').addEventListener('change', e => {
+    if (e.target.name === 'feedMode') { $('feedGithub').classList.toggle('hidden', e.target.value !== 'github'); $('feedUrl').classList.toggle('hidden', e.target.value !== 'url'); }
+    if (e.target.id === 'csvPrices' && e.target.files[0]) { UI.droppedFile = null; $('csvName').textContent = e.target.files[0].name; }
+    if (e.target.id === 'dMkt') UI.demoFields();
+    UI.validateSettings();
+  });
+  $('settingsView').addEventListener('click', async e => {
+    if (e.target.id !== 'saveSettings') return;
+    const patch = UI.validateSettings(); if (!patch) return;
+    if (patch.alerts.browser && 'Notification' in window && Notification.permission === 'default') {
+      if (await Notification.requestPermission() !== 'granted') { patch.alerts.browser = false; UI.toast('Browser notifications were not allowed.', 'warn'); }
+    }
+    deepMerge(S().settings, patch); Store.persist(); App.rescore(); UI.settings(); Store.set({ bt: null });
+    UI.toast('Settings saved — watchlist re-ranked and probabilities refitted.', 'ok');
+  });
+  $('settingsView').addEventListener('dragover', e => { if (e.target.closest('#dropZone')) { e.preventDefault(); $('dropZone').classList.add('border-emerald-400'); } });
+  $('settingsView').addEventListener('dragleave', e => { if (e.target.closest('#dropZone')) $('dropZone').classList.remove('border-emerald-400'); });
+  $('settingsView').addEventListener('drop', e => {
+    if (!e.target.closest('#dropZone')) return;
+    e.preventDefault(); $('dropZone').classList.remove('border-emerald-400');
+    const file = e.dataTransfer.files[0]; if (file) { UI.droppedFile = file; $('csvName').textContent = file.name; }
+  });
   $('paperView').addEventListener('change', e => { if (e.target.id === 'pAuto') { S().settings.autoTrackA = e.target.checked; Store.persist(); } });
 
   // My stocks
@@ -3303,6 +3842,27 @@ function wire() {
   $('myInput').addEventListener('input', () => { $('myErr').textContent = ''; });
   $('fMine').addEventListener('click', () => Store.set({ filters: { ...S().filters, mine: !S().filters.mine } }));
 
+  // Visitors panel (admin)
+  $('visitorsView').addEventListener('submit', e => {
+    if (e.target.id !== 'vlForm') return;
+    e.preventDefault();
+    const err = $('vlErr'); err.textContent = '';
+    try {
+      const f = VisitLog.parsePrefill($('vlForm1').value), csvUrl = VisitLog.checkCsv($('vlCsv').value);
+      S().settings.visitorLog = { ...f, csvUrl }; Store.persist(); UI._vlog = null;
+      UI.toast('Saved. Now send a test visit, then publish (Settings → Publish to all users).', 'ok');
+      $('visitorsView').innerHTML = UI.visitorsSetup();
+    } catch (ex) { err.textContent = ex.message; }
+  });
+  $('visitorsView').addEventListener('submit', e => {
+    const f = e.target.closest('.vlName'); if (!f) return;
+    e.preventDefault();
+    const v = f.n.value.trim().slice(0, 40), map = { ...(S().settings.visitorNames || {}) };
+    if (v) map[f.dataset.id] = v; else delete map[f.dataset.id];
+    S().settings.visitorNames = map; Store.persist(); UI.visitors(); UI.toast(v ? `Saved — this visitor now shows as “${v}”.` : 'Name removed.', 'ok');
+  });
+  $('visitorsView').addEventListener('input', U.debounce(e => { if (e.target.id === 'vlSearch') { UI._vq = e.target.value; UI.visitors(); const s = $('vlSearch'); s.focus(); s.setSelectionRange(s.value.length, s.value.length); } }, 200));
+  $('visitorsView').addEventListener('click', e => { const tr = e.target.closest('[data-vid]'); if (tr) { UI._vopen = UI._vopen === tr.dataset.vid ? null : tr.dataset.vid; UI.visitors(); } });
   // Alert options (everyone)
   document.querySelectorAll('[data-alertopt]').forEach(c => {
     c.checked = !!S().settings.alerts[c.dataset.alertopt];

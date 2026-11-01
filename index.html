@@ -47,6 +47,14 @@
   @media (min-width: 768px) { .chart-box { height: 380px; } }
   @media (prefers-reduced-motion: reduce) { .drawer, .fade, .skeleton { transition: none; animation: none; } }
   .noscript { padding: 2rem; font-family: system-ui; }
+  .hot { display: inline-flex; align-items: center; gap: .25rem; padding: .1rem .45rem; border-radius: .375rem; font-size: 11px; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+  .hot-buy { color: #0a0e14; background: #facc15; animation: hotBuy 1s ease-in-out infinite; }
+  .hot-sell { color: #fff; background: #f43f5e; animation: hotSell 1s ease-in-out infinite; }
+  .hot-card { animation: hotCard 1.6s ease-in-out infinite; }
+  @keyframes hotBuy { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(250, 204, 21, .75); } 50% { opacity: .45; box-shadow: 0 0 0 6px rgba(250, 204, 21, 0); } }
+  @keyframes hotSell { 0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(244, 63, 94, .75); } 50% { opacity: .45; box-shadow: 0 0 0 6px rgba(244, 63, 94, 0); } }
+  @keyframes hotCard { 0%, 100% { border-color: rgba(250, 204, 21, .75); } 50% { border-color: rgba(250, 204, 21, .15); } }
+  @media (prefers-reduced-motion: reduce) { .hot-buy, .hot-sell, .hot-card { animation: none; } }
   .flag { font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif; }
 </style>
 </head>
@@ -85,6 +93,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg>
         <span id="alertBadge" class="hidden absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-[10px] font-bold text-white leading-[18px] text-center"></span>
       </button>
+      <button id="btnAcct" type="button" data-action="acctOpen" class="hidden h-9 px-2 sm:px-2.5 inline-flex items-center gap-1.5 rounded-lg border border-line hover:bg-panel2 text-sm" aria-label="Account"></button>
     </div>
   </div>
   <div class="mx-auto max-w-7xl px-4 pb-2">
@@ -247,9 +256,9 @@
 
   <!-- ============ PORTFOLIO ============ -->
   <section id="tab-portfolio" role="tabpanel" aria-label="Portfolio" hidden>
-    <div class="rounded-xl border border-amber-500/30 bg-panel p-4">
+    <div id="pFormCard" class="rounded-xl border border-amber-500/30 bg-panel p-4">
       <h2 class="text-base font-semibold"><span aria-hidden="true">💼</span> My portfolio</h2>
-      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Add the stocks you own. After every scan the app checks each one against all 19 strategies, its trend, your buy price, its fundamentals and upcoming events, and tells you whether to <span class="text-rose-300 font-medium">sell</span>, <span class="text-emerald-300 font-medium">buy more</span>, <span class="text-amber-300 font-medium">review</span> or <span class="text-sky-300 font-medium">hold</span> — with the reasons. Saved on this device only.</p>
+      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Add the stocks you own. After every scan the app checks each one against all 19 strategies, its trend, your buy price, its fundamentals and upcoming events, and tells you whether to <span class="text-rose-300 font-medium">sell</span>, <span class="text-emerald-300 font-medium">buy more</span>, <span class="text-amber-300 font-medium">review</span> or <span class="text-sky-300 font-medium">hold</span> — with the reasons. <span id="pSaved">Saved on this device only.</span></p>
       <form id="pForm" class="mt-4 grid grid-cols-2 md:grid-cols-7 gap-3 items-end" autocomplete="off" novalidate>
         <label class="text-xs text-slate-400">Market
           <select id="pMarket" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select></label>
@@ -271,7 +280,7 @@
   </section>
 
   <section id="tab-watch" role="tabpanel" aria-label="Strategy watch" hidden>
-    <div class="rounded-xl border border-violet-500/30 bg-panel p-4">
+    <div id="wFormCard" class="rounded-xl border border-violet-500/30 bg-panel p-4">
       <h2 class="text-base font-semibold"><span class="text-violet-300" aria-hidden="true">◆</span> Strategy watch</h2>
       <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Pair a stock with a strategy — usually the one that worked best for it in the backtest. After every scan the app checks whether that strategy gives a buy or sell signal today and alerts you. “Auto” always follows whichever strategy currently has the best backtest.</p>
       <form id="wForm" class="mt-4 grid grid-cols-2 md:grid-cols-6 gap-3 items-end" autocomplete="off" novalidate>
@@ -302,7 +311,7 @@
     Opportunity Scanner ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-01.5 · public</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-01.7 · public</p>
   </div>
 </footer>
 
@@ -333,6 +342,11 @@
     </div>
   </details>
 </aside>
+
+<div id="acctBackdrop" class="fade fixed inset-0 z-40 bg-black/60 hidden" aria-hidden="true"></div>
+<div id="acctModal" role="dialog" aria-modal="true" aria-labelledby="acctTitle" class="hidden fixed z-50 inset-x-3 top-14 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-[430px] max-h-[86vh] overflow-y-auto scroll-thin rounded-2xl border border-line bg-panel shadow-2xl">
+  <div id="acctBody" class="p-5"></div>
+</div>
 
 <div id="toasts" class="fixed bottom-4 inset-x-4 sm:left-auto sm:right-4 sm:w-96 z-[60] space-y-2 pointer-events-none" aria-live="polite" aria-atomic="false"></div>
 
@@ -537,7 +551,7 @@ const DEFAULTS = {
   myStocks: { US: [], CA: [], IN: [] }, myStocksDirty: false,
   stratWatch: [], stratAlerted: {},
   portfolio: [], pfAlerted: {},
-  visitorLog: null, publicFeed: '', site: null, visitorNames: {},
+  visitorLog: null, publicFeed: '', site: null, visitorNames: {}, firebase: null,
   alerts: { newA: true, entry: true, watch: true, portfolio: true, browser: false, webhook: '' },
   bt: { window: 250, hold: 10, perScan: 10, tiers: ['A', 'B'], market: 'US' }
 };
@@ -585,7 +599,7 @@ const Store = (() => {
     filters: { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: 25, mine: false },
     mySync: { state: 'idle', msg: '' },
     sbt: null, sbtBusy: false,
-    bestTick: 0, bestProg: null, watchTick: 0, pfTick: 0,
+    bestTick: 0, bestProg: null, watchTick: 0, pfTick: 0, acct: 0,
     sort: 'prob',
     busy: false,
     pipes: {},           // code -> { stages, runs, ms }
@@ -602,7 +616,7 @@ const Store = (() => {
       for (const sub of subs) if (!sub.keys || sub.keys.some(k => keys.includes(k))) sub.fn(s);
     },
     on(keys, fn) { subs.push({ keys, fn }); },
-    persist() { Persist.save({ settings: s.settings, paper: s.paper.slice(-600), alerts: s.alerts.slice(0, 200), prevA: s.prevA, disclaimerSeen: s.disclaimerSeen }); }
+    persist() { Persist.save({ settings: s.settings, paper: s.paper.slice(-600), alerts: s.alerts.slice(0, 200), prevA: s.prevA, disclaimerSeen: s.disclaimerSeen }); try { Account.touch(); } catch { } }
   };
 })();
 const S = () => Store.state;
@@ -966,7 +980,7 @@ const GH = {
 /** The user's own tickers: always scanned, saved on this device and in the data repo (my-tickers.json). */
 const MyStocks = {
   FILE: 'my-tickers.json',
-  list: m => S().settings.myStocks[m] || [],
+  list: m => Account.locked() ? [] : S().settings.myStocks[m] || [],
   set(m) { return new Set(this.list(m)); },
   has(m, sym) { return this.list(m).includes(sym); },
   count() { return MARKET_CODES.reduce((a, m) => a + this.list(m).length, 0); },
@@ -980,6 +994,7 @@ const MyStocks = {
     return { sym };
   },
   async add(m, raw) {
+    if (Account.locked()) throw new Error('Sign in (top right) to keep your own list of stocks.');
     const n = this.normalize(m, raw); if (n.error) throw new Error(n.error);
     if (!Admin.is) {
       const ds = S().mkts[m]?.ds;
@@ -1031,6 +1046,12 @@ const MyStocks = {
       const next = Object.fromEntries(MARKET_CODES.map(m => [m, Array.isArray(remote[m]) ? remote[m].map(String) : []]));
       if (JSON.stringify(next) !== JSON.stringify(S().settings.myStocks)) { S().settings.myStocks = next; Store.persist(); App.rescore(); Store.set({ settings: S().settings }); }
     } catch (e) { console.warn('My stocks pull failed', e); }
+  },
+  /** High-probability strategy matches today for one of my stocks (only once its backtest is cached). */
+  hot(m, sym) {
+    const ds = S().mkts[m]?.ds; if (!ds) return [];
+    const ti = ds.tickers.findIndex(t => t.sym === sym && !t.excluded); if (ti < 0) return [];
+    return StockBT.hot(StockBT.peek(ds, ti));
   },
   /** Where a stock stands in today's data. */
   status(m, sym) {
@@ -1136,6 +1157,18 @@ const StockBT = {
     return { m: ds.m, M, ds, ti, sym: tk.sym, name: tk.name, from, sigFrom, last, hold: cfg.hold, window: cfg.window, rows, best, confident, bh, today,
       bestSig, sigReliable, sigGood, match: sigGood && !!today[bestSig.key]?.buy };
   },
+  /** High-probability strategy matches today: strategies with a strong record on this stock (≥3 trades, ≥60% won, profitable overall) that signal BUY or SELL on the latest session. */
+  HOT: { minTrades: 3, minWin: .6 },
+  hot(res) {
+    if (!res) return [];
+    return res.rows.filter(r => r.key !== 'scanner' && r.n >= this.HOT.minTrades && r.winRate >= this.HOT.minWin && r.total > 0)
+      .map(r => { const t = res.today[r.key] || {}; return t.sellNext ? { r, side: 'sell' } : t.buy && !t.inTrade ? { r, side: 'buy', plan: t.plan } : null; })
+      .filter(Boolean).sort((a, b) => b.r.winRate - a.r.winRate || b.r.total - a.r.total);
+  },
+  hotLabel(hot) { const side = hot.some(h => h.side === 'buy') ? 'buy' : 'sell'; return { side, html: `<span class="hot hot-${side}" title="A strategy with a strong backtest record on this stock signals ${side.toUpperCase()} today"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>MATCH · ${side.toUpperCase()}</span>` }; },
+  hotText(hot, M) {
+    return hot.map(h => `${h.r.name} → ${h.side.toUpperCase()} (${fmt.prob(h.r.winRate)} of ${h.r.n} trades won, ${fmt.pct(h.r.total, 0)} total)${h.side === 'buy' && h.plan ? ` · entry ${fmt.px(h.plan.entryLow, M)}–${fmt.n2(h.plan.entryHigh, M)}, stop ${fmt.px(h.plan.stop, M)}` : ''}`).join(' · ');
+  },
   /** Cached run (one per stock, data version and scoring settings). */
   _cache: new Map(),
   sig() { const s = S().settings; return JSON.stringify([s.weights, s.tiers, s.regimeFilter, s.earningsMode, s.catalystWindow]); },
@@ -1167,7 +1200,7 @@ const StockBT = {
 /** Strategy watch: stocks paired with a strategy; alerts when that strategy signals. */
 const Watch = {
   state: {},   // id -> evaluation for display
-  list: () => S().settings.stratWatch,
+  list: () => Account.locked() ? [] : S().settings.stratWatch,
   label(key, res) {
     if (key === 'auto') return res?.best ? `Auto → ${res.best.name}` : 'Auto (best strategy)';
     return res?.rows.find(r => r.key === key)?.name || StockBT.CLASSIC[key]?.name || PATTERNS[key.replace('pat:', '')]?.label || (key === 'scanner' ? 'Scanner shortlist (tier A or B)' : key);
@@ -1177,6 +1210,7 @@ const Watch = {
       ['scanner', 'Scanner shortlist (tier A or B)'], ...Object.entries(StockBT.CLASSIC).map(([k, c]) => [k, c.name])];
   },
   add(m, sym, key, hold) {
+    if (Account.locked()) throw new Error('Sign in (top right) to use Strategy watch.');
     if (this.list().some(w => w.m === m && w.sym === sym && w.key === key)) throw new Error(`${sym} is already watched with that strategy.`);
     if (this.list().length >= 100) throw new Error('You can watch up to 100 stock–strategy pairs.');
     S().settings.stratWatch = [...this.list(), { id: U.uid(), m, sym, key, hold, added: new Date().toISOString().slice(0, 10) }];
@@ -1208,7 +1242,10 @@ const Watch = {
         const lastT = strat?.trades.length ? strat.trades[strat.trades.length - 1] : null;
         ev = { kind: 'none', text: `No signal today${lastT ? ` · last buy ${fmt.date(ds.dates[lastT.entry])}` : ''}.` };
       }
-      this.state[w.id] = { ...ev, res, key, strat, date };
+      const hot = StockBT.hot(res);
+      this.state[w.id] = { ...ev, res, key, strat, date, hot };
+      const htag = `hot|${w.m}|${w.sym}|${date}`;
+      if (hot.length && !st.stratAlerted[htag]) { st.stratAlerted[htag] = 1; if (alert && st.alerts.watch) fired.push([w, { kind: 'hot', hot }, hot[0].r, M]); }
       const tag = `${w.id}|${date}|${ev.kind}`;
       if (alert && st.alerts.watch && ['buy', 'sell', 'sold'].includes(ev.kind) && !st.stratAlerted[tag]) {
         st.stratAlerted[tag] = 1; fired.push([w, ev, strat, M]);
@@ -1220,23 +1257,25 @@ const Watch = {
         const name = strat?.name || 'its strategy';
         if (ev.kind === 'buy') return `${M.flag} ${w.sym}: BUY signal from ${name}${ev.plan ? ` — entry ${fmt.px(ev.plan.entryLow, M)}–${fmt.n2(ev.plan.entryHigh, M)}, stop ${fmt.px(ev.plan.stop, M)}, target ${fmt.px(ev.plan.target, M)}` : ' — buys at the next open'}. Backtest: ${strat?.n ?? 0} trades, ${fmt.pct(strat?.total, 1)} total.`;
         if (ev.kind === 'sell') return `${M.flag} ${w.sym}: SELL signal from ${name} — it exits at the next open.`;
+        if (ev.kind === 'hot') return `⚡ ${M.flag} ${w.sym}: high-probability strategy match today — ${StockBT.hotText(ev.hot, M)}.`;
         return `${M.flag} ${w.sym}: ${ev.text.replace('Trade closed today', `${name} trade closed today`)}`;
       };
       if (fired.length <= 5) fired.forEach(([w, ev, strat, M]) => Alerts.push('watch', say(w, ev, strat, M), w.sym, w.m));
-      else Alerts.push('watch', `${fired.length} strategy signals today: ${fired.map(([w, ev]) => `${w.sym} (${ev.kind === 'buy' ? 'buy' : 'sell'})`).join(', ')}. See Strategy watch.`);
+      else Alerts.push('watch', `${fired.length} strategy signals today: ${fired.map(([w, ev]) => `${w.sym} (${ev.kind === 'hot' ? '⚡ match' : ev.kind === 'buy' ? 'buy' : 'sell'})`).join(', ')}. See Strategy watch.`);
       Store.persist();
     }
     Store.set({ watchTick: Date.now() });
     return fired.length;
   },
-  todayCount() { return this.list().filter(w => ['buy', 'sell', 'sold'].includes(this.state[w.id]?.kind)).length; }
+  todayCount() { return this.list().filter(w => ['buy', 'sell', 'sold'].includes(this.state[w.id]?.kind) || this.state[w.id]?.hot?.length).length; },
+  hotCount() { return new Set(this.list().filter(w => this.state[w.id]?.hot?.length).map(w => w.m + w.sym)).size; }
 };
 
 /** Portfolio: the stocks the user owns, checked after every scan against every strategy, the trend, position risk,
  *  fundamentals and upcoming events, giving a SELL / BUY MORE / REVIEW / HOLD verdict with the reasons. */
 const Portfolio = {
   state: {},   // id -> evaluation
-  list: () => S().settings.portfolio,
+  list: () => Account.locked() ? [] : S().settings.portfolio,
   VERDICT: {
     sell:   { label: 'SELL',     badge: 'text-rose-100 bg-rose-500/25 ring-rose-400/60', card: 'border-rose-500/50 bg-rose-500/[0.04]', order: 0 },
     buy:    { label: 'BUY MORE', badge: 'text-emerald-100 bg-emerald-500/25 ring-emerald-400/60', card: 'border-emerald-500/50 bg-emerald-500/[0.04]', order: 1 },
@@ -1245,6 +1284,7 @@ const Portfolio = {
     wait:   { label: 'NOT CHECKED', badge: 'text-slate-300 bg-slate-500/10 ring-slate-500/30', card: 'border-line', order: 4 }
   },
   upsert(h) {
+    if (Account.locked()) throw new Error('Sign in (top right) to keep a portfolio.');
     const list = this.list(), i = list.findIndex(x => x.m === h.m && x.sym === h.sym);
     if (i >= 0) { list[i] = { ...list[i], ...h, id: list[i].id }; }
     else { if (list.length >= 150) throw new Error('You can keep up to 150 holdings.'); list.push({ id: U.uid(), ...h }); }
@@ -1404,13 +1444,149 @@ const Shared = {
   
 };
 
+/** User accounts (Firebase Auth + Firestore). Each signed-in visitor's Portfolio, Strategy watch and My stocks live in a
+ *  private document only they can read, so they follow them across devices. Off until the owner adds a Firebase project. */
+const Account = {
+  SDK: '10.12.5',
+  KEYS: ['portfolio', 'stratWatch', 'myStocks', 'pfAlerted', 'stratAlerted'],
+  user: null, ready: false, loaded: false, err: null, app: null, auth: null, db: null, _unsub: null, _last: '', _t: 0, _cfgKey: '',
+  cfg() { return Admin.is ? S().settings.firebase?.config : Shared.cfg?.accounts?.firebase; },
+  enabled() { const c = this.cfg(); return !!(c && c.apiKey && c.projectId && c.appId); },
+  /** Personal tabs need an account only in the public app, once accounts are set up. */
+  required() { return !Admin.is && this.enabled(); },
+  locked() { return this.required() && !this.user; },
+  syncs() { return !Admin.is && !!this.user; },
+  label() { return this.user ? (this.user.displayName || (this.user.email || '').split('@')[0] || 'Account') : ''; },
+  isAdminUser() { const a = (S().settings.firebase?.adminEmail || '').trim().toLowerCase(); return Admin.is && !!this.user && !!a && (this.user.email || '').toLowerCase() === a; },
+  emit() { Store.set({ acct: Date.now() }); },
+  async loadSdk() {
+    if (window.firebase?.firestore && window.firebase?.auth) return;
+    for (const f of ['app', 'auth', 'firestore']) {
+      await new Promise((ok, bad) => {
+        const sc = document.createElement('script'); sc.src = `https://www.gstatic.com/firebasejs/${this.SDK}/firebase-${f}-compat.js`;
+        sc.onload = ok; sc.onerror = () => bad(new Error('Couldn’t load the sign-in service. Check your internet connection and reload the page.'));
+        document.head.appendChild(sc);
+      });
+    }
+  },
+  async init() {
+    const key = JSON.stringify(this.cfg() || null);
+    if (key === this._cfgKey && this.app) return;
+    this._cfgKey = key;
+    if (this.app) { try { this._unsub?.(); await this.app.delete(); } catch { } this.app = this.auth = this.db = null; this.user = null; }
+    this.err = null;
+    if (!this.enabled()) { this.ready = true; this.emit(); return; }
+    this.ready = false; this.emit();
+    try {
+      await this.loadSdk();
+      this.app = firebase.initializeApp(this.cfg(), 'scanner-' + Date.now());
+      this.auth = this.app.auth(); this.db = this.app.firestore();
+      this.auth.onAuthStateChanged(u => this.changed(u));
+    } catch (e) { console.error(e); this.err = e.message; this.ready = true; this.emit(); }
+  },
+  async changed(u) {
+    const prev = this.user;
+    this._unsub?.(); this._unsub = null; this.loaded = false;
+    this.user = u; this.ready = true;
+    if (!u) { if (prev && this.required()) this.clearLocal(); this.emit(); UI.whoLine(); return; }
+    this.emit(); UI.whoLine();
+    if (Admin.is) return;   // the admin copy signs in only to list users; its own lists stay on this device
+    await this.profile();
+    const ref = this.db.collection('userdata').doc(u.uid);
+    this._unsub = ref.onSnapshot(snap => this.remote(snap), e => { this.err = this.msg(e); this.emit(); });
+  },
+  /** users/{uid}: name, email, joined, last seen (visible to the owner and the app's admin). */
+  async profile(name) {
+    const u = this.user; if (!u) return;
+    try {
+      const ref = this.db.collection('users').doc(u.uid), FV = firebase.firestore.FieldValue;
+      const prof = { name: String(name ?? u.displayName ?? '').slice(0, 40), email: u.email || '', lastSeen: FV.serverTimestamp() };
+      const snap = await ref.get();
+      if (!snap.exists) await ref.set({ ...prof, joined: FV.serverTimestamp() }); else await ref.update(prof);
+    } catch (e) { console.warn('Profile not saved', e); }
+  },
+  pack() { const st = S().settings; return JSON.stringify(Object.fromEntries(this.KEYS.map(k => [k, st[k] ?? DEFAULTS[k]]))); },
+  remote(snap) {
+    if (!snap.exists) { this.loaded = true; this._last = ''; this.save(true); this.refresh(); return; }   // first sign-in: this device's lists become the account's
+    const d = snap.data(), next = Object.fromEntries(this.KEYS.map(k => [k, d[k] ?? structuredClone(DEFAULTS[k])]));
+    next.myStocks = Object.fromEntries(MARKET_CODES.map(m => [m, Array.isArray(next.myStocks?.[m]) ? next.myStocks[m] : []]));
+    const js = JSON.stringify(next), changed = js !== this.pack() || !this.loaded;
+    this.loaded = true; this._last = js;
+    if (changed) { Object.assign(S().settings, structuredClone(next)); Persist.save({ ...Persist.load(), settings: S().settings }); this.refresh(); }
+    else this.emit();
+  },
+  touch() { if (!this.syncs() || !this.loaded) return; clearTimeout(this._t); this._t = setTimeout(() => this.save(), 1200); },
+  async save(force = false) {
+    if (!this.syncs()) return;
+    const js = this.pack(); if (!force && js === this._last) return;
+    this._last = js;
+    try { await this.db.collection('userdata').doc(this.user.uid).set({ ...JSON.parse(js), updated: firebase.firestore.FieldValue.serverTimestamp() }); if (this.err) { this.err = null; this.emit(); } }
+    catch (e) { this._last = ''; this.err = 'Couldn’t save to your account: ' + this.msg(e); this.emit(); }
+  },
+  /** Lists changed (sign-in, another device, sign-out): re-check everything that depends on them. */
+  refresh() {
+    Portfolio.state = {}; Watch.state = {};
+    const loaded = MARKET_CODES.filter(c => S().mkts[c]?.ds);
+    if (loaded.length) { Portfolio.evaluate(loaded, false); Watch.evaluate(loaded, false); }
+    App.rescore();
+    Store.set({ settings: S().settings, acct: Date.now() });
+  },
+  /** Signed out on a shared device: nothing personal stays behind. */
+  clearLocal() {
+    const st = S().settings;
+    for (const k of this.KEYS) st[k] = structuredClone(DEFAULTS[k]);
+    Persist.save({ ...Persist.load(), settings: st });
+    this.refresh();
+  },
+  msg(e) {
+    const c = e?.code || '';
+    return ({
+      'auth/email-already-in-use': 'An account with this email already exists. Sign in instead (or use “Forgot password”).',
+      'auth/invalid-email': 'That email address doesn’t look right.',
+      'auth/weak-password': 'Choose a password of at least 8 characters.',
+      'auth/missing-password': 'Type your password.',
+      'auth/wrong-password': 'Wrong email or password.', 'auth/user-not-found': 'Wrong email or password.', 'auth/invalid-credential': 'Wrong email or password.', 'auth/invalid-login-credentials': 'Wrong email or password.',
+      'auth/too-many-requests': 'Too many attempts. Wait a few minutes, or reset your password.',
+      'auth/popup-closed-by-user': 'The Google window was closed before signing in.', 'auth/cancelled-popup-request': 'The Google window was closed before signing in.',
+      'auth/popup-blocked': 'Your browser blocked the Google window. Allow pop-ups for this site and try again.',
+      'auth/unauthorized-domain': `Google sign-in isn’t allowed on ${location.hostname || 'this page'} yet. The app owner needs to add it in Firebase → Authentication → Settings → Authorized domains.`,
+      'auth/operation-not-allowed': 'This sign-in method isn’t switched on yet. The app owner needs to enable it in Firebase → Authentication → Sign-in method.',
+      'auth/requires-recent-login': 'For your security, sign out, sign in again, then try once more.',
+      'auth/network-request-failed': 'No connection to the sign-in service. Check your internet connection.',
+      'permission-denied': 'The account database refused this. The app owner needs to update the security rules (Settings → User accounts).',
+      'unavailable': 'The account database can’t be reached right now. Your changes will save when you’re back online.'
+    })[c] || e?.message || String(e);
+  },
+  async google() { await this.auth.signInWithPopup(new firebase.auth.GoogleAuthProvider()); },
+  async signIn(email, pw) { await this.auth.signInWithEmailAndPassword(email, pw); },
+  async register(name, email, pw) {
+    const cred = await this.auth.createUserWithEmailAndPassword(email, pw);
+    if (name) { await cred.user.updateProfile({ displayName: name }); await this.profile(name); this.emit(); }
+    try { await cred.user.sendEmailVerification(); } catch { }
+  },
+  async reset(email) { await this.auth.sendPasswordResetEmail(email); },
+  async signOut() { await this.auth.signOut(); },
+  async deleteAccount() {
+    const u = this.user; if (!u) return;
+    this._unsub?.(); this._unsub = null; this.loaded = false;
+    try {
+      if (!Admin.is) { await this.db.collection('userdata').doc(u.uid).delete(); await this.db.collection('users').doc(u.uid).delete(); }
+      await u.delete();
+    } catch (e) {
+      if (!Admin.is && this.user) { const ref = this.db.collection('userdata').doc(u.uid); this._unsub = ref.onSnapshot(sn => this.remote(sn), () => {}); }
+      throw e;
+    }
+  },
+  
+};
+
 /** Visit log: each visit is sent to the owner's Google Form (rows land in a Google Sheet). Admin devices are never logged. */
 const Visit = {
   t0: Date.now(), tabs: new Set(), markets: new Set(), sentSummary: false, opened: false,
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
   put(k, v) { try { localStorage.setItem(k, v); } catch { } },
   id() { let v = this.get('oppscanner.vid'); if (!v) { v = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); this.put('oppscanner.vid', v); } return v; },
-  name() { return this.get('oppscanner.name') || ''; },
+  name() { return (Account.user && !Admin.is ? Account.user.displayName || 'Registered user' : '') || this.get('oppscanner.name') || ''; },
   form() { return Admin.is ? null : Shared.cfg?.visitorLog; },
   device() {
     const ua = navigator.userAgent, uad = navigator.userAgentData;
@@ -2296,13 +2472,17 @@ const App = {
   async bestScan() {
     const tok = (this._bestTok = (this._bestTok || 0) + 1);
     await U.sleep(50);
-    const hold = S().settings.bt.hold, todo = S().results.filter(r => StockBT.peek(r.ds, r.cd.ti, hold) === undefined);
+    const hold = S().settings.bt.hold, todo = S().results.filter(r => StockBT.peek(r.ds, r.cd.ti, hold) === undefined).map(r => ({ ds: r.ds, ti: r.cd.ti }));
+    for (const c of MARKET_CODES) {   // also every ★ My stock, for the ⚡ match flag
+      const ds = S().mkts[c]?.ds; if (!ds) continue;
+      for (const sym of MyStocks.list(c)) { const ti = ds.tickers.findIndex(t => t.sym === sym && !t.excluded); if (ti >= 0 && StockBT.peek(ds, ti, hold) === undefined && !todo.some(x => x.ds === ds && x.ti === ti)) todo.push({ ds, ti }); }
+    }
     if (!todo.length) { if (S().bestProg) Store.set({ bestProg: null, bestTick: Date.now() }); return; }
     Store.set({ bestProg: { done: 0, total: todo.length } });
     let t0 = performance.now();
     for (let k = 0; k < todo.length; k++) {
       if (tok !== this._bestTok) return;
-      StockBT.cached(todo[k].ds, todo[k].cd.ti, hold);
+      StockBT.cached(todo[k].ds, todo[k].ti, hold);
       if (performance.now() - t0 > 40) {
         if (k % 10 === 0) Store.set({ bestProg: { done: k + 1, total: todo.length }, bestTick: Date.now() });
         await U.yieldUI(); t0 = performance.now();
@@ -3012,8 +3192,9 @@ const UI = {
   whoLine() {
     const el = $('whoLine'); if (!el) return;
     if (Admin.is) { el.innerHTML = '<span class="text-amber-300/90">Admin copy</span> · visits from this page aren’t logged.'; return; }
-    if (!Visit.form()) { el.innerHTML = ''; return; }
-    el.textContent = 'Privacy: visits to this app are logged for its owner — IP address, approximate location (city level), device, browser, time and the parts of the app used. Nothing is shared or sold.';
+    const acct = Account.enabled() ? ' If you create an account, it stores your name (optional), email, when you joined and last signed in, and your Portfolio, Strategy watch and My stocks lists; only you can read your lists, and the owner sees your name, email and those dates.' : '';
+    if (!Visit.form()) { el.textContent = acct ? 'Privacy:' + acct + ' Nothing is shared or sold.' : ''; return; }
+    el.textContent = 'Privacy: visits to this app are logged for its owner — IP address, approximate location (city level), device, browser, time and the parts of the app used' + (acct ? ', plus your name if you’re signed in.' + acct : '.') + ' Nothing is shared or sold.';
   },
 
   /* ---------- Strategy watch tab ---------- */
@@ -3035,8 +3216,10 @@ const UI = {
   watch() {
     const el = $('watchView'); if (!el) return;
     const n = Watch.todayCount(), tab = document.querySelector('[data-tab="watch"]');
-    tab.innerHTML = `Strategy watch${n ? ` <span class="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-violet-500 text-[10px] font-bold text-white">${n}</span>` : ''}`;
+    const nh = Watch.hotCount(), lk = Account.locked(); $('wFormCard').classList.toggle('hidden', lk);
+    tab.innerHTML = `Strategy watch${lk ? ' <span aria-hidden="true" class="text-[11px]">🔒</span>' : ''}${nh ? ` <span class="hot hot-buy ml-1 !py-0"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>${nh}</span>` : n ? ` <span class="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-violet-500 text-[10px] font-bold text-white">${n}</span>` : ''}`;
     if (S().tab !== 'watch') return;
+    if (lk) { el.innerHTML = UI.lockCard('Strategy watch list'); return; }
     const list = Watch.list();
     if (!list.length) {
       el.innerHTML = `<div class="rounded-xl border border-dashed border-line bg-panel p-10 text-center"><p class="text-3xl text-violet-300" aria-hidden="true">◆</p><p class="mt-2 font-medium text-slate-200">Nothing watched yet</p>
@@ -3046,25 +3229,107 @@ const UI = {
     const order = { buy: 0, sell: 1, sold: 2, holding: 3, none: 4, pending: 5, idle: 6, bad: 7 };
     const tone = { buy: 'border-emerald-500/50 bg-emerald-500/[0.06]', sell: 'border-amber-500/50 bg-amber-500/[0.05]', sold: 'border-amber-500/30', holding: 'border-sky-500/30', none: 'border-line', pending: 'border-line', idle: 'border-line', bad: 'border-rose-500/30' };
     const txt = { buy: 'text-emerald-300 font-semibold', sell: 'text-amber-300 font-semibold', sold: 'text-amber-200', holding: 'text-sky-300', none: 'text-slate-400', pending: 'text-amber-200/90', idle: 'text-slate-500', bad: 'text-rose-300' };
-    const items = list.map(w => ({ w, e: Watch.state[w.id] || { kind: 'idle', text: 'Not checked yet — press “Check now”.' } })).sort((a, b) => order[a.e.kind] - order[b.e.kind] || a.w.sym.localeCompare(b.w.sym));
-    const n2 = items.filter(i => ['buy', 'sell', 'sold'].includes(i.e.kind)).length;
-    el.innerHTML = `<p class="text-xs text-slate-400 mb-2">${list.length} watched · ${n2 ? `<span class="text-violet-300">${n2} with a signal today</span>` : 'no signals today'} · checked after every scan${S().settings.alerts.watch ? '' : ' · <span class="text-amber-300">alerts are off (Settings)</span>'}</p>
+    const items = list.map(w => ({ w, e: Watch.state[w.id] || { kind: 'idle', text: 'Not checked yet — press “Check now”.' } })).sort((a, b) => (b.e.hot?.length ? 1 : 0) - (a.e.hot?.length ? 1 : 0) || order[a.e.kind] - order[b.e.kind] || a.w.sym.localeCompare(b.w.sym));
+    const n2 = items.filter(i => ['buy', 'sell', 'sold'].includes(i.e.kind) || i.e.hot?.length).length;
+    el.innerHTML = `${nh ? `<div class="mb-3 rounded-xl border border-yellow-400/60 bg-yellow-400/[0.06] px-3 py-2 text-sm text-yellow-100"><span class="hot hot-buy mr-1.5"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>${nh}</span> ${nh === 1 ? 'stock has' : 'stocks have'} a high-probability strategy match today — a strategy that won at least ${Math.round(StockBT.HOT.minWin * 100)}% of its past trades on that stock (${StockBT.HOT.minTrades}+ trades, profitable overall) is signalling now. They’re at the top.</div>` : ''}<p class="text-xs text-slate-400 mb-2">${list.length} watched · ${n2 ? `<span class="text-violet-300">${n2} with a signal today</span>` : 'no signals today'} · checked after every scan${S().settings.alerts.watch ? '' : ' · <span class="text-amber-300">alerts are off (Settings)</span>'}</p>
       <ul class="space-y-2">${items.map(({ w, e }) => {
-        const M = MARKETS[w.m], st = e.strat, plan = e.plan;
-        return `<li class="rounded-xl border ${tone[e.kind]} bg-panel p-3">
+        const M = MARKETS[w.m], st = e.strat, plan = e.plan, hot = e.hot || [], hl = hot.length ? StockBT.hotLabel(hot) : null;
+        return `<li class="rounded-xl border ${hot.length ? 'border-yellow-400/70 hot-card' : tone[e.kind]} bg-panel p-3">
           <div class="flex flex-wrap items-start gap-x-3 gap-y-1">
-            <div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(w.sym)} <span class="text-xs font-normal text-slate-400">${flagTag(M)} ${M.name}</span></p>
+            <div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(w.sym)} <span class="text-xs font-normal text-slate-400">${flagTag(M)} ${M.name}</span> ${hl ? hl.html : ''}</p>
               <p class="text-xs text-slate-300">${U.esc(Watch.label(w.key, e.res))}</p></div>
             <div class="flex items-center gap-1.5 shrink-0">
               <button type="button" data-action="btStock" data-m="${w.m}" data-sym="${U.esc(w.sym)}" class="h-7 px-2.5 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Backtest</button>
               <button type="button" data-action="watchRemove" data-id="${w.id}" class="h-7 w-7 inline-flex items-center justify-center rounded-lg text-slate-500 hover:text-rose-300 hover:bg-rose-500/10" aria-label="Stop watching ${U.esc(w.sym)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
             </div>
           </div>
+          ${hot.length ? `<p class="mt-2 text-sm text-yellow-200"><b>⚡ High-probability strategy match today:</b> ${U.esc(StockBT.hotText(hot, M))}.</p>` : ''}
           <p class="mt-2 text-sm ${txt[e.kind]}">${e.kind === 'buy' ? '▲ ' : e.kind === 'sell' ? '▼ ' : ''}${U.esc(e.text)}</p>
           ${e.kind === 'buy' && plan ? `<p class="mt-1 text-xs text-slate-300 num">Entry ${fmt.px(plan.entryLow, M)}–${fmt.n2(plan.entryHigh, M)} · stop ${fmt.px(plan.stop, M)} · target ${fmt.px(plan.target, M)} <span class="text-slate-500">(${fmt.pct(plan.upside, 0)}, ${w.hold}-day limit)</span></p>` : e.kind === 'buy' ? `<p class="mt-1 text-xs text-slate-300">The strategy buys at the next session’s open.</p>` : ''}
           ${st ? `<p class="mt-1.5 text-[11px] text-slate-500">Backtest: ${st.n} trade${st.n === 1 ? '' : 's'} · ${fmt.prob(st.winRate)} won · ${fmt.pct(st.total, 1)} total · buy &amp; hold ${fmt.pct(e.res.bh.ret, 1)}${st.n < 3 ? ' · <span class="text-amber-300/80">too few trades to trust</span>' : ''}</p>` : ''}
         </li>`; }).join('')}</ul>
       <p class="mt-3 text-[11px] text-slate-500">Alerts appear in the bell menu, as browser notifications and on your webhook if set (Settings → Alerts). The app checks when it scans, so it needs to be open (or opened) after the nightly data update. Not investment advice.</p>`;
+  },
+
+  /* ---------- Accounts ---------- */
+  acctButton() {
+    const b = $('btnAcct'); if (!b) return;
+    b.classList.toggle('hidden', !Account.enabled());
+    if (!Account.enabled()) return;
+    const person = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
+    if (Account.user) {
+      const n = Account.label();
+      b.innerHTML = `<span class="w-6 h-6 rounded-full bg-emerald-500/25 text-emerald-200 text-xs font-bold inline-flex items-center justify-center">${U.esc(n.slice(0, 1).toUpperCase())}</span><span class="hidden sm:inline max-w-[110px] truncate">${U.esc(n)}</span>`;
+      b.setAttribute('aria-label', `Your account (${n})`);
+    } else {
+      b.innerHTML = `${person}<span class="hidden sm:inline">${Account.ready ? 'Sign in' : '…'}</span>`;
+      b.setAttribute('aria-label', 'Sign in or create an account');
+    }
+  },
+  /** Card shown in place of a personal tab when the visitor isn't signed in. */
+  lockCard(what) {
+    if (!Account.ready) return `<div class="rounded-xl border border-line bg-panel p-8 text-center text-sm text-slate-400">Checking your sign-in…</div>`;
+    if (Account.err && !Account.user) return `<div class="rounded-xl border border-rose-500/30 bg-panel p-6 text-center"><p class="font-medium text-rose-300">Sign-in isn’t available right now</p><p class="mt-1 text-sm text-slate-300">${U.esc(Account.err)}</p></div>`;
+    return `<div class="rounded-xl border border-dashed border-amber-500/40 bg-panel p-8 text-center">
+      <p class="text-3xl" aria-hidden="true">🔒</p>
+      <p class="mt-2 font-medium text-slate-100">Sign in to keep your own ${what}</p>
+      <p class="mt-1 text-sm text-slate-400 max-w-lg mx-auto">Your Portfolio, Strategy watch and ★ My stocks are private to your account and follow you to any device. Registering takes a minute — an email and a password, or your Google account.</p>
+      <div class="mt-4 flex flex-wrap justify-center gap-2">
+        <button type="button" data-action="acctOpen" data-mode="register" class="h-10 px-5 rounded-lg bg-amber-400 text-ink text-sm font-semibold hover:bg-amber-300">Create account</button>
+        <button type="button" data-action="acctOpen" data-mode="signin" class="h-10 px-5 rounded-lg border border-line text-sm text-slate-200 hover:bg-panel2">Sign in</button>
+      </div></div>`;
+  },
+  acctOpen(mode) {
+    UI._acctMode = mode || (Account.user ? 'me' : 'signin'); UI._acctMsg = null;
+    UI.lastFocus = document.activeElement;
+    $('acctModal').classList.remove('hidden'); const bd = $('acctBackdrop'); bd.classList.remove('hidden'); requestAnimationFrame(() => bd.classList.add('open'));
+    UI.acctRender();
+    setTimeout(() => $('acctModal').querySelector('input, button')?.focus(), 30);
+  },
+  acctClose() {
+    if ($('acctModal').classList.contains('hidden')) return;
+    $('acctModal').classList.add('hidden'); const bd = $('acctBackdrop'); bd.classList.remove('open'); setTimeout(() => bd.classList.add('hidden'), 200);
+    UI.lastFocus?.focus?.();
+  },
+  acctRender() {
+    const el = $('acctBody'); if (!el || $('acctModal').classList.contains('hidden')) return;
+    let mode = UI._acctMode;
+    if (Account.user && mode !== 'me') mode = UI._acctMode = 'me';
+    if (!Account.user && mode === 'me') mode = UI._acctMode = 'signin';
+    const msg = UI._acctMsg, inp = (id, type, label, extra = '') => `<label class="block text-xs text-slate-400">${label}<input id="${id}" type="${type}" ${extra} class="mt-1 w-full h-10 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 placeholder:text-slate-500"></label>`;
+    const close = `<button type="button" data-action="acctClose" class="ml-auto h-8 w-8 inline-flex items-center justify-center rounded-lg text-slate-400 hover:bg-panel2" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>`;
+    const head = t => `<div class="flex items-center gap-2"><h2 id="acctTitle" class="text-lg font-semibold">${t}</h2>${close}</div>`;
+    const note = msg ? `<p class="mt-3 text-sm ${msg.ok ? 'text-emerald-300' : 'text-rose-300'}" role="alert">${U.esc(msg.text)}</p>` : '';
+    const g = `<button type="button" data-action="acctGoogle" class="mt-4 w-full h-10 rounded-lg bg-white text-slate-800 text-sm font-semibold inline-flex items-center justify-center gap-2 hover:bg-slate-100"><svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-7.9l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>Continue with Google</button>
+      <div class="my-4 flex items-center gap-3 text-[11px] text-slate-500"><span class="flex-1 h-px bg-line"></span>or with email<span class="flex-1 h-px bg-line"></span></div>`;
+    const btn = (label, cls = 'bg-emerald-500 text-ink hover:bg-emerald-400') => `<button type="submit" class="mt-4 w-full h-10 rounded-lg ${cls} text-sm font-semibold disabled:opacity-50">${label}</button>`;
+    const link = (mode, t) => `<button type="button" data-action="acctMode" data-mode="${mode}" class="text-emerald-300 hover:underline">${t}</button>`;
+    const privacy = `<p class="mt-4 text-[11px] text-slate-500 leading-relaxed">What’s stored: your name (if you give one), your email address, when you joined and last signed in, and your Portfolio, Strategy watch and My stocks lists. Only you can read your lists. The app’s owner can see your name, email and those two dates. Nothing is shared or sold.</p>`;
+    if (mode === 'signin') el.innerHTML = `${head('Sign in')}${g}
+      <form id="acctForm" data-mode="signin" class="space-y-3" novalidate>${inp('acEmail', 'email', 'Email', 'autocomplete="email" required')}${inp('acPw', 'password', 'Password', 'autocomplete="current-password" required')}${btn('Sign in')}</form>${note}
+      <div class="mt-4 flex flex-wrap justify-between gap-2 text-sm">${link('reset', 'Forgot password?')}<span class="text-slate-400">New here? ${link('register', 'Create an account')}</span></div>`;
+    else if (mode === 'register') el.innerHTML = `${head('Create your account')}
+      <p class="mt-1 text-sm text-slate-400">One time only. Keeps your Portfolio, Strategy watch and My stocks private and in sync across your devices.</p>${g}
+      <form id="acctForm" data-mode="register" class="space-y-3" novalidate>${inp('acName', 'text', 'Name <span class="text-slate-500">(optional — how the app greets you)</span>', 'maxlength="40" autocomplete="given-name"')}${inp('acEmail', 'email', 'Email', 'autocomplete="email" required')}${inp('acPw', 'password', 'Password <span class="text-slate-500">(at least 8 characters)</span>', 'autocomplete="new-password" minlength="8" required')}
+        <label class="flex items-start gap-2 text-xs text-slate-300"><input id="acOk" type="checkbox" class="mt-0.5 accent-emerald-400"> <span>I understand what’s stored (below) and that this app is not investment advice.</span></label>${btn('Create account', 'bg-amber-400 text-ink hover:bg-amber-300')}</form>${note}
+      <p class="mt-4 text-sm text-slate-400">Already registered? ${link('signin', 'Sign in')}</p>${privacy}`;
+    else if (mode === 'reset') el.innerHTML = `${head('Reset your password')}
+      <p class="mt-1 text-sm text-slate-400">Type your email and we’ll send you a link to choose a new password. Signed up with Google? Use “Continue with Google” instead.</p>
+      <form id="acctForm" data-mode="reset" class="mt-4 space-y-3" novalidate>${inp('acEmail', 'email', 'Email', 'autocomplete="email" required')}${btn('Send reset link')}</form>${note}
+      <p class="mt-4 text-sm">${link('signin', '← Back to sign in')}</p>`;
+    else {
+      const u = Account.user, google = (u.providerData || []).some(p => p?.providerId === 'google.com');
+      el.innerHTML = `${head('Your account')}
+        <div class="mt-3 flex items-center gap-3"><span class="w-11 h-11 rounded-full bg-emerald-500/25 text-emerald-200 text-lg font-bold inline-flex items-center justify-center">${U.esc(Account.label().slice(0, 1).toUpperCase())}</span>
+          <div class="min-w-0"><p class="font-medium truncate">${U.esc(u.displayName || 'No name given')}</p><p class="text-sm text-slate-400 truncate">${U.esc(u.email || '')}${google ? ' · Google' : ''}</p></div></div>
+        ${!google && u.emailVerified === false ? '<p class="mt-3 text-xs text-amber-200/90">We sent a confirmation link to your email. It isn’t required, but it helps if you ever need to reset your password.</p>' : ''}
+        ${Admin.is ? `<p class="mt-3 text-sm ${Account.isAdminUser() ? 'text-emerald-300' : 'text-amber-300'}">${Account.isAdminUser() ? '✓ Signed in as the admin — the Visitors tab lists registered users.' : 'This isn’t the admin email set in Settings → User accounts, so the user list stays hidden.'}</p>`
+          : `<p class="mt-3 text-sm text-slate-300">${Account.err ? `<span class="text-rose-300">${U.esc(Account.err)}</span>` : Account.loaded ? '✓ Your Portfolio, Strategy watch and My stocks are saved to your account and sync across your devices.' : 'Loading your lists…'}</p>`}
+        ${note}
+        <div class="mt-5 flex flex-wrap gap-2"><button type="button" data-action="acctSignOut" class="h-10 px-4 rounded-lg border border-line text-sm hover:bg-panel2">Sign out</button>
+          <button type="button" data-action="acctDelete" class="h-10 px-4 rounded-lg text-sm text-rose-300 hover:bg-rose-500/10">Delete my account</button></div>
+        ${Admin.is ? '' : privacy}`;
+    }
   },
 
   /* ---------- Portfolio tab ---------- */
@@ -3092,8 +3357,11 @@ const UI = {
   portfolio() {
     const el = $('portfolioView'); if (!el) return;
     const n = Portfolio.actionCount(), tab = document.querySelector('[data-tab="portfolio"]');
-    tab.innerHTML = `Portfolio${n ? ` <span class="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-[10px] font-bold text-white">${n}</span>` : ''}`;
+    const lk = Account.locked(); $('pFormCard').classList.toggle('hidden', lk);
+    $('pSaved').textContent = Account.syncs() ? 'Saved to your private account and synced across your devices.' : 'Saved on this device only.';
+    tab.innerHTML = `Portfolio${lk ? ' <span aria-hidden="true" class="text-[11px]">🔒</span>' : ''}${n ? ` <span class="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-[10px] font-bold text-white">${n}</span>` : ''}`;
     if (S().tab !== 'portfolio') return;
+    if (lk) { el.innerHTML = UI.lockCard('portfolio'); return; }
     const list = Portfolio.list(), V = Portfolio.VERDICT;
     if (!list.length) {
       el.innerHTML = `<div class="rounded-xl border border-dashed border-line bg-panel p-10 text-center"><p class="text-3xl" aria-hidden="true">💼</p><p class="mt-2 font-medium text-slate-200">No holdings yet</p>
@@ -3164,14 +3432,15 @@ const UI = {
                 <ul class="mt-1 space-y-1">${ss.map(s => `<li class="flex gap-2 text-xs text-slate-300"><span class="${icon[s.side][1]} w-3 shrink-0 text-center" aria-hidden="true">${icon[s.side][0]}</span><span>${U.esc(s.text)}</span></li>`).join('')}</ul></div>` : ''; }).join('')}</div>
             </details>` : `<p class="mt-2 text-sm text-slate-400">${U.esc(e.text)}</p>`}
         </li>`; }).join('')}</ul>
-      <p class="mt-3 text-[11px] text-slate-500 leading-relaxed"><b class="text-slate-400">How the verdict is decided.</b> <span class="text-rose-300">SELL</span> when strong sell signals — the stock’s best strategy saying sell, the trailing stop being hit, a death cross, a close below the 50-day average, or a loss past 15% — outweigh the buy signals. <span class="text-emerald-300">BUY MORE</span> when strong buy signals fire and there are no strong sell signals. <span class="text-amber-300">REVIEW</span> when there is a weaker sell signal or several cautions (weak fundamentals, downtrend, overbought). Otherwise <span class="text-sky-300">HOLD</span>. The trailing stop is the highest close since you bought (or of the last month) minus 3× the average daily range. Your holdings are saved on this device only. Not investment advice.</p>`;
+      <p class="mt-3 text-[11px] text-slate-500 leading-relaxed"><b class="text-slate-400">How the verdict is decided.</b> <span class="text-rose-300">SELL</span> when strong sell signals — the stock’s best strategy saying sell, the trailing stop being hit, a death cross, a close below the 50-day average, or a loss past 15% — outweigh the buy signals. <span class="text-emerald-300">BUY MORE</span> when strong buy signals fire and there are no strong sell signals. <span class="text-amber-300">REVIEW</span> when there is a weaker sell signal or several cautions (weak fundamentals, downtrend, overbought). Otherwise <span class="text-sky-300">HOLD</span>. The trailing stop is the highest close since you bought (or of the last month) minus 3× the average daily range. Your holdings are saved ${Account.syncs() ? 'to your private account' : 'on this device only'}. Not investment advice.</p>`;
   },
 
   /* ---------- My stocks panel ---------- */
   myStocks() {
     if (!$('myDet')) return;
     const st = S().settings, codes = view(), total = MyStocks.count(), sync = S().mySync;
-    $('myCount').textContent = total ? `${total} stock${total === 1 ? '' : 's'}` : 'none yet';
+    const nHot = MARKET_CODES.reduce((a, c) => a + MyStocks.list(c).filter(sym => MyStocks.hot(c, sym).length).length, 0);
+    $('myCount').innerHTML = (total ? `${total} stock${total === 1 ? '' : 's'}` : 'none yet') + (nHot ? ` <span class="hot hot-buy ml-1"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>${nHot} match${nHot === 1 ? '' : 'es'} today</span>` : '');
     const sel = $('myMkt'), key = codes.join();
     if (sel.dataset.k !== key) {
       sel.innerHTML = codes.map(c => `<option value="${c}">${MARKETS[c].flag} ${MARKETS[c].name}</option>`).join('');
@@ -3179,6 +3448,12 @@ const UI = {
     }
     $('myInput').placeholder = `e.g. ${{ US: 'AAPL', CA: 'SHOP', IN: 'TCS' }[sel.value]}`;
     if (!$('myDet').dataset.init) { $('myDet').open = total > 0; $('myDet').dataset.init = '1'; }
+    const lk = Account.locked(); $('myForm').classList.toggle('hidden', lk);
+    if (lk) {
+      $('myCount').textContent = '🔒 sign in to use';
+      $('mySyncLine').innerHTML = `<div class="text-sm text-slate-300">Sign in to star the stocks you follow — your list is private and follows you to any device. <button type="button" data-action="acctOpen" data-mode="register" class="ml-1 text-amber-300 hover:underline">Create account</button> · <button type="button" data-action="acctOpen" data-mode="signin" class="text-emerald-300 hover:underline">Sign in</button></div>`;
+      $('myList').innerHTML = ''; return;
+    }
     // sync line
     const anyLive = MARKET_CODES.some(c => st.sources[c] === 'live');
     const tone = { ok: 'text-emerald-300', warn: 'text-amber-300', bad: 'text-rose-300', mute: 'text-slate-400' };
@@ -3193,7 +3468,7 @@ const UI = {
       </ol>
       <p class="mt-1.5 text-slate-500">Contents lets the app save your list to the data repo. Actions lets it start a data update straight away instead of waiting for tonight. Both apply only to the scanner-data repo.</p></details>`;
     let html;
-    if (!Admin.is) html = line('mute', total ? 'Your starred stocks are saved on this device.' : 'Star stocks you follow to keep an eye on them. They’re saved on this device.');
+    if (!Admin.is) html = line('mute', Account.syncs() ? (total ? 'Your starred stocks are saved to your account.' : 'Star stocks you follow to keep an eye on them. They’re saved to your account.') : total ? 'Your starred stocks are saved on this device.' : 'Star stocks you follow to keep an eye on them. They’re saved on this device.');
     else if (!anyLive) html = line('mute', 'Saved on this device. Your stocks are scanned once a market uses the live feed (Settings → Live market data).');
     else if (!MyStocks.canSync()) html = line('warn', 'Saved on this device only. To have the nightly data job download your stocks, use the “Private GitHub repo” feed with a token (Settings → Live market data).');
     else if (sync.state === 'saving') html = line('mute', '<span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse mr-1.5"></span>' + U.esc(sync.msg));
@@ -3209,10 +3484,10 @@ const UI = {
     const txt = { hit: 'text-slate-100', scanned: 'text-slate-300', pending: 'text-amber-200/90', bad: 'text-rose-300', demo: 'text-slate-400', idle: 'text-slate-500' };
     $('myList').innerHTML = order.map(c => `<div class="mt-2"><p class="text-[11px] uppercase tracking-wide text-slate-500">${flagTag(MARKETS[c])} ${MARKETS[c].name}</p>
       <ul class="mt-1 divide-y divide-line/60 rounded-lg border border-line bg-ink">${MyStocks.list(c).map(sym => {
-        const stt = MyStocks.status(c, sym);
-        return `<li class="flex items-start gap-2.5 px-2.5 py-2">
+        const stt = MyStocks.status(c, sym), hot = MyStocks.hot(c, sym), hl = hot.length ? StockBT.hotLabel(hot) : null;
+        return `<li class="flex items-start gap-2.5 px-2.5 py-2 ${hot.length ? 'bg-yellow-400/[0.06]' : ''}">
           <span class="mt-1.5 w-2 h-2 rounded-full shrink-0 ${dot[stt.kind]}" aria-hidden="true"></span>
-          <div class="flex-1 min-w-0"><p class="font-semibold text-sm">${U.esc(sym)}</p><p class="text-xs ${txt[stt.kind]} leading-snug">${U.esc(stt.text)}</p></div>
+          <div class="flex-1 min-w-0"><p class="font-semibold text-sm">${U.esc(sym)} ${hl ? hl.html : ''}</p>${hot.length ? `<p class="text-xs text-yellow-200 leading-snug">⚡ ${U.esc(StockBT.hotText(hot, MARKETS[c]))}</p>` : ''}<p class="text-xs ${txt[stt.kind]} leading-snug">${U.esc(stt.text)}</p></div>
           ${stt.row ? `<button type="button" data-open="${stt.row.key}" class="text-xs text-emerald-300 hover:underline shrink-0">View</button>` : ''}
           ${stt.kind === 'hit' || stt.kind === 'scanned' ? `<button type="button" data-action="btStock" data-m="${c}" data-sym="${U.esc(sym)}" class="text-xs text-slate-300 hover:underline shrink-0">Backtest</button>` : ''}
           <button type="button" data-action="myRemove" data-m="${c}" data-sym="${U.esc(sym)}" class="shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-rose-300 hover:bg-rose-500/10" aria-label="Remove ${U.esc(sym)} from my stocks"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
@@ -3522,6 +3797,24 @@ function wire() {
           catch (ex) { UI.toast(ex.message, 'warn'); }
           break;
         }
+        case 'acctOpen': UI.acctOpen(act.dataset.mode); break;
+        case 'acctClose': UI.acctClose(); break;
+        case 'acctMode': UI._acctMode = act.dataset.mode; UI._acctMsg = null; UI.acctRender(); setTimeout(() => $('acctBody').querySelector('input')?.focus(), 20); break;
+        case 'acctGoogle': {
+          if (location.protocol === 'file:') { UI._acctMsg = { text: 'Google sign-in doesn’t work when the page is opened as a file. Open it from its github.io address, or use email and password.' }; UI.acctRender(); break; }
+          act.disabled = true;
+          try { await Account.google(); UI._acctMsg = null; UI.acctClose(); UI.toast(`Signed in — welcome${Account.user?.displayName ? ', ' + Account.user.displayName.split(' ')[0] : ''}!`, 'ok'); }
+          catch (ex) { UI._acctMsg = { text: Account.msg(ex) }; UI.acctRender(); }
+          break;
+        }
+        case 'acctSignOut': await Account.signOut(); UI.acctClose(); UI.toast(Account.required() ? 'Signed out. Your lists are safe in your account and were removed from this device.' : 'Signed out.', 'ok'); break;
+        case 'acctDelete': {
+          if (!confirm('Delete your account? Your Portfolio, Strategy watch and My stocks lists are erased for good. This can’t be undone.')) break;
+          try { await Account.deleteAccount(); UI.acctClose(); UI.toast('Your account and all its data were deleted.', 'ok'); }
+          catch (ex) { UI._acctMsg = { text: Account.msg(ex) }; UI.acctRender(); }
+          break;
+        }
+
         case 'pfRemove': { const h = Portfolio.list().find(x => x.id === act.dataset.id); if (h && confirm(`Remove ${h.sym} from your portfolio?`)) Portfolio.remove(h.id); break; }
         case 'pfEdit': {
           const h = Portfolio.list().find(x => x.id === act.dataset.id); if (!h) break;
@@ -3569,10 +3862,10 @@ function wire() {
   });
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { UI.closeDrawer(); UI.closeAlerts(); }
+    if (e.key === 'Escape') { UI.closeDrawer(); UI.closeAlerts(); UI.acctClose(); }
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('tr[data-open]')) { e.preventDefault(); UI.openDetail(e.target.dataset.open); }
     if (e.key === 'Tab') {
-      const dlg = [$('drawer'), $('alertsPanel')].find(d => !d.classList.contains('hidden'));
+      const dlg = [$('acctModal'), $('drawer'), $('alertsPanel')].find(d => !d.classList.contains('hidden'));
       if (!dlg) return;
       const fs = [...dlg.querySelectorAll('button, [href], input, select, textarea, summary, [tabindex]:not([tabindex="-1"])')].filter(x => !x.disabled && x.offsetParent !== null);
       if (!fs.length) return;
@@ -3625,6 +3918,27 @@ function wire() {
     if (need.length) await App.run({ codes: need, reason: 'Loading markets for Strategy watch' });
     const n = Watch.evaluate(MARKET_CODES, true);
     UI.toast(n ? `${n} new strategy signal(s) — see the bell menu.` : 'Checked — no new signals.', n ? 'ok' : 'info');
+  });
+
+  // Accounts
+  $('acctBackdrop').addEventListener('click', () => UI.acctClose());
+  $('acctBody').addEventListener('submit', async e => {
+    if (e.target.id !== 'acctForm') return;
+    e.preventDefault();
+    const f = e.target, mode = f.dataset.mode, email = ($('acEmail')?.value || '').trim(), pw = $('acPw')?.value || '', btn = f.querySelector('[type=submit]');
+    const say = (text, ok = false) => { UI._acctMsg = { text, ok }; UI.acctRender(); if ($('acEmail')) $('acEmail').value = email; };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return say('Type a valid email address.');
+    if (mode !== 'reset' && !pw) return say('Type your password.');
+    if (mode === 'register') {
+      if (pw.length < 8) return say('Choose a password of at least 8 characters.');
+      if (!$('acOk').checked) return say('Please tick the box to confirm you’ve read what’s stored.');
+    }
+    btn.disabled = true; btn.textContent = 'Please wait…';
+    try {
+      if (mode === 'signin') { await Account.signIn(email, pw); UI.acctClose(); UI.toast('Signed in.', 'ok'); }
+      else if (mode === 'register') { const name = ($('acName').value || '').trim().slice(0, 40); await Account.register(name, email, pw); UI.acctClose(); UI.toast(`Welcome${name ? ', ' + name : ''}! Your account is ready.`, 'ok'); }
+      else { await Account.reset(email); say(`If an account exists for ${email}, a reset link is on its way. Check your inbox (and spam folder).`, true); }
+    } catch (ex) { say(Account.msg(ex)); }
   });
 
   // Portfolio
@@ -3717,8 +4031,10 @@ Store.on(['alerts'], () => { if (!$('alertsPanel').classList.contains('hidden'))
 Store.on(['bt', 'btBusy', 'busy'], () => { if (S().tab === 'backtest') UI.btForm(); });
 Store.on(['sbt', 'sbtBusy'], () => { if (S().tab === 'backtest') UI.sbForm(); });
 Store.on(['bestTick', 'bestProg'], () => { if (S().tab === 'watchlist') UI.results(); });
+Store.on(['bestTick'], () => UI.myStocks());
 Store.on(['watchTick', 'settings'], () => UI.watch());
 Store.on(['pfTick', 'settings'], () => UI.portfolio());
+Store.on(['acct'], () => { UI.acctButton(); UI.acctRender(); UI.portfolio(); UI.watch(); UI.myStocks();  });
 Store.on(['busy'], () => { if (S().tab === 'portfolio') $('pCheck').disabled = S().busy; });
 Store.on(['busy'], () => { if (S().tab === 'watch') $('wCheck').disabled = S().busy; });
 Store.on(['results', 'settings', 'mkts', 'mySync'], () => UI.myStocks());
@@ -3729,6 +4045,8 @@ async function boot() {
   Visit.track('market', S().settings.market === 'ALL' ? 'All' : MARKETS[S().settings.market].name);
   wire();
   UI.whoLine();
+  UI.acctButton();
+  Account.init();
   Visit.start();
   if (!S().disclaimerSeen) $('disclaimer').classList.remove('hidden');
   $('fTop').value = String(S().filters.top); $('fSort').value = S().sort;

@@ -1,6 +1,6 @@
 {
  "v": 2,
- "published": "2026-11-01T04:00:13.131Z",
+ "published": "2026-11-01T06:18:37.190Z",
  "settings": {
   "weights": {
    "tech": 40,
@@ -40,5 +40,15 @@
  "feed": {
   "baseUrl": "https://raw.githubusercontent.com/amodkk1/scanner-data/data"
  },
- "visitorLog": null
+ "visitorLog": null,
+ "accounts": {
+  "firebase": {
+   "apiKey": "AIzaSyBIaaviCbClEbFfUHFlYc_Z8-uRcnuuqN8",
+   "authDomain": "stockscanner-e70d6.firebaseapp.com",
+   "projectId": "stockscanner-e70d6",
+   "storageBucket": "stockscanner-e70d6.firebasestorage.app",
+   "messagingSenderId": "117008557717",
+   "appId": "1:117008557717:web:9e0b54383b6e9f8572dd9c"
+  }
+ }
 }

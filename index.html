@@ -92,10 +92,11 @@
   </div>
   <nav class="mx-auto max-w-7xl px-2 sm:px-4 flex gap-1 overflow-x-auto scroll-thin" role="tablist" aria-label="Sections">
     <button role="tab" data-tab="watchlist" class="tab">Watchlist</button>
+    <button role="tab" data-tab="watch" class="tab">Strategy watch</button>
     <button role="tab" data-tab="backtest" class="tab">Backtest</button>
     <button role="tab" data-tab="paper" class="tab">Paper log</button>
     <button role="tab" data-tab="pipeline" class="tab">Pipeline</button>
-    <button role="tab" data-tab="settings" class="tab">Settings</button>
+
   </nav>
 </header>
 
@@ -243,15 +244,38 @@
     <div id="btResults" class="mt-4" aria-live="polite"></div>
   </section>
 
+  <section id="tab-watch" role="tabpanel" aria-label="Strategy watch" hidden>
+    <div class="rounded-xl border border-violet-500/30 bg-panel p-4">
+      <h2 class="text-base font-semibold"><span class="text-violet-300" aria-hidden="true">◆</span> Strategy watch</h2>
+      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Pair a stock with a strategy — usually the one that worked best for it in the backtest. After every scan the app checks whether that strategy gives a buy or sell signal today and alerts you. “Auto” always follows whichever strategy currently has the best backtest.</p>
+      <form id="wForm" class="mt-4 grid grid-cols-2 md:grid-cols-6 gap-3 items-end" autocomplete="off" novalidate>
+        <label class="text-xs text-slate-400">Market
+          <select id="wMarket" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select></label>
+        <label class="text-xs text-slate-400">Stock
+          <input id="wStock" list="wList" type="text" spellcheck="false" autocapitalize="characters" placeholder="Ticker" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 placeholder:text-slate-500">
+          <datalist id="wList"></datalist></label>
+        <label class="col-span-2 text-xs text-slate-400">Strategy
+          <select id="wKey" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select></label>
+        <button id="wAdd" type="submit" class="h-9 px-4 rounded-lg bg-violet-500 text-white text-sm font-semibold hover:bg-violet-400 disabled:opacity-50">Watch</button>
+        <button id="wCheck" type="button" class="h-9 px-3 rounded-lg border border-line text-sm text-slate-300 hover:bg-panel2 disabled:opacity-50">Check now</button>
+      </form>
+      <p id="wErr" class="mt-2 text-xs text-rose-300 empty:hidden" role="alert"></p>
+    </div>
+    <div id="watchView" class="mt-4" aria-live="polite"></div>
+  </section>
+
+
+
   <section id="tab-paper" role="tabpanel" aria-label="Paper trading log" hidden><div id="paperView"></div></section>
   <section id="tab-pipeline" role="tabpanel" aria-label="Pipeline" hidden><div id="pipelineView"></div></section>
-  <section id="tab-settings" role="tabpanel" aria-label="Settings" hidden><div id="settingsView"></div></section>
+
 </main>
 
 <footer class="border-t border-line">
   <div class="mx-auto max-w-7xl px-4 py-4 text-[11px] text-slate-500 leading-relaxed">
     Opportunity Scanner ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
+    <p id="whoLine" class="mt-2"></p>
   </div>
 </footer>
 
@@ -271,12 +295,37 @@
     </button>
   </div>
   <div id="alertsList" class="flex-1 overflow-y-auto scroll-thin p-3 space-y-2"></div>
+  <details class="border-t border-line px-4 py-3 text-sm">
+    <summary class="cursor-pointer text-slate-300">Alert options</summary>
+    <div class="mt-2 space-y-1.5 text-slate-300">
+      <label class="flex items-center gap-2"><input type="checkbox" data-alertopt="newA" class="accent-emerald-400"> New A-tier setup appears</label>
+      <label class="flex items-center gap-2"><input type="checkbox" data-alertopt="entry" class="accent-emerald-400"> Tracked pick hits its entry zone</label>
+      <label class="flex items-center gap-2"><input type="checkbox" data-alertopt="watch" class="accent-emerald-400"> Strategy watch signal</label>
+      <label class="flex items-center gap-2"><input type="checkbox" data-alertopt="browser" class="accent-emerald-400"> Also show browser notifications</label>
+    </div>
+  </details>
 </aside>
+
+<div id="nameModal" class="hidden fixed inset-0 z-[70] bg-black/70 items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="nameTitle">
+  <form id="nameForm" class="w-full max-w-md rounded-2xl border border-line bg-panel p-5 shadow-2xl" novalidate>
+    <h2 id="nameTitle" class="text-lg font-semibold">Welcome to Opportunity Scanner</h2>
+    <p class="mt-1 text-sm text-slate-300">What should we call you?</p>
+    <input id="nameInput" type="text" maxlength="40" autocomplete="name" placeholder="Your first name" class="mt-3 w-full h-10 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 placeholder:text-slate-500">
+    <p id="nameErr" class="mt-1 text-xs text-rose-300 empty:hidden" role="alert"></p>
+    <p class="mt-3 text-xs text-slate-400 leading-relaxed">The app’s owner keeps a simple visit log: the name you enter, when you visit, how long you stay, which parts you use, and your device type, browser and language. Nothing else, and it isn’t shared.</p>
+    <div class="mt-4 flex gap-2 justify-end">
+      <button type="button" id="nameSkip" class="h-10 px-4 rounded-lg border border-line text-sm text-slate-300 hover:bg-panel2">Skip</button>
+      <button type="submit" class="h-10 px-5 rounded-lg bg-emerald-500 text-ink text-sm font-semibold hover:bg-emerald-400">Continue</button>
+    </div>
+  </form>
+</div>
 
 <div id="toasts" class="fixed bottom-4 inset-x-4 sm:left-auto sm:right-4 sm:w-96 z-[60] space-y-2 pointer-events-none" aria-live="polite" aria-atomic="false"></div>
 
 <script>
 (() => {
+/* Which copy this is: 'public' (index.html — no admin features) or 'admin' (admin.html — Settings + Visitors). Set by build.py. */
+const BUILD = 'public';
 'use strict';
 
 /* =====================================================================
@@ -472,7 +521,9 @@ const DEFAULTS = {
   earningsMode: 'boost', regimeFilter: 'downgrade', catalystWindow: 10,
   autoTrackA: true, autoRun: true,
   myStocks: { US: [], CA: [], IN: [] }, myStocksDirty: false,
-  alerts: { newA: true, entry: true, browser: false, webhook: '' },
+  stratWatch: [], stratAlerted: {},
+  visitorLog: null, publicFeed: '', site: null,
+  alerts: { newA: true, entry: true, watch: true, browser: false, webhook: '' },
   bt: { window: 250, hold: 10, perScan: 10, tiers: ['A', 'B'], market: 'US' }
 };
 const PAPER_STATUS = {
@@ -488,8 +539,14 @@ const PAPER_STATUS = {
  * 5. PERSISTENCE + STORE
  * ===================================================================== */
 const Persist = {
-  key: 'oppscanner.v2',
-  load() { try { return JSON.parse(localStorage.getItem(this.key)) || {}; } catch { return {}; } },
+  key: BUILD === 'admin' ? 'oppscanner.admin.v1' : 'oppscanner.v2',
+  load() {
+    try {
+      const v = JSON.parse(localStorage.getItem(this.key));
+      if (v) return v;
+      return BUILD === 'admin' ? JSON.parse(localStorage.getItem('oppscanner.v2')) || {} : {};   // admin: start from any earlier settings on this browser
+    } catch { return {}; }
+  },
   save(obj) { try { localStorage.setItem(this.key, JSON.stringify(obj)); return true; } catch (e) { console.warn('Persist failed', e); return false; } }
 };
 function deepMerge(base, over) {
@@ -513,6 +570,7 @@ const Store = (() => {
     filters: { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: 25, mine: false },
     mySync: { state: 'idle', msg: '' },
     sbt: null, sbtBusy: false,
+    bestTick: 0, bestProg: null, watchTick: 0,
     sort: 'prob',
     busy: false,
     pipes: {},           // code -> { stages, runs, ms }
@@ -810,7 +868,9 @@ const Feed = {
     try { r = await fetch(this.url(cfg, file) + (cfg.mode === 'github' ? '' : `${cfg.baseUrl.includes('?') ? '&' : '?'}t=${Date.now()}`), { headers, cache: 'no-store' }); }
     catch (e) { throw new Error(`Network error reaching the feed (${e.message}). If using a custom URL, it must allow CORS.`); }
     if (!r.ok) {
-      const why = { 401: 'the GitHub token is invalid or expired', 403: 'access denied or rate-limited — check the token has read access to this repo', 404: `${file} not found — check owner, repo and branch, that the token can read this private repo, and that the workflow has run at least once` }[r.status] || `HTTP ${r.status}`;
+      const why = cfg.mode === 'url'
+        ? ({ 404: `${file} not found at the published data address — is the data repo public, and has the data job run?` }[r.status] || `HTTP ${r.status}`)
+        : ({ 401: 'the GitHub token is invalid or expired', 403: 'access denied or rate-limited — check the token has read access to this repo', 404: `${file} not found — check owner, repo and branch, that the token can read this private repo, and that the workflow has run at least once` }[r.status] || `HTTP ${r.status}`);
       throw new Error(`Feed: ${why}.`);
     }
     try { return await r.json(); } catch { throw new Error(`Feed: ${file} is not valid JSON.`); }
@@ -827,7 +887,7 @@ const Feed = {
       throw e;
     }
     const mm = meta.markets?.[M.code];
-    if (!mm?.asOf) throw new Error(`The feed has no ${M.name} data yet. Run the GitHub workflow with markets = ${M.code}.`);
+    if (!mm?.asOf) throw new Error(meta.errors?.[M.code] ? `No ${M.name} data: the last data job failed — ${meta.errors[M.code].message}` : `The feed has no ${M.name} data yet. Run the GitHub workflow with markets = ${M.code}.`);
     onProgress?.(.2);
     let json;
     const stamp = this.stamp(mm);
@@ -906,6 +966,10 @@ const MyStocks = {
   },
   async add(m, raw) {
     const n = this.normalize(m, raw); if (n.error) throw new Error(n.error);
+    if (!Admin.is) {
+      const ds = S().mkts[m]?.ds;
+      if (ds && !ds.tickers.some(t => t.sym === n.sym)) throw new Error(`${n.sym} isn’t in the ${MARKETS[m].name} data. You can star stocks the app already scans; only the app’s owner can add new ones.`);
+    }
     const list = this.list(m);
     if (list.includes(n.sym)) throw new Error(`${n.sym} is already in your ${MARKETS[m].name} list.`);
     if (list.length >= 200) throw new Error('You can keep up to 200 stocks per market.');
@@ -1004,13 +1068,26 @@ const StockBT = {
       for (const p of cd.pats) take('pat:' + p.key, i, Engine.plan(x, i, p));
       const sc = Engine.score(cd, st, g); if (sc.tier === 'A' || sc.tier === 'B') take('scanner', i, cd.plan);
     }
+    // Today's signals (the latest session): what each strategy says to do next
+    const today = {};
+    const cdT = Engine.candidate(ds, ti, x, last);
+    if (cdT) {
+      for (const p of cdT.pats) today['pat:' + p.key] = { buy: true, plan: Engine.plan(x, last, p), event: p.event, inTrade: (nextFree['pat:' + p.key] ?? 0) > last };
+      const scT = Engine.score(cdT, st, g);
+      if (scT.tier === 'A' || scT.tier === 'B') today.scanner = { buy: true, plan: cdT.plan, event: cdT.pats[0].event, inTrade: (nextFree.scanner ?? 0) > last };
+    }
     // Classic rules: act at the next session's open
     const hi = (i, n) => { let m = -Infinity; for (let j = i - n; j < i; j++) m = Math.max(m, x.h[j]); return m; };
     const lo = (i, n) => { let m = Infinity; for (let j = i - n; j < i; j++) m = Math.min(m, x.l[j]); return m; };
     const rule = (key, enter, exit, maxDays = 0) => {
       const s = strats[key]; let pos = null;
       for (let i = sigFrom; i <= last; i++) {
-        if (!pos) { if (i < last && enter(i)) { s.signals++; pos = { sig: i, entry: i + 1, px: x.o[i + 1] }; } continue; }
+        if (!pos) {
+          if (i < last && enter(i)) { s.signals++; pos = { sig: i, entry: i + 1, px: x.o[i + 1] }; }
+          else if (i === last && enter(i)) today[key] = { buy: true, event: s.name, nextOpen: true };
+          continue;
+        }
+        if (i === last && pos.entry <= last && exit(i)) today[key] = { ...(today[key] || {}), sellNext: true };
         if (i < pos.entry) continue;
         const sell = exit(i), timeUp = maxDays && i - pos.entry + 1 >= maxDays;
         if ((sell || timeUp) && i < last) { s.trades.push({ ...pos, exit: i + 1, exitPx: x.o[i + 1], ret: x.o[i + 1] / pos.px - 1, how: sell ? 'signal' : 'time', open: false }); pos = null; }
@@ -1028,7 +1105,28 @@ const StockBT = {
     const band = r => r.n >= 3 ? 0 : r.n >= 1 ? 1 : 2;
     rows.sort((a, b) => band(a) - band(b) || b.total - a.total || b.avg - a.avg);
     const best = rows[0]?.n >= 1 ? rows[0] : null;
-    return { m: ds.m, M, ds, ti, sym: tk.sym, name: tk.name, from, sigFrom, last, hold: cfg.hold, window: cfg.window, rows, best, confident: !!best && best.n >= 3, bh };
+    for (const r of rows) { const t = r.trades.find(t => !t.open && t.exit === last); if (t) today[r.key] = { ...(today[r.key] || {}), sold: t }; }
+    const confident = !!best && best.n >= 3;
+    // Best *signal* (the scanner-shortlist meta-strategy excluded): used for the ◆ match flag on the Watchlist
+    const evRows = rows.filter(r => r.key !== 'scanner'), bestSig = evRows[0]?.n >= 1 ? evRows[0] : null;
+    // "Works" = at least 3 trades, profitable overall and won at least half the time
+    const sigReliable = !!bestSig && bestSig.n >= 3, sigGood = sigReliable && bestSig.total > 0 && bestSig.winRate >= .5;
+    return { m: ds.m, M, ds, ti, sym: tk.sym, name: tk.name, from, sigFrom, last, hold: cfg.hold, window: cfg.window, rows, best, confident, bh, today,
+      bestSig, sigReliable, sigGood, match: sigGood && !!today[bestSig.key]?.buy };
+  },
+  /** Cached run (one per stock, data version and scoring settings). */
+  _cache: new Map(),
+  sig() { const s = S().settings; return JSON.stringify([s.weights, s.tiers, s.regimeFilter, s.earningsMode, s.catalystWindow]); },
+  key(ds, ti, hold) { return `${ds.key}|${ds.stamp || ''}|${ds.cursor}|${ti}|${hold}|${this.sig()}`; },
+  peek(ds, ti, hold = S().settings.bt.hold) { return this._cache.get(this.key(ds, ti, hold)); },
+  cached(ds, ti, hold = S().settings.bt.hold) {
+    const k = this.key(ds, ti, hold);
+    if (!this._cache.has(k)) {
+      if (this._cache.size > 4000) this._cache.clear();
+      let res = null; try { res = this.run(ds, ti, { hold, window: 'all' }); } catch { res = null; }
+      this._cache.set(k, res);
+    }
+    return this._cache.get(k);
   },
   stats(trades, span) {
     const closed = trades.filter(t => !t.open), n = closed.length, rets = closed.map(t => t.ret);
@@ -1042,6 +1140,162 @@ const StockBT = {
       best: n ? Math.max(...rets) : NaN, worst: n ? Math.min(...rets) : NaN, openTrade: trades.find(t => t.open) || null
     };
   }
+};
+
+/** Strategy watch: stocks paired with a strategy; alerts when that strategy signals. */
+const Watch = {
+  state: {},   // id -> evaluation for display
+  list: () => S().settings.stratWatch,
+  label(key, res) {
+    if (key === 'auto') return res?.best ? `Auto → ${res.best.name}` : 'Auto (best strategy)';
+    return res?.rows.find(r => r.key === key)?.name || StockBT.CLASSIC[key]?.name || PATTERNS[key.replace('pat:', '')]?.label || (key === 'scanner' ? 'Scanner shortlist (tier A or B)' : key);
+  },
+  options() {
+    return [['auto', 'Auto — whichever worked best (re-checked daily)'], ...Object.entries(PATTERNS).map(([k, p]) => ['pat:' + k, `${p.label} (${p.group})`]),
+      ['scanner', 'Scanner shortlist (tier A or B)'], ...Object.entries(StockBT.CLASSIC).map(([k, c]) => [k, c.name])];
+  },
+  add(m, sym, key, hold) {
+    if (this.list().some(w => w.m === m && w.sym === sym && w.key === key)) throw new Error(`${sym} is already watched with that strategy.`);
+    if (this.list().length >= 100) throw new Error('You can watch up to 100 stock–strategy pairs.');
+    S().settings.stratWatch = [...this.list(), { id: U.uid(), m, sym, key, hold, added: new Date().toISOString().slice(0, 10) }];
+    Store.persist();
+    if (S().settings.sources[m] === 'live' && !MyStocks.has(m, sym)) MyStocks.add(m, sym).catch(() => {});   // keep it in the nightly download
+    this.evaluate([m], false);
+  },
+  remove(id) { S().settings.stratWatch = this.list().filter(w => w.id !== id); delete this.state[id]; Store.persist(); Store.set({ watchTick: Date.now() }); },
+  /** Re-check watched pairs for the given markets; optionally raise alerts for today's signals. */
+  evaluate(codes = MARKET_CODES, alert = true) {
+    const st = S().settings, fired = [];
+    for (const w of this.list()) {
+      if (!codes.includes(w.m)) continue;
+      const ds = S().mkts[w.m]?.ds, M = MARKETS[w.m];
+      if (!ds) { this.state[w.id] = { kind: 'idle', text: `Not checked yet — ${M.name} data isn’t loaded. Press “Check now”.` }; continue; }
+      const ti = ds.tickers.findIndex(t => t.sym === w.sym && !t.excluded);
+      if (ti < 0) { this.state[w.id] = { kind: 'pending', text: ds.source === 'live' ? 'Waiting for data — it downloads on the next data update.' : `Not in ${M.name} ${ds.source} data.` }; continue; }
+      const res = StockBT.cached(ds, ti, w.hold);
+      if (!res) { this.state[w.id] = { kind: 'bad', text: 'Not enough price history to backtest yet.' }; continue; }
+      const key = w.key === 'auto' ? res.best?.key : w.key;
+      const strat = res.rows.find(r => r.key === key), t = key ? res.today[key] : null, date = ds.dates[ds.cursor];
+      let ev;
+      if (!key) ev = { kind: 'none', text: 'No strategy completed a trade on this stock yet, so there is nothing to follow.' };
+      else if (t?.buy && !t.inTrade) ev = { kind: 'buy', text: `Buy signal today (${fmt.date(date)})`, plan: t.plan, nextOpen: t.nextOpen, event: t.event };
+      else if (t?.sellNext) ev = { kind: 'sell', text: `Sell signal today — the strategy exits at the next open (${fmt.pct(ds.tickers[ti].c[ds.cursor] / strat.openTrade?.px - 1, 1)} so far).` };
+      else if (t?.sold) ev = { kind: 'sold', text: `Trade closed today: ${{ target: 'target hit', stopped: 'stopped out', time: 'time limit', signal: 'sell signal' }[t.sold.how] || t.sold.how}, ${fmt.pct(t.sold.ret, 1)}.` };
+      else if (strat?.openTrade) ev = { kind: 'holding', text: `In a trade since ${fmt.date(ds.dates[strat.openTrade.entry])} at ${fmt.px(strat.openTrade.px, M)} — ${fmt.pct(strat.openTrade.ret, 1)} so far.` };
+      else {
+        const lastT = strat?.trades.length ? strat.trades[strat.trades.length - 1] : null;
+        ev = { kind: 'none', text: `No signal today${lastT ? ` · last buy ${fmt.date(ds.dates[lastT.entry])}` : ''}.` };
+      }
+      this.state[w.id] = { ...ev, res, key, strat, date };
+      const tag = `${w.id}|${date}|${ev.kind}`;
+      if (alert && st.alerts.watch && ['buy', 'sell', 'sold'].includes(ev.kind) && !st.stratAlerted[tag]) {
+        st.stratAlerted[tag] = 1; fired.push([w, ev, strat, M]);
+      }
+    }
+    if (fired.length) {
+      const keys = Object.keys(st.stratAlerted); if (keys.length > 600) keys.slice(0, keys.length - 600).forEach(k => delete st.stratAlerted[k]);
+      const say = (w, ev, strat, M) => {
+        const name = strat?.name || 'its strategy';
+        if (ev.kind === 'buy') return `${M.flag} ${w.sym}: BUY signal from ${name}${ev.plan ? ` — entry ${fmt.px(ev.plan.entryLow, M)}–${fmt.n2(ev.plan.entryHigh, M)}, stop ${fmt.px(ev.plan.stop, M)}, target ${fmt.px(ev.plan.target, M)}` : ' — buys at the next open'}. Backtest: ${strat?.n ?? 0} trades, ${fmt.pct(strat?.total, 1)} total.`;
+        if (ev.kind === 'sell') return `${M.flag} ${w.sym}: SELL signal from ${name} — it exits at the next open.`;
+        return `${M.flag} ${w.sym}: ${ev.text.replace('Trade closed today', `${name} trade closed today`)}`;
+      };
+      if (fired.length <= 5) fired.forEach(([w, ev, strat, M]) => Alerts.push('watch', say(w, ev, strat, M), w.sym, w.m));
+      else Alerts.push('watch', `${fired.length} strategy signals today: ${fired.map(([w, ev]) => `${w.sym} (${ev.kind === 'buy' ? 'buy' : 'sell'})`).join(', ')}. See Strategy watch.`);
+      Store.persist();
+    }
+    Store.set({ watchTick: Date.now() });
+    return fired.length;
+  },
+  todayCount() { return this.list().filter(w => ['buy', 'sell', 'sold'].includes(this.state[w.id]?.kind)).length; }
+};
+
+/* =====================================================================
+ * ADMIN MODE, SHARED SETTINGS, VISITOR LOG
+ * ===================================================================== */
+/** The admin copy (admin.html) is always in admin mode; the public copy (index.html) never is and carries no admin code. */
+const Admin = { is: BUILD === 'admin' };
+
+/** config.json next to index.html: the owner's settings, published for every visitor. */
+const Shared = {
+  cfg: null,
+  /** Public copy: config.json beside it. Admin copy: the published one on your public app's site. */
+  configUrl() {
+    if (!Admin.is) return location.protocol === 'file:' ? null : 'config.json';
+    const st = S().settings.site;
+    if (!st?.owner || !st?.repo) return null;
+    return `https://${st.owner}.github.io/${st.repo.toLowerCase() === `${st.owner}.github.io`.toLowerCase() ? '' : st.repo + '/'}config.json`;
+  },
+  async load() {
+    const u = this.configUrl(); if (!u) return;
+    try { const r = await fetch(`${u}?t=${Date.now()}`, { cache: 'no-store' }); if (r.ok) this.cfg = await r.json(); }
+    catch (e) { console.warn('config.json not loaded', e); }
+  },
+  /** Visitors: the owner's published settings replace theirs on every load. */
+  apply() {
+    const c = this.cfg?.settings, st = S().settings;
+    if (!c) return;
+    for (const k of ['weights', 'tiers', 'gates', 'regimeFilter', 'earningsMode', 'catalystWindow']) if (c[k] !== undefined) st[k] = structuredClone(c[k]);
+    if (c.sources) st.sources = { ...c.sources };
+    if (this.cfg.feed?.baseUrl) st.feed = { mode: 'url', owner: '', repo: '', branch: 'data', token: '', baseUrl: this.cfg.feed.baseUrl };
+    else st.sources = { US: 'demo', CA: 'demo', IN: 'demo' };
+  },
+  
+};
+
+/** Visit log: each visit is sent to the owner's Google Form (rows land in a Google Sheet). Admin devices are never logged. */
+const Visit = {
+  t0: Date.now(), tabs: new Set(), markets: new Set(), sentSummary: false, opened: false,
+  get(k) { try { return localStorage.getItem(k); } catch { return null; } },
+  put(k, v) { try { localStorage.setItem(k, v); } catch { } },
+  id() { let v = this.get('oppscanner.vid'); if (!v) { v = Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4); this.put('oppscanner.vid', v); } return v; },
+  name() { return this.get('oppscanner.name') || ''; },
+  form() { return Admin.is ? null : Shared.cfg?.visitorLog; },
+  device() {
+    const ua = navigator.userAgent, uad = navigator.userAgentData;
+    const os = /Android/.test(ua) ? 'Android' : /iPhone|iPad|iPod/.test(ua) ? 'iOS' : /Windows/.test(ua) ? 'Windows' : /Mac OS X|Macintosh/.test(ua) ? 'macOS' : /CrOS/.test(ua) ? 'ChromeOS' : /Linux/.test(ua) ? 'Linux' : 'Other';
+    const kind = uad?.mobile || /Mobi|iPhone|Android.*Mobile/.test(ua) ? 'phone' : /iPad|Tablet|Android/.test(ua) ? 'tablet' : 'computer';
+    const br = /Edg\//.test(ua) ? 'Edge' : /SamsungBrowser/.test(ua) ? 'Samsung Internet' : /OPR\//.test(ua) ? 'Opera' : /Firefox\//.test(ua) ? 'Firefox' : /Chrome\//.test(ua) ? 'Chrome' : /Safari\//.test(ua) ? 'Safari' : 'Other';
+    return { kind, os, br };
+  },
+  details(extra = {}) {
+    const d = this.device(), clean = v => String(v ?? '').replace(/[;=\n]/g, ' ').slice(0, 200);
+    const o = { t: new Date().toISOString(), device: `${d.os} ${d.kind}`, browser: d.br, screen: `${screen.width}x${screen.height}`, lang: navigator.language, tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      ref: document.referrer ? new URL(document.referrer).hostname : '', ...extra };
+    return Object.entries(o).filter(([, v]) => v !== '' && v !== undefined).map(([k, v]) => `${k}=${clean(v)}`).join('; ');
+  },
+  body(event, extra) {
+    const f = this.form(), b = new URLSearchParams();
+    b.set(f.fields.name, this.name() || 'Anonymous'); b.set(f.fields.id, this.id()); b.set(f.fields.event, event); b.set(f.fields.details, this.details(extra));
+    return b;
+  },
+  send(event, extra = {}, beacon = false) {
+    const f = this.form(); if (!f?.formUrl) return;
+    const body = this.body(event, extra);
+    try {
+      if (beacon && navigator.sendBeacon) navigator.sendBeacon(f.formUrl, body);
+      else fetch(f.formUrl, { method: 'POST', mode: 'no-cors', body }).catch(() => { });
+    } catch { }
+  },
+  summary() {
+    if (this.sentSummary || !this.opened) return;
+    this.sentSummary = true;
+    this.send('visit summary', { mins: ((Date.now() - this.t0) / 60000).toFixed(1), tabs: [...this.tabs].join(', '), markets: [...this.markets].join(', ') }, true);
+  },
+  /** First visit: ask for a name (or skip), then log the visit. */
+  start() {
+    if (!this.form()) return;
+    const go = () => { this.opened = true; this.t0 = Date.now(); this.send(this.get('oppscanner.seen') ? 'visit' : 'first visit'); this.put('oppscanner.seen', '1'); };
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') this.summary();
+      else if (this.sentSummary && Date.now() - this.hiddenAt > 30 * 60000) { this.sentSummary = false; this.tabs.clear(); this.markets.clear(); go(); }
+      if (document.visibilityState === 'hidden') this.hiddenAt = Date.now();
+    });
+    window.addEventListener('pagehide', () => this.summary());
+    if (this.name() || this.get('oppscanner.nameAsked')) go();
+    else UI.askName(go);
+  },
+  track(kind, v) { if (kind === 'tab') this.tabs.add(v); if (kind === 'market') this.markets.add(v); }
 };
 
 /* =====================================================================
@@ -1862,9 +2116,30 @@ const App = {
     const rows = view().flatMap(c => this.rankMarket(c));
     rows.sort(byProb);
     Store.set({ results: rows });
+    this.bestScan();
+  },
+
+  /** In the background, backtest every shortlisted stock to find its best strategy (cached; highest probability first). */
+  async bestScan() {
+    const tok = (this._bestTok = (this._bestTok || 0) + 1);
+    await U.sleep(50);
+    const hold = S().settings.bt.hold, todo = S().results.filter(r => StockBT.peek(r.ds, r.cd.ti, hold) === undefined);
+    if (!todo.length) { if (S().bestProg) Store.set({ bestProg: null, bestTick: Date.now() }); return; }
+    Store.set({ bestProg: { done: 0, total: todo.length } });
+    let t0 = performance.now();
+    for (let k = 0; k < todo.length; k++) {
+      if (tok !== this._bestTok) return;
+      StockBT.cached(todo[k].ds, todo[k].cd.ti, hold);
+      if (performance.now() - t0 > 40) {
+        if (k % 10 === 0) Store.set({ bestProg: { done: k + 1, total: todo.length }, bestTick: Date.now() });
+        await U.yieldUI(); t0 = performance.now();
+      }
+    }
+    if (tok === this._bestTok) Store.set({ bestProg: null, bestTick: Date.now() });
   },
 
   async setMarket(code) {
+    Visit.track('market', code === 'ALL' ? 'All' : MARKETS[code].name);
     if (S().busy) { UI.toast('Please wait for the current scan to finish.', 'warn'); return; }
     S().settings.market = code; Store.persist();
     UI.resetFilters(false);
@@ -1921,9 +2196,10 @@ const App = {
     let added = 0;
     if (st.autoTrackA) for (const r of rows.filter(r => r.sc.tier === 'A')) if (Paper.add(r, 'auto', true)) added++;
     const fills = Paper.evaluate(true);
+    const wsig = Watch.evaluate([code], true);
     Store.persist();
     Store.set({ paper: S().paper, alerts: S().alerts });
-    return [...msg, `${added} auto-tracked`, `${fills} entry fill(s)`].join(' · ');
+    return [...msg, `${added} auto-tracked`, `${fills} entry fill(s)`, `${wsig} strategy-watch signal(s)`].join(' · ');
   }
 };
 
@@ -2161,6 +2437,7 @@ const UI = {
     el.className = `rounded-lg border ${colors[kind] || colors.info} bg-panel2/95 backdrop-blur px-3.5 py-2.5 text-sm text-slate-200 shadow-xl`;
     el.setAttribute('role', kind === 'error' ? 'alert' : 'status');
     el.textContent = msg;
+    while ($('toasts').children.length >= 3) $('toasts').firstElementChild.remove();
     $('toasts').appendChild(el);
     setTimeout(() => { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, kind === 'error' ? 6000 : 3200);
   },
@@ -2199,14 +2476,19 @@ const UI = {
   },
 
   tabs() {
+    if (!Admin.is && ['settings', 'visitors'].includes(S().tab)) S().tab = 'watchlist';
     const t = S().tab;
+    Visit.track('tab', { watchlist: 'Watchlist', watch: 'Strategy watch', backtest: 'Backtest', paper: 'Paper log', pipeline: 'Pipeline', settings: 'Settings', visitors: 'Visitors' }[t]);
     document.querySelectorAll('[role=tab]').forEach(b => {
       const on = b.dataset.tab === t;
       b.setAttribute('aria-selected', on);
       b.className = `tab shrink-0 px-3 py-2.5 text-sm border-b-2 -mb-px ${on ? 'border-emerald-400 text-slate-100 font-medium' : 'border-transparent text-slate-400 hover:text-slate-200'}`;
     });
-    for (const k of ['watchlist', 'backtest', 'paper', 'pipeline', 'settings']) $('tab-' + k).hidden = k !== t;
-    if (t === 'settings') UI.settings();
+    for (const k of ['watchlist', 'watch', 'backtest', 'paper', 'pipeline', 'visitors', 'settings']) { const sec = $('tab-' + k); if (sec) sec.hidden = k !== t; }
+    
+    if (t === 'watch') UI.watchForm();
+    if (t === 'watchlist') UI.results();
+    
     if (t === 'paper') UI.paper();
     if (t === 'pipeline') UI.pipeline();
     if (t === 'backtest') UI.btForm();
@@ -2260,7 +2542,7 @@ const UI = {
   },
 
   resetFilters(emit = true) {
-    const f = { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: S().filters.top, mine: false };
+    const f = { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: S().filters.top, mine: false, match: false };
     $('fQ').value = ''; $('fCap').value = 'all'; $('fSector').value = 'all'; $('fPattern').value = 'all'; $('fMin').value = 0; $('fMinVal').textContent = '0%';
     if (emit) Store.set({ filters: f }); else S().filters = f;
   },
@@ -2276,6 +2558,7 @@ const UI = {
       if (f.pattern !== 'all' && !r.cd.pats.some(p => p.key === f.pattern)) return false;
       if (q && !tk.sym.includes(q) && !tk.name.toUpperCase().includes(q)) return false;
       if (f.mine && !MyStocks.has(r.m, tk.sym)) return false;
+      if (f.match && !UI.bestOf(r)?.match) return false;
       return true;
     });
     const k = s.sort;
@@ -2283,7 +2566,19 @@ const UI = {
       prob: byProb, score: (a, b) => b.sc.total - a.sc.total,
       upside: (a, b) => b.cd.plan.upside - a.cd.plan.upside, rr: (a, b) => b.cd.plan.rr - a.cd.plan.rr, sym: (a, b) => a.cd.sym.localeCompare(b.cd.sym)
     }[k];
-    return rows.sort(cmp);
+    const mt = r => UI.bestOf(r)?.match ? 1 : 0;
+    return rows.sort(k === 'sym' ? cmp : (a, b) => (mt(b) - mt(a)) || cmp(a, b));
+  },
+  bestOf(r) { return StockBT.peek(r.ds, r.cd.ti); },
+  /** One line under the event: the stock's best strategy from its own backtest. */
+  bestLine(r, compact = false) {
+    const b = UI.bestOf(r);
+    if (b === undefined) return `<p class="mt-1.5 text-[11px] text-slate-500">Best signal: checking…</p>`;
+    if (!b || !b.bestSig) return `<p class="mt-1.5 text-[11px] text-slate-500">Best signal: not enough history to tell.</p>`;
+    const x = b.bestSig, fires = !!b.today[x.key]?.buy;
+    const stats = `${x.n} trade${x.n === 1 ? '' : 's'} · ${fmt.prob(x.winRate)} won · ${fmt.pct(x.total, 0)}`;
+    if (b.match) return `<p class="mt-1.5 text-[11px] leading-snug"><span class="text-violet-300 font-medium">◆ ${x.key === 'pat:' + r.cd.pats[0].key ? 'Today’s event is' : 'Today’s signals include'} this stock’s best-performing signal:</span> <span class="text-slate-200">${U.esc(x.name)}</span> <span class="text-slate-500">(${stats} in backtest)</span></p>`;
+    return `<p class="mt-1.5 text-[11px] leading-snug text-slate-500">Best signal: <span class="text-slate-300">${U.esc(x.name)}</span> (${stats})${!b.sigReliable ? ' — too few trades to trust' : x.total <= 0 ? ' — none was profitable' : x.winRate < .5 ? ' — won less than half its trades' : fires ? ' — fires today' : compact ? '' : ' — not today’s signal'}</p>`;
   },
 
   catalystCell(r) {
@@ -2301,6 +2596,10 @@ const UI = {
       return;
     }
     const all = UI.filtered(), top = s.filters.top, rows = top ? all.slice(0, top) : all, multi = view().length > 1;
+    if (!rows.length && s.filters.match) {
+      el.innerHTML = `<div class="rounded-xl border border-dashed border-line bg-panel p-8 text-center"><p class="font-medium text-slate-200">No ◆ matches with these filters</p><p class="mt-1 text-sm text-slate-400">${s.bestProg ? `Still backtesting stocks (${s.bestProg.done}/${s.bestProg.total}) — matches appear as they’re found.` : 'No shortlisted stock fired its best-performing strategy today.'}</p><button type="button" data-action="toggleMatch" class="mt-4 h-9 px-4 rounded-lg border border-line text-sm hover:bg-panel2">Show all stocks</button></div>`;
+      return;
+    }
     if (!rows.length) {
       const none = !s.results.length;
       el.innerHTML = `<div class="rounded-xl border border-dashed border-line bg-panel p-10 text-center">
@@ -2326,12 +2625,12 @@ const UI = {
           const { cd, sc, M, ds } = r, tk = ds.tickers[cd.ti], p = cd.plan, ev = Engine.event(r);
           return `<tr class="row-click align-top" tabindex="0" data-open="${r.key}" aria-label="${U.esc(cd.sym)}, ${M.name}, probability ${fmt.prob(r.p)}, ${U.esc(ev.text)}">
             <td class="px-3 py-3 text-slate-500 num">${n + 1}</td>
-            <td class="px-3 py-3"><div class="flex items-start gap-2.5">${tierBadge(sc.tier)}<div class="min-w-0"><p class="font-semibold text-slate-100 whitespace-nowrap">${MyStocks.has(r.m, cd.sym) ? '<span class="text-amber-300" title="My stock">★</span> ' : ''}${U.esc(cd.sym)} ${multi ? `<span class="text-[11px] font-normal text-slate-400">${flagTag(M)} ${M.code}</span>` : ''}</p><p class="text-[11px] text-slate-500 truncate max-w-[170px]">${U.esc(tk.name)}</p><p class="text-[11px] text-slate-500 truncate max-w-[170px]">${U.esc(tk.sector)} · ${fmt.px(cd.price, M)}</p></div></div></td>
+            <td class="px-3 py-3"><div class="flex items-start gap-2.5">${tierBadge(sc.tier)}<div class="min-w-0"><p class="font-semibold text-slate-100 whitespace-nowrap">${UI.bestOf(r)?.match ? '<span class="inline-block mr-1 px-1 rounded text-[10px] font-bold bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/40 align-middle" title="Today’s signal is this stock’s best-performing strategy">◆ MATCH</span>' : ''}${MyStocks.has(r.m, cd.sym) ? '<span class="text-amber-300" title="My stock">★</span> ' : ''}${U.esc(cd.sym)} ${multi ? `<span class="text-[11px] font-normal text-slate-400">${flagTag(M)} ${M.code}</span>` : ''}</p><p class="text-[11px] text-slate-500 truncate max-w-[170px]">${U.esc(tk.name)}</p><p class="text-[11px] text-slate-500 truncate max-w-[170px]">${U.esc(tk.sector)} · ${fmt.px(cd.price, M)}</p></div></div></td>
             <td class="px-3 py-3 whitespace-nowrap"><p class="num text-lg font-semibold leading-none" style="color:${probColor(r)}">${fmt.prob(r.p)}</p>
               <div class="mt-1.5 w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden" aria-hidden="true"><div class="h-full rounded-full" style="width:${Math.min(100, r.p * 100 / .6)}%;background:${probColor(r)}"></div></div>
               <p class="text-[11px] text-slate-500 mt-1 num">score ${sc.total.toFixed(0)}</p></td>
             <td class="px-3 py-3 min-w-[280px]"><p class="text-slate-100 leading-snug">${U.esc(ev.text)}</p><p class="text-[11px] text-slate-500 mt-0.5">${U.esc(ev.name)} · ${fmt.dateShort(ev.date)}${cd.pats.length > 1 ? ` · +${cd.pats.length - 1} more signal${cd.pats.length > 2 ? 's' : ''}` : ''}</p>
-              <div class="mt-1.5 flex flex-wrap gap-1">${Engine.chips(r).map(chip).join('')}</div></td>
+              <div class="mt-1.5 flex flex-wrap gap-1">${Engine.chips(r).map(chip).join('')}</div>${UI.bestLine(r)}</td>
             <td class="px-3 py-3 text-xs num whitespace-nowrap leading-5">
               <span class="text-slate-500">Entry</span> <span class="text-emerald-300">${fmt.px(p.entryLow, M)}–${fmt.n2(p.entryHigh, M)}</span>${p.state === 'extended' ? ' <span class="text-[10px] text-amber-400" title="Price is above the entry zone">EXT</span>' : ''}<br>
               <span class="text-slate-500">Target</span> <span class="text-sky-300">${fmt.px(p.target, M)}</span> <span class="text-slate-500">${fmt.pct(p.upside, 0)}</span><br>
@@ -2344,11 +2643,11 @@ const UI = {
       const { cd, sc, M, ds } = r, tk = ds.tickers[cd.ti], p = cd.plan, ev = Engine.event(r);
       return `<li><button type="button" data-open="${r.key}" class="w-full text-left rounded-xl border border-line bg-panel p-3 active:bg-panel2">
         <div class="flex items-start gap-2.5">${tierBadge(sc.tier)}
-          <div class="min-w-0 flex-1"><p class="font-semibold">${MyStocks.has(r.m, cd.sym) ? '<span class="text-amber-300" aria-label="My stock">★</span> ' : ''}${U.esc(cd.sym)} <span class="text-xs font-normal text-slate-500">${multi ? flagTag(M) + ' ' : ''}#${n + 1}</span></p><p class="text-[11px] text-slate-500 truncate">${U.esc(tk.name)} · ${fmt.px(cd.price, M)}</p></div>
+          <div class="min-w-0 flex-1"><p class="font-semibold">${UI.bestOf(r)?.match ? '<span class="inline-block mr-1 px-1 rounded text-[10px] font-bold bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/40 align-middle">◆ MATCH</span>' : ''}${MyStocks.has(r.m, cd.sym) ? '<span class="text-amber-300" aria-label="My stock">★</span> ' : ''}${U.esc(cd.sym)} <span class="text-xs font-normal text-slate-500">${multi ? flagTag(M) + ' ' : ''}#${n + 1}</span></p><p class="text-[11px] text-slate-500 truncate">${U.esc(tk.name)} · ${fmt.px(cd.price, M)}</p></div>
           <div class="text-right"><p class="num text-xl font-semibold leading-none" style="color:${probColor(r)}">${fmt.prob(r.p)}</p><p class="text-[10px] text-slate-500 mt-1">probability</p></div>
         </div>
         <p class="mt-2.5 text-[13px] text-slate-100 leading-snug"><span class="text-slate-500">Event:</span> ${U.esc(ev.text)} <span class="text-[11px] text-slate-500">(${fmt.dateShort(ev.date)})</span></p>
-        <div class="mt-1.5 flex flex-wrap gap-1">${Engine.chips(r).map(chip).join('')}</div>
+        <div class="mt-1.5 flex flex-wrap gap-1">${Engine.chips(r).map(chip).join('')}</div>${UI.bestLine(r, true)}
         <div class="mt-2.5 grid grid-cols-3 gap-2 text-[11px]">
           <div><p class="text-slate-500">Entry</p><p class="num text-slate-200">${fmt.px(p.entryLow, M)}</p></div>
           <div><p class="text-slate-500">Target</p><p class="num text-sky-300">${fmt.px(p.target, M)} <span class="text-slate-500">${fmt.pct(p.upside, 0)}</span></p></div>
@@ -2356,7 +2655,13 @@ const UI = {
         </div>
       </button></li>`;
     }).join('')}</ul>`;
-    el.innerHTML = `<p class="text-xs text-slate-400 mb-2">Showing ${rows.length} of ${all.length} setups · sorted by ${U.esc(sortName)} · probability = chance of a +10% move within 2 weeks of entry, estimated from each market's past setups</p>` + desk + mobile;
+    const nMatch = s.results.filter(x => UI.bestOf(x)?.match).length, prog = s.bestProg;
+    const banner = `<div class="mb-3 rounded-xl border ${nMatch ? 'border-violet-500/40 bg-violet-500/[0.06]' : 'border-line bg-panel'} px-3 py-2.5 text-sm flex flex-wrap items-center gap-x-3 gap-y-1">
+        ${nMatch ? `<span><span class="text-violet-300 font-semibold">◆ ${nMatch} stock${nMatch === 1 ? '' : 's'}</span> fired ${nMatch === 1 ? 'its' : 'their'} own best-performing signal today — shown at the top.</span> <span class="text-[11px] text-slate-500 w-full">Match = today’s signal is the one that did best in that stock’s own backtest, with at least 3 trades, a profit overall and at least half its trades won.</span>` : `<span class="text-slate-400">◆ No shortlisted stock fired its own best-performing signal today${prog ? ' (still checking)' : ''}.</span>`}
+        ${prog ? `<span class="text-xs text-slate-500"><span class="inline-block w-2 h-2 rounded-full bg-violet-400 animate-pulse mr-1"></span>Backtesting each stock: ${prog.done}/${prog.total}</span>` : ''}
+        ${nMatch ? `<button type="button" data-action="toggleMatch" class="ml-auto text-xs underline underline-offset-2 text-violet-200">${s.filters.match ? 'Show all stocks' : 'Show only matches'}</button>` : ''}
+      </div>`;
+    el.innerHTML = banner + `<p class="text-xs text-slate-400 mb-2">Showing ${rows.length} of ${all.length} setups · sorted by ${U.esc(sortName)} · probability = chance of a +10% move within 2 weeks of entry, estimated from each market's past setups</p>` + desk + mobile;
   },
 
   /* ---------- Detail drawer ---------- */
@@ -2407,6 +2712,19 @@ const UI = {
             <strong class="text-slate-300">How the probability is estimated:</strong> ${fit && !fit.flat ? `in ${M.name}, ${fmt.num(fit.n)} past setups from this scanner were followed for 2 weeks after entry and ${fmt.prob(fit.base)} reached +10% (the base rate). A model trained on those outcomes weighs each factor by how well it actually predicted a move in this market, giving ${fmt.prob(row.p)}${Number.isFinite(lift) ? ` — ${lift.toFixed(2)}× the base rate` : ''}. ${near && near.n >= 30 ? `Of ${fmt.num(near.n)} past setups with a similar estimate, ${fmt.prob(near.rate)} hit +10%.` : 'Few past setups had an estimate this high, so treat it with extra caution.'}` : fit?.flat && Number.isFinite(fit.base) ? `there isn't enough history to separate setups, so every stock gets the ${M.name} base rate of ${fmt.prob(fit.base)}.` : 'not available — this dataset needs at least ~1.2 years of history, so the list falls back to composite score order.'}${ds.source === 'demo' ? ' Demo data is synthetic, so this illustrates the method only.' : ''}
           </p>
         </section>
+
+        ${(() => {
+          const b = StockBT.cached(ds, cd.ti), x = b?.bestSig;
+          if (!x) return '';
+          return `<section aria-labelledby="bsH" class="rounded-xl border ${b.match ? 'border-violet-500/40 bg-violet-500/[0.05]' : 'border-line bg-ink'} p-4">
+            <h3 id="bsH" class="font-semibold ${b.match ? 'text-violet-200' : ''}">${b.match ? '◆ ' : ''}Best-performing signal for ${U.esc(tk.sym)} in its own backtest</h3>
+            <p class="mt-1 text-sm text-slate-200"><span class="font-medium">${U.esc(x.name)}</span> — ${x.n} trade${x.n === 1 ? '' : 's'}, ${fmt.prob(x.winRate)} won, ${fmt.pct(x.total, 1)} in total (buy &amp; hold ${fmt.pct(b.bh.ret, 1)}).</p>
+            <p class="mt-1 text-xs ${b.match ? 'text-violet-200' : 'text-slate-400'}">${b.match ? `${x.key === 'pat:' + cd.pats[0].key ? 'Today’s event is this signal' : 'This signal also fired today'}, so this setup matches what has worked best on this stock.` : !b.sigReliable ? 'Too few trades to trust this result.' : x.total <= 0 ? 'No signal was profitable on this stock.' : x.winRate < .5 ? 'It won less than half its trades, so it doesn’t count as a match.' : b.today[x.key]?.buy ? 'It also fires today.' : 'It is not signalling today.'}${b.best && b.best.key !== x.key ? ` (Across all 16 strategies, ${U.esc(b.best.name)} did best: ${fmt.pct(b.best.total, 1)}.)` : ''}</p>
+            <div class="mt-3 flex flex-wrap gap-2">
+              <button type="button" data-action="watchAdd" data-m="${row.m}" data-sym="${U.esc(tk.sym)}" data-key="auto" data-hold="${b.hold}" class="h-8 px-3 rounded-lg bg-violet-500/90 text-white text-xs font-semibold hover:bg-violet-400">◆ Watch &amp; alert me</button>
+              <button type="button" data-action="btStock" data-m="${row.m}" data-sym="${U.esc(tk.sym)}" class="h-8 px-3 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">See full backtest</button>
+            </div></section>`;
+        })()}
 
         <section aria-labelledby="reasonsH">
           <h3 id="reasonsH" class="font-semibold mb-2">Shortlisted because <span class="text-xs font-normal text-slate-400">— ordered by points contributed to the ${sc.total.toFixed(0)}/100 score</span></h3>
@@ -2488,6 +2806,7 @@ const UI = {
 
   /* ---------- Alerts ---------- */
   openAlerts() {
+    document.querySelectorAll('[data-alertopt]').forEach(c => { c.checked = !!S().settings.alerts[c.dataset.alertopt]; });
     UI.lastFocus = document.activeElement; UI.alertsList();
     const p = $('alertsPanel'), bd = $('alertsBackdrop');
     p.classList.remove('hidden'); p.classList.add('flex'); bd.classList.remove('hidden');
@@ -2504,7 +2823,7 @@ const UI = {
   alertsList() {
     const a = S().alerts, el = $('alertsList');
     if (!a.length) { el.innerHTML = '<div class="text-center py-16"><p class="text-slate-300 font-medium">No alerts yet</p><p class="text-sm text-slate-500 mt-1">You will be notified when a new A-tier setup appears or a tracked pick hits its entry zone.</p></div>'; return; }
-    const icon = { newA: ['★', 'text-emerald-300'], entry: ['➜', 'text-sky-300'], system: ['ℹ', 'text-slate-400'] };
+    const icon = { newA: ['★', 'text-emerald-300'], entry: ['➜', 'text-sky-300'], watch: ['◆', 'text-violet-300'], system: ['ℹ', 'text-slate-400'] };
     el.innerHTML = a.map(x => {
       const row = x.sym && S().results.find(r => r.cd.sym === x.sym && (!x.m || r.m === x.m));
       return `<div class="rounded-lg border ${x.read ? 'border-line' : 'border-emerald-500/30 bg-emerald-500/5'} p-3 flex gap-3">
@@ -2515,6 +2834,79 @@ const UI = {
   },
 
   /* ---------- Backtest ---------- */
+  /* ---------- Visitor name ---------- */
+  askName(done) {
+    const m = $('nameModal'); m.classList.remove('hidden'); m.classList.add('flex');
+    setTimeout(() => $('nameInput').focus(), 50);
+    const close = () => { m.classList.add('hidden'); m.classList.remove('flex'); Visit.put('oppscanner.nameAsked', '1'); UI.whoLine(); done?.(); };
+    $('nameForm').onsubmit = e => {
+      e.preventDefault();
+      const v = $('nameInput').value.trim().replace(/\s+/g, ' ');
+      if (!v) { $('nameErr').textContent = 'Type a name, or press Skip.'; return; }
+      if (v.length > 40) { $('nameErr').textContent = 'Please keep it under 40 characters.'; return; }
+      Visit.put('oppscanner.name', v); close();
+    };
+    $('nameSkip').onclick = close;
+  },
+  whoLine() {
+    const el = $('whoLine'); if (!el) return;
+    if (Admin.is) { el.innerHTML = '<span class="text-amber-300/90">Admin copy</span> · visits from this page aren’t logged.'; return; }
+    if (!Visit.form()) { el.innerHTML = ''; return; }
+    const n = Visit.name();
+    el.innerHTML = `This app keeps a simple visit log for its owner. You’re visiting as <span class="text-slate-300">${U.esc(n || 'Anonymous')}</span> · <button type="button" data-action="changeName" class="underline underline-offset-2 hover:text-slate-300">change name</button>`;
+  },
+
+  /* ---------- Strategy watch tab ---------- */
+  watchForm() {
+    const sel = $('wMarket');
+    if (!sel.options.length) {
+      sel.innerHTML = MARKET_CODES.map(c => `<option value="${c}">${MARKETS[c].flag} ${MARKETS[c].name}</option>`).join('');
+      sel.value = view()[0];
+      $('wKey').innerHTML = Watch.options().map(([k, l]) => `<option value="${k}">${U.esc(l)}</option>`).join('');
+    }
+    const m = sel.value, ds = S().mkts[m]?.ds, mine = MyStocks.set(m), k = ds ? `${ds.key}|${ds.stamp || ds.cursor}` : '';
+    if ($('wList').dataset.k !== k) {
+      $('wList').innerHTML = ds ? ds.tickers.filter(t => !t.excluded).sort((a, b) => (mine.has(b.sym) - mine.has(a.sym)) || a.sym.localeCompare(b.sym)).map(t => `<option value="${U.esc(t.sym)}">${mine.has(t.sym) ? '★ ' : ''}${U.esc(t.name)}</option>`).join('') : '';
+      $('wList').dataset.k = k;
+    }
+    $('wCheck').disabled = S().busy;
+    UI.watch();
+  },
+  watch() {
+    const el = $('watchView'); if (!el) return;
+    const n = Watch.todayCount(), tab = document.querySelector('[data-tab="watch"]');
+    tab.innerHTML = `Strategy watch${n ? ` <span class="ml-1 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-violet-500 text-[10px] font-bold text-white">${n}</span>` : ''}`;
+    if (S().tab !== 'watch') return;
+    const list = Watch.list();
+    if (!list.length) {
+      el.innerHTML = `<div class="rounded-xl border border-dashed border-line bg-panel p-10 text-center"><p class="text-3xl text-violet-300" aria-hidden="true">◆</p><p class="mt-2 font-medium text-slate-200">Nothing watched yet</p>
+        <p class="mt-1 text-sm text-slate-400 max-w-lg mx-auto">Run a backtest on a stock (Backtest tab) and press <span class="text-violet-300">◆ Watch</span>, open a shortlisted stock and press <span class="text-violet-300">◆ Watch &amp; alert me</span>, or add one with the form above.</p></div>`;
+      return;
+    }
+    const order = { buy: 0, sell: 1, sold: 2, holding: 3, none: 4, pending: 5, idle: 6, bad: 7 };
+    const tone = { buy: 'border-emerald-500/50 bg-emerald-500/[0.06]', sell: 'border-amber-500/50 bg-amber-500/[0.05]', sold: 'border-amber-500/30', holding: 'border-sky-500/30', none: 'border-line', pending: 'border-line', idle: 'border-line', bad: 'border-rose-500/30' };
+    const txt = { buy: 'text-emerald-300 font-semibold', sell: 'text-amber-300 font-semibold', sold: 'text-amber-200', holding: 'text-sky-300', none: 'text-slate-400', pending: 'text-amber-200/90', idle: 'text-slate-500', bad: 'text-rose-300' };
+    const items = list.map(w => ({ w, e: Watch.state[w.id] || { kind: 'idle', text: 'Not checked yet — press “Check now”.' } })).sort((a, b) => order[a.e.kind] - order[b.e.kind] || a.w.sym.localeCompare(b.w.sym));
+    const n2 = items.filter(i => ['buy', 'sell', 'sold'].includes(i.e.kind)).length;
+    el.innerHTML = `<p class="text-xs text-slate-400 mb-2">${list.length} watched · ${n2 ? `<span class="text-violet-300">${n2} with a signal today</span>` : 'no signals today'} · checked after every scan${S().settings.alerts.watch ? '' : ' · <span class="text-amber-300">alerts are off (Settings)</span>'}</p>
+      <ul class="space-y-2">${items.map(({ w, e }) => {
+        const M = MARKETS[w.m], st = e.strat, plan = e.plan;
+        return `<li class="rounded-xl border ${tone[e.kind]} bg-panel p-3">
+          <div class="flex flex-wrap items-start gap-x-3 gap-y-1">
+            <div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(w.sym)} <span class="text-xs font-normal text-slate-400">${flagTag(M)} ${M.name}</span></p>
+              <p class="text-xs text-slate-300">${U.esc(Watch.label(w.key, e.res))}</p></div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" data-action="btStock" data-m="${w.m}" data-sym="${U.esc(w.sym)}" class="h-7 px-2.5 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Backtest</button>
+              <button type="button" data-action="watchRemove" data-id="${w.id}" class="h-7 w-7 inline-flex items-center justify-center rounded-lg text-slate-500 hover:text-rose-300 hover:bg-rose-500/10" aria-label="Stop watching ${U.esc(w.sym)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+            </div>
+          </div>
+          <p class="mt-2 text-sm ${txt[e.kind]}">${e.kind === 'buy' ? '▲ ' : e.kind === 'sell' ? '▼ ' : ''}${U.esc(e.text)}</p>
+          ${e.kind === 'buy' && plan ? `<p class="mt-1 text-xs text-slate-300 num">Entry ${fmt.px(plan.entryLow, M)}–${fmt.n2(plan.entryHigh, M)} · stop ${fmt.px(plan.stop, M)} · target ${fmt.px(plan.target, M)} <span class="text-slate-500">(${fmt.pct(plan.upside, 0)}, ${w.hold}-day limit)</span></p>` : e.kind === 'buy' ? `<p class="mt-1 text-xs text-slate-300">The strategy buys at the next session’s open.</p>` : ''}
+          ${st ? `<p class="mt-1.5 text-[11px] text-slate-500">Backtest: ${st.n} trade${st.n === 1 ? '' : 's'} · ${fmt.prob(st.winRate)} won · ${fmt.pct(st.total, 1)} total · buy &amp; hold ${fmt.pct(e.res.bh.ret, 1)}${st.n < 3 ? ' · <span class="text-amber-300/80">too few trades to trust</span>' : ''}</p>` : ''}
+        </li>`; }).join('')}</ul>
+      <p class="mt-3 text-[11px] text-slate-500">Alerts appear in the bell menu, as browser notifications and on your webhook if set (Settings → Alerts). The app checks when it scans, so it needs to be open (or opened) after the nightly data update. Not investment advice.</p>`;
+  },
+
   /* ---------- My stocks panel ---------- */
   myStocks() {
     if (!$('myDet')) return;
@@ -2541,7 +2933,8 @@ const UI = {
       </ol>
       <p class="mt-1.5 text-slate-500">Contents lets the app save your list to the data repo. Actions lets it start a data update straight away instead of waiting for tonight. Both apply only to the scanner-data repo.</p></details>`;
     let html;
-    if (!anyLive) html = line('mute', 'Saved on this device. Your stocks are scanned once a market uses the live feed (Settings → Live market data).');
+    if (!Admin.is) html = line('mute', total ? 'Your starred stocks are saved on this device.' : 'Star stocks you follow to keep an eye on them. They’re saved on this device.');
+    else if (!anyLive) html = line('mute', 'Saved on this device. Your stocks are scanned once a market uses the live feed (Settings → Live market data).');
     else if (!MyStocks.canSync()) html = line('warn', 'Saved on this device only. To have the nightly data job download your stocks, use the “Private GitHub repo” feed with a token (Settings → Live market data).');
     else if (sync.state === 'saving') html = line('mute', '<span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-pulse mr-1.5"></span>' + U.esc(sync.msg));
     else if (sync.state === 'saved' || sync.state === 'updating') html = line('ok', '✓ ' + U.esc(sync.msg));
@@ -2607,6 +3000,7 @@ const UI = {
           <p class="mt-1 text-sm text-slate-200">${best.n} trade${best.n === 1 ? '' : 's'} · ${fmt.prob(best.winRate)} won · <strong class="${pctC(best.total)}">${fmt.pct(best.total, 1)} in total</strong> (${fmt.pct(best.avg, 2)} per trade) · worst drop ${fmt.pct(-best.maxDD, 1)}</p>
           <p class="mt-1 text-sm text-slate-300">Simply buying and holding returned <span class="${pctC(r.bh.ret)}">${fmt.pct(r.bh.ret, 1)}</span> over the same period — this strategy ${beat ? '<span class="text-emerald-300">beat</span>' : '<span class="text-rose-300">did not beat</span>'} it${beat ? '' : ', so for this stock holding would have worked better'}.</p>
           ${r.confident ? '' : `<p class="mt-2 text-xs text-amber-200">Only ${best.n} completed trade${best.n === 1 ? '' : 's'} — too few to trust. Treat this as a hint, not a result.</p>`}
+          <div class="mt-3 flex flex-wrap gap-2"><button type="button" data-action="watchAdd" data-m="${r.m}" data-sym="${U.esc(r.sym)}" data-key="auto" data-hold="${r.hold}" class="h-9 px-3 rounded-lg bg-violet-500 text-white text-sm font-semibold hover:bg-violet-400">◆ Watch ${U.esc(r.sym)} — alert me when its best strategy signals</button></div>
           <p class="mt-2 text-[11px] text-slate-500">What worked on one stock in the past may not work next. Results exclude trading costs, slippage, currency moves and taxes. Not investment advice.</p>
         </div>`;
     const active = r.rows.filter(x => x.n > 0), idle = r.rows.filter(x => x.n === 0);
@@ -2637,6 +3031,7 @@ const UI = {
       </div>
       ${sel ? `<div class="mt-4 rounded-xl border border-line bg-panel p-3">
         <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-400 mb-2"><span class="font-medium text-slate-200">${U.esc(sel.name)} on ${U.esc(r.sym)}</span>
+          <button type="button" data-action="watchAdd" data-m="${r.m}" data-sym="${U.esc(r.sym)}" data-key="${sel.key}" data-hold="${r.hold}" class="sm:ml-auto h-7 px-2.5 rounded-lg border border-violet-500/50 text-violet-200 text-xs hover:bg-violet-500/10">◆ Watch this strategy</button>
           <span class="inline-flex items-center gap-1"><i class="text-emerald-400 not-italic">▲</i>buy</span><span class="inline-flex items-center gap-1"><i class="text-rose-400 not-italic">▼</i>sell (with result)</span><span class="inline-flex items-center gap-1"><i class="w-3 h-0.5 bg-sky-400 inline-block"></i>50-day average</span></div>
         <div id="sbChart" class="chart-box rounded-lg border border-line bg-ink" role="img" aria-label="Price chart of ${U.esc(r.sym)} with the buy and sell points of ${U.esc(sel.name)}"></div>
         <p class="mt-2 text-xs text-slate-400"><span class="text-slate-300">How it trades:</span> ${U.esc(sel.rule)}</p>
@@ -2791,182 +3186,7 @@ const UI = {
   },
 
   /* ---------- Settings ---------- */
-  settings() {
-    const st = S().settings, el = $('settingsView');
-    const inp = (id, val, attrs = '') => `<input id="${id}" value="${U.esc(val)}" ${attrs} class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 num">`;
-    const card = (title, desc, body) => `<section class="rounded-xl border border-line bg-panel p-4"><h2 class="font-semibold">${title}</h2>${desc ? `<p class="text-xs text-slate-400 mt-0.5">${desc}</p>` : ''}<div class="mt-3">${body}</div></section>`;
-    const dm = view()[0];
-    el.innerHTML = `<div class="grid lg:grid-cols-2 gap-4">
-      ${card('Scoring weights', 'Composite = Σ component × weight. Weights must total 100. Changing them re-ranks instantly and refits the probability model.', `
-        <div class="space-y-2.5">${COMPONENTS.map(c => `<label class="flex items-center gap-3 text-sm"><span class="flex-1 text-slate-300">${c.label}</span><input type="number" min="0" max="100" step="1" data-weight="${c.key}" value="${st.weights[c.key]}" class="w-20 h-9 rounded-lg bg-ink border border-line px-2 text-right num" aria-label="${c.label} weight"><span class="text-slate-500 text-xs w-3">%</span></label>`).join('')}</div>
-        <p id="wSum" class="mt-2 text-xs" aria-live="polite"></p>`)}
-      ${card('Tiers', 'Tier thresholds on the 0–100 composite score. The list itself is ordered by probability.', `
-        <div class="grid grid-cols-3 gap-2">
-          <label class="text-xs text-slate-400">Tier A ≥${inp('sTA', st.tiers.A, 'type="number" min="1" max="100"')}</label>
-          <label class="text-xs text-slate-400">Tier B ≥${inp('sTB', st.tiers.B, 'type="number" min="1" max="100"')}</label>
-          <label class="text-xs text-slate-400">Tier C ≥${inp('sTC', st.tiers.C, 'type="number" min="1" max="100"')}</label>
-        </div>`)}
-      ${card('Liquidity gates by market', 'In each market’s own currency. Stocks below either gate are never shortlisted.', `
-        <table class="w-full text-sm"><thead class="text-[11px] uppercase tracking-wide text-slate-400 text-left"><tr><th scope="col" class="py-1">Market</th><th scope="col" class="py-1 px-2">Min price</th><th scope="col" class="py-1">Min avg traded value / day</th></tr></thead>
-        <tbody>${MARKET_CODES.map(c => { const M = MARKETS[c]; return `<tr><td class="py-1.5 pr-2 whitespace-nowrap">${flagTag(M)} ${M.name} <span class="text-[11px] text-slate-500">${M.ccy}</span></td>
-          <td class="py-1.5 px-2"><input type="number" min="0" step="0.5" data-gate="${c}:minPrice" value="${st.gates[c].minPrice}" aria-label="${M.name} minimum price in ${M.ccy}" class="w-24 h-9 rounded-lg bg-ink border border-line px-2 text-right num"></td>
-          <td class="py-1.5"><input type="number" min="0" step="100000" data-gate="${c}:minValue" value="${st.gates[c].minValue}" aria-label="${M.name} minimum traded value in ${M.ccy}" class="w-full h-9 rounded-lg bg-ink border border-line px-2 text-right num"></td></tr>`; }).join('')}</tbody></table>
-        <p class="mt-1 text-[11px] text-slate-500">India default ₹5 crore/day; Canada C$1M; USA $2M.</p>`)}
-      ${card('Catalysts & regime', '', `
-        <div class="grid sm:grid-cols-2 gap-3">
-          <label class="text-xs text-slate-400">Earnings inside the window
-            <select id="sEarn" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"><option value="boost">Boost score (catalyst)</option><option value="risk">Flag as risk (no boost)</option></select></label>
-          <label class="text-xs text-slate-400">Catalyst window (sessions)${inp('sWin', st.catalystWindow, 'type="number" min="1" max="30"')}</label>
-          <label class="text-xs text-slate-400 sm:col-span-2">Market-regime filter (each market's index vs its 200-day MA)
-            <select id="sRegime" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"><option value="downgrade">Downgrade tiers when the index is below its 200-day</option><option value="strict">Strict: no longs when the index is below its 200-day</option><option value="off">Off (note only)</option></select></label>
-        </div>`)}
-      ${card('Alerts', 'In-app alerts are always kept. Browser notifications need permission; the webhook receives a JSON POST (Slack/Discord-style incoming webhooks).', `
-        <div class="space-y-2 text-sm">
-          <label class="flex items-center gap-2"><input id="aNewA" type="checkbox" class="accent-emerald-400" ${st.alerts.newA ? 'checked' : ''}> New A-tier setup appears</label>
-          <label class="flex items-center gap-2"><input id="aEntry" type="checkbox" class="accent-emerald-400" ${st.alerts.entry ? 'checked' : ''}> Tracked pick hits its entry zone</label>
-          <label class="flex items-center gap-2"><input id="aBrowser" type="checkbox" class="accent-emerald-400" ${st.alerts.browser ? 'checked' : ''}> Browser notifications</label>
-          <label class="flex items-center gap-2"><input id="sAutoRun" type="checkbox" class="accent-emerald-400" ${st.autoRun ? 'checked' : ''}> Auto-run each market after its close while this page is open</label>
-          <label class="block text-xs text-slate-400 pt-1">Webhook URL (https, optional)
-            <input id="aHook" type="url" value="${U.esc(st.alerts.webhook)}" placeholder="https://hooks.example.com/…" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100"></label>
-          <button type="button" data-action="testAlert" class="h-8 px-3 rounded-lg border border-line text-xs hover:bg-panel2">Send test alert</button>
-        </div>`)}
-      </div>
-      <div class="mt-4 flex flex-wrap items-center gap-3">
-        <button type="button" id="saveSettings" class="h-10 px-5 rounded-lg bg-emerald-500 text-ink font-semibold text-sm hover:bg-emerald-400 disabled:opacity-40 disabled:cursor-not-allowed">Save & re-rank</button>
-        <button type="button" data-action="resetSettings" class="h-10 px-4 rounded-lg border border-line text-sm hover:bg-panel2">Restore defaults</button>
-        <p id="settingsErr" class="text-xs text-rose-300" role="alert"></p>
-      </div>
 
-      <section id="liveCard" class="mt-6 rounded-xl border border-emerald-500/30 bg-panel p-4">
-        <div class="flex flex-wrap items-start gap-2">
-          <div class="flex-1 min-w-[240px]"><h2 class="font-semibold">Live market data <span class="ml-1 text-[11px] font-normal px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-300">self-updating</span></h2>
-          <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">A free nightly GitHub Action (the <strong class="text-slate-300">scanner-data-kit</strong>) downloads end-of-day prices for all three markets — USA from Massive, India from NSE's official bhavcopy, Canada from Yahoo Finance (optional paid EODHD covers all three) — and saves them to your private repo. The app reads that feed on open, caches it on this device, and checks for new data every 30 minutes. No CSV files, no daily work.</p></div>
-        </div>
-        <div class="mt-4 grid lg:grid-cols-2 gap-5">
-          <div>
-            <p class="text-xs text-slate-400 mb-1.5">Data source per market</p>
-            <div class="space-y-2">${MARKET_CODES.map(c => { const M = MARKETS[c], cur = st.sources[c], ds = S().mkts[c]?.ds; return `<div class="flex items-center gap-3"><span class="w-24 text-sm">${flagTag(M)} ${M.name}</span>
-              <div class="inline-flex rounded-lg ring-1 ring-line overflow-hidden" role="radiogroup" aria-label="${M.name} data source">${['demo', 'live'].map(v => `<label class="cursor-pointer"><input type="radio" name="src-${c}" value="${v}" class="sr-only peer" ${cur === v ? 'checked' : ''}><span class="block px-3 h-8 leading-8 text-xs peer-checked:bg-emerald-500/20 peer-checked:text-emerald-200 peer-focus-visible:ring-2 peer-focus-visible:ring-emerald-400 text-slate-400">${v === 'demo' ? 'Demo' : 'Live feed'}</span></label>`).join('')}</div>
-              <span class="text-[11px] text-slate-500 truncate">${ds ? (ds.source === 'live' ? 'live · ' + fmt.dateShort(ds.asOf) : ds.source) : ''}</span></div>`; }).join('')}</div>
-          </div>
-          <div>
-            <p class="text-xs text-slate-400 mb-1.5">Where the feed lives</p>
-            <div class="flex gap-4 text-sm mb-2">
-              <label class="inline-flex items-center gap-1.5"><input type="radio" name="feedMode" value="github" class="accent-emerald-400" ${st.feed.mode === 'github' ? 'checked' : ''}> Private GitHub repo</label>
-              <label class="inline-flex items-center gap-1.5"><input type="radio" name="feedMode" value="url" class="accent-emerald-400" ${st.feed.mode === 'url' ? 'checked' : ''}> Web URL</label>
-            </div>
-            <div id="feedGithub" class="grid grid-cols-3 gap-2 ${st.feed.mode === 'github' ? '' : 'hidden'}">
-              <label class="text-xs text-slate-400">Owner<input id="fdOwner" value="${U.esc(st.feed.owner)}" placeholder="your-github-name" autocomplete="off" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
-              <label class="text-xs text-slate-400">Repository<input id="fdRepo" value="${U.esc(st.feed.repo)}" placeholder="scanner-data" autocomplete="off" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
-              <label class="text-xs text-slate-400">Branch<input id="fdBranch" value="${U.esc(st.feed.branch || 'data')}" autocomplete="off" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
-              <label class="col-span-3 text-xs text-slate-400">Read-only access token <span class="text-slate-500">(fine-grained, this repo only, Contents: read)</span>
-                <input id="fdToken" type="password" value="${U.esc(st.feed.token)}" placeholder="github_pat_…" autocomplete="off" spellcheck="false" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100 font-mono"></label>
-              <p class="col-span-3 text-[11px] text-slate-500">The token is stored only in this browser and sent only to api.github.com.</p>
-            </div>
-            <div id="feedUrl" class="${st.feed.mode === 'url' ? '' : 'hidden'}">
-              <label class="text-xs text-slate-400">Base URL (folder containing meta.json, US.json, CA.json, IN.json; must allow CORS)
-                <input id="fdBase" type="url" value="${U.esc(st.feed.baseUrl)}" placeholder="https://example.com/scanner-feed" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></label>
-            </div>
-          </div>
-        </div>
-        <div class="mt-4 flex flex-wrap items-center gap-2">
-          <button type="button" data-action="testFeed" class="h-9 px-4 rounded-lg border border-line text-sm hover:bg-panel2">Test connection</button>
-          <button type="button" data-action="saveFeed" class="h-9 px-4 rounded-lg bg-emerald-500 text-ink text-sm font-semibold hover:bg-emerald-400">Save & load data</button>
-          <p id="feedErr" class="text-xs text-rose-300 break-words" role="alert"></p>
-        </div>
-        <div id="feedResult" class="mt-3" aria-live="polite"></div>
-      </section>
-
-      <div class="mt-4 grid lg:grid-cols-2 gap-4">
-        ${card('Demo data', 'Synthetic, reproducible markets with planted setups and data defects so every feature can be exercised. Each market has its own currency, sector mix, calendar and index.', `
-          <div class="grid grid-cols-3 gap-3">
-            <label class="text-xs text-slate-400">Market
-              <select id="dMkt" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">${MARKET_CODES.map(c => `<option value="${c}">${MARKETS[c].name}</option>`).join('')}</select></label>
-            <label class="text-xs text-slate-400">Universe size
-              <select id="dUni" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"><option value="300">300</option><option value="700">700</option><option value="1200">1,200</option><option value="1500">1,500</option><option value="3000">3,000</option><option value="6000">6,000 (stress)</option></select></label>
-            <label class="text-xs text-slate-400">Random seed${inp('dSeed', st.demo[dm].seed, 'type="number" min="1" max="999999" step="1"')}</label>
-          </div>
-          <p id="dLabel" class="mt-2 text-[11px] text-slate-500"></p>
-          <button type="button" data-action="reloadDemo" class="mt-3 h-9 px-4 rounded-lg border border-emerald-500/40 text-emerald-300 text-sm hover:bg-emerald-500/10">Generate & run full pipeline</button>`)}
-        ${card('Import your own data (CSV)', 'Long-format daily bars, split-adjusted, in the chosen market’s currency. Parsed locally — nothing is uploaded.', `
-          <label class="block text-xs text-slate-400">Import into market
-            <select id="csvMkt" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">${MARKET_CODES.map(c => `<option value="${c}">${MARKETS[c].name} (${MARKETS[c].ccy})</option>`).join('')}</select></label>
-          <div id="dropZone" class="mt-3 rounded-lg border border-dashed border-line p-4 text-center text-sm text-slate-400">
-            <p>Drop a prices CSV here, or</p>
-            <label class="mt-2 inline-flex h-9 px-3 items-center rounded-lg border border-line text-slate-200 cursor-pointer hover:bg-panel2">Choose prices file<input id="csvPrices" type="file" accept=".csv,text/csv" class="sr-only"></label>
-            <p id="csvName" class="mt-2 text-xs text-slate-500"></p>
-          </div>
-          <label class="mt-3 block text-xs text-slate-400">Fundamentals CSV (optional)
-            <input id="csvFund" type="file" accept=".csv,text/csv" class="mt-1 block w-full text-xs text-slate-300 file:mr-3 file:h-8 file:px-3 file:rounded-lg file:border-0 file:bg-panel2 file:text-slate-200"></label>
-          <pre class="mt-3 text-[11px] text-slate-400 bg-ink border border-line rounded-lg p-2.5 overflow-x-auto scroll-thin">ticker,date,open,high,low,close,volume
-RELIANCE,2026-10-22,2841.10,2866.35,2830.90,2860.20,5834500
-
-# optional fundamentals.csv
-ticker,name,sector,marketCap,revGrowth,epsGrowth,opMargin,
-ocfPositive,debtToEquity,pe,peg,nextEarnings</pre>
-          <p class="mt-1 text-[11px] text-slate-500">Index for the regime filter: include SPY (USA), XIC or XIU (Canada) or NIFTYBEES (India); otherwise an equal-weight index is built. Needs ≥ 60 sessions (≥ 253 for 52-week breakouts, ≥ 1.2 years for probability calibration).</p>
-          <div class="mt-3 flex flex-wrap gap-2">
-            <button type="button" data-action="importCsv" class="h-9 px-4 rounded-lg bg-emerald-500 text-ink text-sm font-semibold hover:bg-emerald-400">Import & scan</button>
-            <button type="button" data-action="sampleCsv" class="h-9 px-3 rounded-lg border border-line text-sm hover:bg-panel2">Download sample</button>
-          </div>
-          <p id="csvErr" class="mt-2 text-xs text-rose-300 break-words" role="alert"></p>`)}
-      </div>
-      <section class="mt-4 rounded-xl border border-rose-500/20 bg-panel p-4">
-        <h2 class="font-semibold text-sm">Local data</h2>
-        <p class="text-xs text-slate-400 mt-0.5">Settings, alerts and the paper log are stored in this browser only.</p>
-        <button type="button" data-action="wipe" class="mt-3 h-9 px-4 rounded-lg border border-rose-500/40 text-rose-300 text-sm hover:bg-rose-500/10">Clear all saved data</button>
-      </section>`;
-    $('sEarn').value = st.earningsMode; $('sRegime').value = st.regimeFilter;
-    $('dMkt').value = dm; $('csvMkt').value = dm;
-    UI.demoFields();
-    UI.validateSettings();
-  },
-  readFeedForm() {
-    const mode = document.querySelector('input[name="feedMode"]:checked')?.value || 'github';
-    const cfg = { mode, owner: $('fdOwner').value.trim(), repo: $('fdRepo').value.trim(), branch: $('fdBranch').value.trim() || 'data', token: $('fdToken').value.trim(), baseUrl: $('fdBase').value.trim() };
-    if (mode === 'github') {
-      if (!/^[A-Za-z0-9-]{1,39}$/.test(cfg.owner)) return { error: 'Enter the GitHub owner (user or organisation name).' };
-      if (!/^[A-Za-z0-9_.-]{1,100}$/.test(cfg.repo)) return { error: 'Enter the repository name.' };
-      if (!/^[A-Za-z0-9._\/-]{1,100}$/.test(cfg.branch)) return { error: 'Branch name is not valid.' };
-      if (cfg.token && !/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(cfg.token)) return { error: 'That doesn’t look like a GitHub token (it should start with github_pat_).' };
-    } else {
-      try { if (new URL(cfg.baseUrl).protocol !== 'https:') return { error: 'The feed URL must use https.' }; } catch { return { error: 'Enter a valid feed URL.' }; }
-    }
-    return { cfg };
-  },
-  demoFields() {
-    const c = $('dMkt').value, d = S().settings.demo[c], ds = S().mkts[c]?.ds;
-    $('dUni').value = String(d.universe); $('dSeed').value = d.seed;
-    $('dLabel').textContent = `Currently loaded: ${ds ? ds.label : 'not loaded'}. 6,000 tickers needs ~150 MB of memory; best on desktop.`;
-  },
-
-  validateSettings() {
-    const errs = [], w = {};
-    document.querySelectorAll('[data-weight]').forEach(i => { const v = Number(i.value); w[i.dataset.weight] = v; i.classList.toggle('border-rose-500', !(Number.isInteger(v) && v >= 0 && v <= 100)); });
-    const sum = Object.values(w).reduce((a, b) => a + (Number.isFinite(b) ? b : 0), 0);
-    if (Object.values(w).some(v => !Number.isInteger(v) || v < 0 || v > 100)) errs.push('Weights must be whole numbers from 0 to 100.');
-    const ws = $('wSum');
-    if (ws) { ws.textContent = `Total: ${sum}%${sum === 100 ? ' ✓' : ` — must equal 100 (${sum > 100 ? 'remove' : 'add'} ${Math.abs(100 - sum)})`}`; ws.className = `mt-2 text-xs ${sum === 100 ? 'text-emerald-300' : 'text-rose-300'}`; }
-    if (sum !== 100) errs.push('Weights must total 100%.');
-    const A = +$('sTA').value, B = +$('sTB').value, C = +$('sTC').value;
-    if (![A, B, C].every(x => Number.isFinite(x) && x > 0 && x <= 100)) errs.push('Tier thresholds must be between 1 and 100.');
-    else if (!(A > B && B > C)) errs.push('Tier thresholds must satisfy A > B > C.');
-    const gates = structuredClone(S().settings.gates);
-    document.querySelectorAll('[data-gate]').forEach(i => {
-      const [c, k] = i.dataset.gate.split(':'), v = Number(i.value), ok = i.value !== '' && Number.isFinite(v) && v >= 0;
-      i.classList.toggle('border-rose-500', !ok);
-      if (!ok) errs.push(`${MARKETS[c].name} ${k === 'minPrice' ? 'minimum price' : 'minimum traded value'} must be 0 or more.`); else gates[c][k] = v;
-    });
-    const win = +$('sWin').value;
-    if (!(Number.isInteger(win) && win >= 1 && win <= 30)) errs.push('Catalyst window must be a whole number from 1 to 30.');
-    const hook = $('aHook').value.trim();
-    if (hook) { try { if (new URL(hook).protocol !== 'https:') errs.push('Webhook must use https.'); } catch { errs.push('Webhook URL is not valid.'); } }
-    $('settingsErr').textContent = errs[0] || '';
-    $('saveSettings').disabled = errs.length > 0;
-    if (errs.length) return null;
-    return { weights: w, tiers: { A, B, C }, gates, catalystWindow: win, earningsMode: $('sEarn').value, regimeFilter: $('sRegime').value, autoRun: $('sAutoRun').checked,
-      alerts: { newA: $('aNewA').checked, entry: $('aEntry').checked, browser: $('aBrowser').checked, webhook: hook } };
-  }
 };
 
 /* =====================================================================
@@ -3034,6 +3254,16 @@ function wire() {
     try {
       switch (act.dataset.action) {
         case 'closeDrawer': UI.closeDrawer(); break;
+        case 'changeName': $('nameInput').value = Visit.name(); $('nameErr').textContent = ''; UI.askName(); break;
+        case 'copyText': try { await navigator.clipboard.writeText(act.dataset.text); UI.toast('Copied.', 'ok'); } catch { UI.toast('Couldn’t copy — select the text and copy it yourself.', 'warn'); } break;
+        case 'toggleMatch': Store.set({ filters: { ...S().filters, match: !S().filters.match } }); break;
+        case 'watchAdd': {
+          const { m, sym, key } = act.dataset;
+          try { Watch.add(m, sym, key, +act.dataset.hold || S().settings.bt.hold); UI.toast(`◆ Watching ${sym} with ${key === 'auto' ? 'its best strategy' : Watch.label(key)} — you’ll get an alert when it signals. See the Strategy watch tab.`, 'ok'); }
+          catch (ex) { UI.toast(ex.message, 'warn'); }
+          break;
+        }
+        case 'watchRemove': if (confirm('Stop watching this stock?')) Watch.remove(act.dataset.id); break;
         case 'myRemove': {
           const { m, sym } = act.dataset;
           if (confirm(`Remove ${sym} from your ${MARKETS[m].name} stocks? It will still be scanned if it passes the normal filters.`)) { await MyStocks.remove(m, sym); UI.toast(`${sym} removed.`, 'ok'); }
@@ -3059,71 +3289,6 @@ function wire() {
           U.download('paper-log.csv', ['market,currency,ticker,picked,tier,score,est_probability_pct,trigger_event,status,entry,stop,target,fill_date,fill_px,exit_date,exit_px,return_pct', ...lines].join('\n'));
           break;
         }
-        case 'testAlert': {
-          const patch = UI.validateSettings(); if (!patch) return;
-          if (patch.alerts.browser && 'Notification' in window && Notification.permission === 'default') await Notification.requestPermission();
-          Object.assign(S().settings.alerts, patch.alerts);
-          Alerts.push('newA', 'Test alert: delivery channels are working.');
-          UI.toast('Test alert sent.', 'ok'); break;
-        }
-        case 'resetSettings': {
-          const keep = { market: S().settings.market, demo: S().settings.demo };
-          S().settings = Object.assign(structuredClone(DEFAULTS), keep); Store.persist(); UI.settings(); App.rescore(); UI.toast('Defaults restored.', 'ok'); break;
-        }
-        case 'reloadDemo': {
-          const c = $('dMkt').value, uni = +$('dUni').value, seed = Number($('dSeed').value);
-          if (!Number.isInteger(seed) || seed < 1 || seed > 999999) { $('settingsErr').textContent = 'Seed must be a whole number from 1 to 999,999.'; return; }
-          S().settings.demo[c] = { universe: uni, seed }; Store.persist();
-          Store.set({ tab: 'pipeline' });
-          await App.run({ codes: [c], fresh: true, reason: `${MARKETS[c].name} demo regeneration` });
-          break;
-        }
-        case 'sampleCsv': { const M = MARKETS[$('csvMkt').value]; U.download(`sample-prices-${M.code}.csv`, CsvProvider.sample(M)); break; }
-        case 'importCsv': {
-          const err = $('csvErr'); err.textContent = '';
-          const pf = $('csvPrices').files[0] || UI.droppedFile, ff = $('csvFund').files[0], M = MARKETS[$('csvMkt').value];
-          if (!pf) { err.textContent = 'Choose a prices CSV first.'; return; }
-          act.disabled = true; act.textContent = 'Parsing…';
-          try {
-            const [pt, ft] = await Promise.all([readFile(pf), ff ? readFile(ff) : Promise.resolve(null)]);
-            const raw = CsvProvider.build(pt, ft, M);
-            if (!view().includes(M.code)) { S().settings.market = M.code; Store.persist(); }
-            Store.set({ tab: 'watchlist', settings: S().settings });
-            await App.run({ codes: [M.code], pending: raw, reason: 'CSV import' });
-            UI.filterOptions();
-            UI.toast(`Imported ${raw.tickers.length} ${M.name} tickers.`, 'ok');
-          } catch (ex) { err.textContent = ex.message; }
-          finally { act.disabled = false; act.textContent = 'Import & scan'; }
-          break;
-        }
-        case 'testFeed': case 'saveFeed': {
-          const err = $('feedErr'), out = $('feedResult'); err.textContent = '';
-          const f = UI.readFeedForm(); if (f.error) { err.textContent = f.error; return; }
-          const sources = Object.fromEntries(MARKET_CODES.map(c => [c, document.querySelector(`input[name="src-${c}"]:checked`)?.value || 'demo']));
-          if (act.dataset.action === 'saveFeed' && Object.values(sources).every(v => v === 'demo')) {
-            S().settings.feed = f.cfg; Store.persist(); UI.toast('Saved. Switch a market to “Live feed” to use it.', 'ok'); return;
-          }
-          act.disabled = true; const label = act.textContent; act.textContent = 'Checking…';
-          try {
-            const meta = await Feed.get(f.cfg, 'meta.json');
-            out.innerHTML = `<div class="rounded-lg border border-line bg-ink p-3 text-xs"><p class="text-emerald-300 font-medium">Connected · feed generated ${meta.generated ? new Date(meta.generated).toLocaleString() : '—'}</p>
-              <table class="mt-2 w-full"><thead class="text-slate-500 text-left"><tr><th class="py-1">Market</th><th>As of</th><th class="text-right">Tickers</th><th class="text-right">Sessions</th><th class="pl-3">Source</th></tr></thead><tbody>
-              ${MARKET_CODES.map(c => { const m = meta.markets?.[c]; return `<tr class="border-t border-line/60"><td class="py-1">${flagTag(MARKETS[c])} ${MARKETS[c].name}</td><td>${m ? fmt.date(m.asOf) : '<span class="text-amber-300">not yet</span>'}</td><td class="text-right num">${m ? fmt.num(m.tickers) : '—'}</td><td class="text-right num">${m ? m.sessions : '—'}</td><td class="pl-3 text-slate-400">${m ? U.esc(m.source) : ''}${m?.warnings?.length ? ` <span class="text-amber-300" title="${U.esc(m.warnings.join(' | '))}">⚠ ${m.warnings.length}</span>` : ''}</td></tr>`; }).join('')}
-              </tbody></table></div>`;
-            if (act.dataset.action === 'saveFeed') {
-              const missing = MARKET_CODES.filter(c => sources[c] === 'live' && !meta.markets?.[c]);
-              if (missing.length) { err.textContent = `No data yet for ${missing.map(c => MARKETS[c].name).join(', ')} — keep those on Demo until the workflow has run.`; return; }
-              const changed = MARKET_CODES.filter(c => sources[c] !== S().settings.sources[c] || (sources[c] === 'live' && JSON.stringify(f.cfg) !== JSON.stringify(S().settings.feed)));
-              S().settings.feed = f.cfg; S().settings.sources = sources; Store.persist(); GH._branch = null; MyStocks.pull();
-              const reload = changed.filter(c => view().includes(c) || S().mkts[c]?.ds);
-              UI.toast('Live feed saved.', 'ok');
-              if (reload.length) { Store.set({ tab: 'watchlist' }); await App.run({ codes: reload, fresh: true, reason: 'Switched data source' }); UI.filterOptions(); }
-            }
-          } catch (ex) { err.textContent = ex.message; out.innerHTML = ''; }
-          finally { act.disabled = false; act.textContent = label; }
-          break;
-        }
-        case 'wipe': if (confirm('Delete saved settings, alerts and the paper log from this browser?')) { try { localStorage.removeItem(Persist.key); } catch { } Idb.clear(); setTimeout(() => location.reload(), 200); } break;
       }
     } catch (ex) { console.error(ex); UI.toast(ex.message || 'Something went wrong.', 'error'); }
   });
@@ -3141,29 +3306,6 @@ function wire() {
     }
   });
 
-  $('settingsView').addEventListener('input', () => UI.validateSettings());
-  $('settingsView').addEventListener('change', e => {
-    if (e.target.name === 'feedMode') { $('feedGithub').classList.toggle('hidden', e.target.value !== 'github'); $('feedUrl').classList.toggle('hidden', e.target.value !== 'url'); }
-    if (e.target.id === 'csvPrices' && e.target.files[0]) { UI.droppedFile = null; $('csvName').textContent = e.target.files[0].name; }
-    if (e.target.id === 'dMkt') UI.demoFields();
-    UI.validateSettings();
-  });
-  $('settingsView').addEventListener('click', async e => {
-    if (e.target.id !== 'saveSettings') return;
-    const patch = UI.validateSettings(); if (!patch) return;
-    if (patch.alerts.browser && 'Notification' in window && Notification.permission === 'default') {
-      if (await Notification.requestPermission() !== 'granted') { patch.alerts.browser = false; UI.toast('Browser notifications were not allowed.', 'warn'); }
-    }
-    deepMerge(S().settings, patch); Store.persist(); App.rescore(); UI.settings(); Store.set({ bt: null });
-    UI.toast('Settings saved — watchlist re-ranked and probabilities refitted.', 'ok');
-  });
-  $('settingsView').addEventListener('dragover', e => { if (e.target.closest('#dropZone')) { e.preventDefault(); $('dropZone').classList.add('border-emerald-400'); } });
-  $('settingsView').addEventListener('dragleave', e => { if (e.target.closest('#dropZone')) $('dropZone').classList.remove('border-emerald-400'); });
-  $('settingsView').addEventListener('drop', e => {
-    if (!e.target.closest('#dropZone')) return;
-    e.preventDefault(); $('dropZone').classList.remove('border-emerald-400');
-    const file = e.dataTransfer.files[0]; if (file) { UI.droppedFile = file; $('csvName').textContent = file.name; }
-  });
   $('paperView').addEventListener('change', e => { if (e.target.id === 'pAuto') { S().settings.autoTrackA = e.target.checked; Store.persist(); } });
 
   // My stocks
@@ -3177,6 +3319,38 @@ function wire() {
   });
   $('myInput').addEventListener('input', () => { $('myErr').textContent = ''; });
   $('fMine').addEventListener('click', () => Store.set({ filters: { ...S().filters, mine: !S().filters.mine } }));
+
+  // Alert options (everyone)
+  document.querySelectorAll('[data-alertopt]').forEach(c => {
+    c.checked = !!S().settings.alerts[c.dataset.alertopt];
+    c.addEventListener('change', async () => {
+      const k = c.dataset.alertopt;
+      if (k === 'browser' && c.checked && 'Notification' in window && Notification.permission !== 'granted') {
+        if (await Notification.requestPermission() !== 'granted') { c.checked = false; UI.toast('Browser notifications weren’t allowed.', 'warn'); }
+      }
+      S().settings.alerts[k] = c.checked; Store.persist();
+    });
+  });
+
+  // Strategy watch
+  $('wMarket').addEventListener('change', () => { $('wStock').value = ''; UI.watchForm(); });
+  $('wForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    const m = $('wMarket').value, M = MARKETS[m], err = $('wErr'); err.textContent = '';
+    const sym = $('wStock').value.trim().toUpperCase().replace(/^★\s*/, '').split(/\s+/)[0].replace(/\.(TO|NS|NSE|BO|US)$/, '');
+    if (!sym) { err.textContent = 'Type or pick a stock first.'; return; }
+    if (!S().mkts[m]?.ds) { await App.run({ codes: [m], reason: `Loading ${M.name}` }); UI.watchForm(); }
+    const ds = S().mkts[m]?.ds;
+    if (!ds?.tickers.some(t => t.sym === sym)) { err.textContent = `${sym} isn’t in the ${M.name} data. Pick from the list${ds?.source === 'live' ? ', or add it under ★ My stocks so the next data update downloads it' : ''}.`; return; }
+    try { Watch.add(m, sym, $('wKey').value, S().settings.bt.hold); $('wStock').value = ''; UI.toast(`◆ Watching ${sym}.`, 'ok'); }
+    catch (ex) { err.textContent = ex.message; }
+  });
+  $('wCheck').addEventListener('click', async () => {
+    const need = [...new Set(Watch.list().map(w => w.m))].filter(c => !S().mkts[c]?.ds);
+    if (need.length) await App.run({ codes: need, reason: 'Loading markets for Strategy watch' });
+    const n = Watch.evaluate(MARKET_CODES, true);
+    UI.toast(n ? `${n} new strategy signal(s) — see the bell menu.` : 'Checked — no new signals.', n ? 'ok' : 'info');
+  });
 
   // Backtest one stock
   const runStock = async () => {
@@ -3235,10 +3409,18 @@ Store.on(['paper'], () => { if (S().tab === 'paper') UI.paper(); });
 Store.on(['alerts'], () => { if (!$('alertsPanel').classList.contains('hidden')) UI.alertsList(); });
 Store.on(['bt', 'btBusy', 'busy'], () => { if (S().tab === 'backtest') UI.btForm(); });
 Store.on(['sbt', 'sbtBusy'], () => { if (S().tab === 'backtest') UI.sbForm(); });
+Store.on(['bestTick', 'bestProg'], () => { if (S().tab === 'watchlist') UI.results(); });
+Store.on(['watchTick', 'settings'], () => UI.watch());
+Store.on(['busy'], () => { if (S().tab === 'watch') $('wCheck').disabled = S().busy; });
 Store.on(['results', 'settings', 'mkts', 'mySync'], () => UI.myStocks());
 
-function boot() {
+async function boot() {
+  await Shared.load();
+  if (!Admin.is) Shared.apply();
+  Visit.track('market', S().settings.market === 'ALL' ? 'All' : MARKETS[S().settings.market].name);
   wire();
+  UI.whoLine();
+  Visit.start();
   if (!S().disclaimerSeen) $('disclaimer').classList.remove('hidden');
   $('fTop').value = String(S().filters.top); $('fSort').value = S().sort;
   UI.filterOptions(); UI.tabs(); UI.header(); UI.stats(); UI.results(); UI.tierChips(); UI.schedule(); UI.myStocks();

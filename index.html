@@ -157,7 +157,7 @@
       </label>
       <label class="text-xs text-slate-400">Sort by
         <select id="fSort" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">
-          <option value="prob">Highest probability</option><option value="score">Composite score</option><option value="upside">Upside to target</option><option value="rr">Reward : risk</option><option value="sym">Ticker A–Z</option>
+          <option value="prob">Highest probability</option><option value="tech">Tech check (buy first)</option><option value="score">Composite score</option><option value="upside">Upside to target</option><option value="rr">Reward : risk</option><option value="sym">Ticker A–Z</option>
         </select>
       </label>
       <label class="text-xs text-slate-400">Sector
@@ -177,6 +177,11 @@
         <button type="button" data-tier="B" class="tierChip">B</button>
         <button type="button" data-tier="C" class="tierChip">C</button>
         <button type="button" id="fMine" aria-pressed="false" class="h-8 px-2.5 rounded-lg text-sm ring-1 ring-line text-slate-400">★ Mine</button>
+        <label class="ml-2 text-xs text-slate-400">Tech check
+          <select id="fTech" class="ml-1 h-8 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">
+            <option value="all">All</option><option value="stage-early">🌱 Early-entry zone</option><option value="buys">Any buy signal</option><option value="buy">BUY NOW</option><option value="early">BUY EARLY</option><option value="trigger">BUY ABOVE</option><option value="dip">BUY ON DIP</option><option value="wait">WAIT</option><option value="avoid">AVOID</option>
+          </select>
+        </label>
         <label class="ml-2 text-xs text-slate-400">Show
           <select id="fTop" class="ml-1 h-8 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">
             <option value="25">Top 25</option><option value="50">Top 50</option><option value="100">Top 100</option><option value="0">All</option>
@@ -333,7 +338,7 @@
     StrikeZone ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-01.11 · public</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-02.1 · public</p>
   </div>
 </footer>
 
@@ -618,7 +623,7 @@ const Store = (() => {
     tab: 'watchlist',
     mkts: {},            // code -> { ds, scan, cal, fit }
     results: [],         // ranked rows for the markets in view
-    filters: { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: 25, mine: false },
+    filters: { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: 25, mine: false, tech: 'all' },
     mySync: { state: 'idle', msg: '' },
     sbt: null, sbtBusy: false,
     bestTick: 0, bestProg: null, watchTick: 0, pfTick: 0, acct: 0, finder: null,
@@ -1336,6 +1341,181 @@ const Finder = {
   }
 };
 
+/** Technical check: reads a shortlisted stock the way a chart analyst would (trend, strength vs the market, RSI, Bollinger
+ *  Bands, MACD, volume, overhead resistance, entry timing) and turns it into one action: BUY NOW, BUY ABOVE (wait for the
+ *  trigger), BUY ON DIP (stretched), WAIT (mixed) or AVOID — with a 0–100 technical score and the reasons. */
+const Tech = {
+  _c: new Map(),
+  V: {
+    buy:     { label: 'BUY NOW',   cls: 'bg-emerald-500 text-ink',                                   dot: '#34d399', order: 0, desc: 'Strong setup, good timing' },
+    early:   { label: 'BUY EARLY', cls: 'bg-lime-400 text-ink',                                      dot: '#a3e635', order: 1, desc: 'Start of a possible new trend — higher low holding, entry close to the low, tight stop' },
+    trigger: { label: 'BUY ABOVE', cls: 'bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/70', dot: '#6ee7b7', order: 2, desc: 'Strong setup — buy only if it breaks the trigger price' },
+    dip:     { label: 'BUY ON DIP', cls: 'bg-sky-500/20 text-sky-100 ring-1 ring-sky-400/60',        dot: '#38bdf8', order: 3, desc: 'Strong stock, but stretched — wait for a pullback' },
+    wait:    { label: 'WAIT',      cls: 'bg-amber-500/20 text-amber-100 ring-1 ring-amber-400/60',  dot: '#fbbf24', order: 4, desc: 'Mixed signals — not yet' },
+    avoid:   { label: 'AVOID',     cls: 'bg-rose-500/25 text-rose-100 ring-1 ring-rose-400/60',     dot: '#fb7185', order: 5, desc: 'Weak technicals — skip (sell if you own it)' }
+  },
+  TONE: { good: '#34d399', ok: '#94a3b8', warn: '#fbbf24', bad: '#fb7185' },
+  of(r) {
+    const k = `${r.key}|${r.ds.stamp || ''}|${r.ds.cursor}|${r.cd.i}`;
+    if (!this._c.has(k)) { if (this._c.size > 3000) this._c.clear(); let v = null; try { v = this.assess(r.ds, r.cd.ti, r.cd); } catch (e) { console.warn('tech', e); } this._c.set(k, v); }
+    return this._c.get(k);
+  },
+  idx50(ds) { if (!ds.index._sma50) ds.index._sma50 = Ind.sma(ds.index.c, 50); return ds.index._sma50; },
+  assess(ds, ti, cd) {
+    const tk = ds.tickers[ti], M = ds.M, x = Ind.compute(tk, M), i = cd.i, c = x.c[i], p = cd.plan, atr = x.atr[i];
+    const F = Number.isFinite, checks = [], px = v => fmt.px(v, M), pc = (v, d = 0) => fmt.pct(v, d), stretched = [];
+    const add = (key, label, value, tone, pts, text) => checks.push({ key, label, value, tone, pts, text });
+    const back = n => Math.max(tk.start, i - n);
+    // 1. Trend
+    const s20 = x.sma20[i], s50 = x.sma50[i], s200 = x.sma200[i], sl50 = s50 / x.sma50[back(10)] - 1;
+    let trend;
+    if (F(s200)) {
+      if (c > s20 && s20 > s50 && s50 > s200 && sl50 > 0) trend = ['Strong uptrend', 'good', 2, `Price is above its 20-, 50- and 200-day averages, stacked in order, and the 50-day is rising (${pc(sl50, 1)} in 2 weeks).`];
+      else if (c > s50 && s50 > s200) trend = ['Uptrend', 'good', 1, `Price is above a 50-day average that sits above the 200-day — the main trend is up.`];
+      else if (c > s50 && c > s200) trend = ['Turning up', 'ok', .5, `Price is back above its 50- and 200-day averages, but the 50-day is still below the 200-day.`];
+      else if (c > s200) trend = ['Pullback', 'warn', -.5, `Price dipped below its 50-day average (${px(s50)}); the long-term trend (200-day ${px(s200)}) is still up.`];
+      else if (c > s50) trend = ['Bounce in downtrend', 'warn', -.5, `Price is above its 50-day but below the 200-day average (${px(s200)}) — a bounce inside a longer downtrend.`];
+      else trend = ['Downtrend', 'bad', -2, `Price is below its 50-day (${px(s50)}) and 200-day (${px(s200)}) averages — the trend is down.`];
+    } else trend = c > s50 && s20 > s50 ? ['Uptrend (short history)', 'good', 1, 'Price is above its 20- and 50-day averages (not enough history for a 200-day).'] : c > s50 ? ['Neutral', 'ok', 0, 'Price is above its 50-day average.'] : ['Downtrend', 'bad', -1.5, 'Price is below its 50-day average.'];
+    add('trend', 'Trend', trend[0], trend[1], trend[2], trend[3]);
+    // 1b. Trend stage: how far into the trend (early entries beat late ones)
+    x.idxc = ds.index.c; x.dates = ds.dates;
+    const sg = TrendStage.at(x, i, ds.index.c, true) || cd.stage, ss = TrendStage.stats(S().mkts[ds.m]), sst = sg && ss?.by[sg.code];
+    // Points come from this market's own history when there is enough of it: how often stocks at this stage reached +10% before a −7% drop, vs all setups
+    const edge = sst && sst.fN >= 80 && F(ss.first) ? sst.fH / sst.fN - ss.first : null;
+    const proof = sst && sst.fN >= 40 ? ` In ${M.name}’s past setups, stocks at this stage reached +10% before falling 7% in ${fmt.prob(sst.fH / sst.fN)} of cases (all setups: ${fmt.prob(ss.first)}).` : '';
+    const dflt = { early: 1.5, turning: .5, confirmed: 0, mid: 0, late: -.5, base: 0, down: 0 };
+    const sp = !sg ? 0 : ['base', 'down'].includes(sg.code) || edge === null ? dflt[sg.code] : U.clamp(edge / .05, -1.5, 1.5);
+    const stoneOf = v => v >= .5 ? 'good' : v <= -.5 ? 'warn' : 'ok';
+    if (sg?.code === 'late' && sp < 0) stretched.push('late in its trend');
+    const sT = !sg ? ['n/a', 'ok', 0, 'Not enough history to date the trend.'] : [TrendStage.LABEL[sg.code].t, sg.code === 'down' ? 'bad' : stoneOf(sp), sp, sg.text];
+    add('stage', 'Trend stage', sT[0], sT[1], sT[2], sT[3] + proof);
+    // 2. Strength vs the market (relative strength)
+    const ic = ds.index.c, i63 = back(63), i20 = back(20);
+    const rs63 = (c / x.c[i63]) / (ic[i] / ic[i63]) - 1, rs20 = (c / x.c[i20]) / (ic[i] / ic[i20]) - 1, r63 = c / x.c[i63] - 1, m63 = ic[i] / ic[i63] - 1;
+    const rsT = !F(rs63) ? ['n/a', 'ok', 0, 'Not enough history to compare with the market.']
+      : rs63 > .05 && rs20 > 0 ? ['Leader', 'good', 2, `Up ${pc(r63)} in 3 months vs the ${M.index} ${pc(m63)} — beating the market by ${pc(rs63)}, and still ahead over the last month (${pc(rs20)}).`]
+      : rs63 > 0 ? ['Slightly ahead', 'good', 1, `${pc(r63)} in 3 months vs the ${M.index} ${pc(m63)} — ahead of the market by ${pc(rs63)}.`]
+      : rs63 > -.05 ? ['In line', 'warn', -.5, `${pc(r63)} in 3 months vs the ${M.index} ${pc(m63)} — no better than the market.`]
+      : ['Laggard', 'bad', -1.5, `${pc(r63)} in 3 months vs the ${M.index} ${pc(m63)} — trailing the market by ${pc(-rs63)}. Leaders, not laggards, tend to make the big moves.`];
+    add('rs', 'vs Market', rsT[0], rsT[1], rsT[2], rsT[3]);
+    // 3. Market backdrop
+    const ma200 = ds.index.sma200[i], ma50 = this.idx50(ds), m50 = ma50[i], m50s = m50 / ma50[Math.max(0, i - 10)] - 1;
+    const mk = !F(ma200) ? ['n/a', 'ok', 0, `Not enough ${M.index} history.`]
+      : ic[i] > ma200 && ic[i] > m50 && m50s > 0 ? ['Uptrend', 'good', 1, `The ${M.index} is above its rising 50-day and its 200-day average — breakouts work best in this backdrop.`]
+      : ic[i] > ma200 ? ['Pulling back', 'ok', 0, `The ${M.index} is above its 200-day average but has slipped below a flattening 50-day — be a little more selective.`]
+      : ['Downtrend', 'bad', -1, `The ${M.index} is below its 200-day average — most stocks struggle and breakouts fail more often.`];
+    add('mkt', 'Market', mk[0], mk[1], mk[2], mk[3]);
+    // 4. RSI
+    const rsi = x.rsi[i], rsi5 = x.rsi[back(5)], up = trend[2] > 0, rvol = x.v[i] / x.av50[i - 1], isBreakout = cd.pats.some(q => PATTERNS[q.key]?.group === 'Breakout' || q.key === 'bullFlag' || q.key === 'cupHandle' || q.key === 'ascTriangle') && cd.pats[0].at === i;
+    const rT = !F(rsi) ? ['n/a', 'ok', 0, 'RSI not available.']
+      : rsi >= 78 ? (stretched.push(`RSI ${rsi.toFixed(0)}`), ['Overbought', 'bad', -1, `RSI ${rsi.toFixed(0)} — overbought. Buying here often means buying the top of a short-term run.`])
+      : rsi >= 70 && !(isBreakout && rvol >= 1.5) ? (stretched.push(`RSI ${rsi.toFixed(0)}`), ['Hot', 'warn', 0, `RSI ${rsi.toFixed(0)} — overbought territory without a volume-backed breakout. A small pullback usually gives a better entry.`])
+      : rsi >= 70 ? ['Hot breakout', 'ok', .5, `RSI ${rsi.toFixed(0)} — high, but normal on a breakout day backed by ${rvol.toFixed(1)}× volume. Don’t chase much above the entry zone.`]
+      : rsi >= 50 ? [rsi > rsi5 ? 'Healthy, rising' : 'Healthy', 'good', rsi > rsi5 ? 1.5 : 1, `RSI ${rsi.toFixed(0)} — bullish momentum without being overbought${rsi > rsi5 ? `, and rising (from ${rsi5.toFixed(0)} a week ago)` : ''}.`]
+      : rsi >= 40 ? ['Neutral', 'ok', 0, `RSI ${rsi.toFixed(0)} — no clear momentum either way.`]
+      : rsi >= 30 ? ['Weak', 'warn', -.5, `RSI ${rsi.toFixed(0)} — momentum is weak.`]
+      : up ? ['Oversold dip', 'ok', .5, `RSI ${rsi.toFixed(0)} — oversold inside an uptrend; these dips often bounce.`] : ['Oversold, falling', 'bad', -1, `RSI ${rsi.toFixed(0)} — oversold in a downtrend (a “falling knife”). Wait for it to turn up.`];
+    add('rsi', 'RSI (14)', F(rsi) ? rsi.toFixed(0) : '—', rT[1], rT[2], rT[3]); checks[checks.length - 1].value = `${F(rsi) ? rsi.toFixed(0) : '—'} · ${rT[0]}`;
+    // 5. Bollinger Bands (20, 2σ)
+    const bb = k => { let s = 0, s2 = 0; for (let j = k - 19; j <= k; j++) { s += x.c[j]; s2 += x.c[j] * x.c[j]; } const m = s / 20, sd = Math.sqrt(Math.max(0, s2 / 20 - m * m)); return { m, u: m + 2 * sd, l: m - 2 * sd, w: 4 * sd / m }; };
+    const b = bb(i), pb = (c - b.l) / (b.u - b.l);
+    const widths = []; for (let k = Math.max(tk.start + 19, i - 120); k <= i - 1; k++) widths.push(bb(k).w);
+    const minRecent = Math.min(...widths.slice(-10)), pctRank = widths.length ? widths.filter(w => w <= minRecent).length / widths.length : .5;
+    const squeeze = widths.length > 40 && pctRank <= .15, rv = x.v[i] / x.av50[i - 1];
+    const bT = !F(pb) ? ['n/a', 'ok', 0, 'Not enough history for Bollinger Bands.']
+      : pb > 1 && squeeze && rv >= 1.5 ? ['Squeeze breakout', 'good', 1.5, `Closed above the upper band (${px(b.u)}) right after the bands were at their tightest in months, on ${rv.toFixed(1)}× normal volume — moves out of a squeeze often keep going.`]
+      : pb > 1 && isBreakout && rv >= 1.5 ? ['Band breakout', 'good', .5, `Closed above the upper band (${px(b.u)}) on ${rv.toFixed(1)}× normal volume as it broke out — strong, though short-term stretched.`]
+      : pb > 1 ? (stretched.push('above the upper band'), ['Above upper band', 'warn', -.5, `Closed above the upper band (${px(b.u)}) — stretched. Prices usually drift back toward the middle band (${px(b.m)}).`])
+      : pb >= .8 ? ['Riding upper band', 'good', .5, `In the top of the bands (upper ${px(b.u)}) — a strong stock, little room before it’s stretched.`]
+      : pb >= .5 ? ['Upper half', 'good', 1, `Above the middle band (${px(b.m)}) with room to the upper band (${px(b.u)}).`]
+      : pb >= .2 ? ['Lower half', 'ok', 0, `Below the middle band (${px(b.m)}) — not much buying pressure yet.`]
+      : pb >= 0 ? ['Near lower band', 'warn', -.5, `Close to the lower band (${px(b.l)}) — sellers in control.`]
+      : ['Below lower band', 'bad', -1, `Closed below the lower band (${px(b.l)}) — heavy selling pressure.`];
+    add('bb', 'Bollinger', bT[0], bT[1], bT[2], bT[3] + (squeeze && pb <= 1 ? ' The bands are squeezed tight — a big move is building.' : ''));
+    // 6. MACD
+    const h = x.macd[i] - x.sig[i], h3 = x.macd[back(3)] - x.sig[back(3)];
+    const mT = !F(h) ? ['n/a', 'ok', 0, 'MACD not available.']
+      : h > 0 && h >= h3 && x.macd[i] > 0 ? ['Bullish, rising', 'good', 1, 'MACD is above its signal line and above zero, and the gap is widening — momentum is building.']
+      : h > 0 ? ['Bullish', 'good', .5, h < h3 ? 'MACD is above its signal line, but the gap is narrowing — momentum is slowing.' : 'MACD is above its signal line.']
+      : h >= h3 ? ['Turning up', 'ok', 0, 'MACD is below its signal line but turning up — watch for a bullish cross.']
+      : ['Bearish', 'bad', -1, 'MACD is below its signal line and falling — momentum is fading.'];
+    add('macd', 'MACD', mT[0], mT[1], mT[2], mT[3]);
+    // 7. Volume: accumulation vs distribution
+    let upV = 0, totV = 0; for (let j = i - 19; j <= i; j++) { totV += x.v[j]; if (x.c[j] > x.c[j - 1]) upV += x.v[j]; }
+    const acc = totV ? upV / totV : .5, dayUp = c > x.c[i - 1];
+    const vT = acc >= .6 ? ['Accumulation', 'good', 1, `${Math.round(acc * 100)}% of the last 20 days’ volume came on up days — buyers are in control${rv >= 1.3 ? `; today ${rv.toFixed(1)}× normal volume` : ''}.`]
+      : acc >= .52 ? ['Mild buying', 'good', .5, `${Math.round(acc * 100)}% of recent volume on up days.`]
+      : acc >= .45 ? ['Balanced', 'ok', 0, `Volume is split between up and down days (${Math.round(acc * 100)}% on up days).`]
+      : ['Distribution', 'bad', -1, `Only ${Math.round(acc * 100)}% of recent volume came on up days — sellers are more active.`];
+    if (cd.pats[0]?.group === 'Breakout' && dayUp && rv < 1) { vT[1] = 'warn'; vT[2] = Math.min(vT[2], 0); vT[3] += ` Today’s breakout came on below-average volume (${rv.toFixed(1)}×) — less reliable.`; }
+    add('vol', 'Volume', vT[0], vT[1], vT[2], vT[3]);
+    // 8. Overhead resistance (52-week high)
+    const hh = x.hh252[i];
+    const oT = !F(hh) ? ['n/a', 'ok', 0, 'Less than a year of history.']
+      : c > hh ? ['Blue sky', 'good', 1, `At a new 52-week high — no old buyers waiting to sell above (previous high ${px(hh)}).`]
+      : hh / c - 1 < .04 ? ['Near the high', 'warn', -.5, `Just ${pc(hh / c - 1, 1)} below the 52-week high (${px(hh)}) — expect resistance there; a close above it would be the stronger signal.`]
+      : hh / c - 1 < p.upside ? ['Ceiling in range', 'ok', 0, `The 52-week high (${px(hh)}, ${pc(hh / c - 1, 0)} above) sits below the ${pc(p.upside, 0)} target — the move may stall there.`]
+      : ['Room to run', 'good', .5, `The 52-week high (${px(hh)}) is ${pc(hh / c - 1, 0)} above — plenty of room before old resistance.`];
+    add('res', 'Resistance', oT[0], oT[1], oT[2], oT[3]);
+    // 9. Entry timing
+    const ext = F(atr) && atr > 0 ? (c - s20) / atr : 0;
+    if (ext > 3) stretched.push(`${ext.toFixed(1)}× ATR above the 20-day`);
+    if (p.state === 'extended' && c / p.entryHigh - 1 > .02) stretched.push(`${pc(c / p.entryHigh - 1, 1)} above the entry zone`);
+    const eT = p.state === 'pending' ? ['Not triggered', 'ok', 0, `Price (${px(c)}) is below the trigger ${px(p.entryLow)}. The plan buys only if it trades above it.`]
+      : p.state === 'extended' ? ['Extended', 'warn', -.5, `Price is ${pc(c / p.entryHigh - 1, 1)} above the entry zone (${px(p.entryLow)}–${fmt.n2(p.entryHigh, M)}) — the reward:risk from here is worse than planned.`]
+      : p.rr >= 2 ? ['In the zone', 'good', 1, `Inside the entry zone (${px(p.entryLow)}–${fmt.n2(p.entryHigh, M)}) with reward:risk ${p.rr.toFixed(1)} : 1 (stop ${px(p.stop)}, target ${px(p.target)}).`]
+      : ['In the zone, thin R:R', 'warn', -.5, `Inside the entry zone, but reward:risk is only ${p.rr.toFixed(1)} : 1.`];
+    if (ext > 3 && eT[1] !== 'warn') { eT[1] = 'warn'; eT[2] = Math.min(eT[2], 0); eT[3] += ` It’s also ${ext.toFixed(1)}× its daily range above the 20-day average — stretched.`; }
+    add('entry', 'Entry', eT[0], eT[1], eT[2], eT[3]);
+
+    // ---- Verdict
+    const sum = checks.reduce((a, k) => a + k.pts, 0), score = Math.round(U.clamp(50 + sum / 13 * 50, 0, 100));
+    const bad = checks.filter(k => k.tone === 'bad'), good = checks.filter(k => k.tone === 'good');
+    const earnSoon = cd.earnIn !== null && cd.earnIn <= 3;
+    let v;
+    // Must-haves before any "buy": an up-trend, not lagging the market, no heavy selling, and either a healthy market or a market leader
+    const tone = k => checks.find(q => q.key === k)?.tone;
+    const needs = [];
+    const early = ['early', 'confirmed'].includes(sg?.code);   // a fresh turn: the long-term averages and 3-month strength lag by nature
+    if (trend[2] < (early ? .5 : 1)) needs.push('an uptrend');
+    if (early ? !(rs20 > 0) : tone('rs') === 'bad') needs.push('strength vs the market');
+    if (tone('vol') === 'bad') needs.push('buying volume');
+    if (tone('mkt') === 'bad' && rsT[2] < 2) needs.push('a healthier market');
+    if (tone('macd') === 'bad') needs.push('MACD momentum');
+    const earlyOk = sg?.code === 'early' && score >= 50 && bad.length <= 2 && tone('vol') !== 'bad' && tone('macd') !== 'bad' && !(tone('mkt') === 'bad' && tone('rs') === 'bad');
+    if (earlyOk) v = 'early';
+    else if (score < 45 || bad.length >= 3 || (trend[2] <= -1.5 && rsT[2] < 0)) v = 'avoid';
+    else if (score >= (early ? 62 : 68) && !needs.length) v = stretched.length ? 'dip' : p.state === 'pending' ? 'trigger' : p.rr >= 1.5 ? 'buy' : 'wait';
+    else v = 'wait';
+    if (earnSoon && ['buy', 'early', 'trigger', 'dip'].includes(v)) v = 'wait';
+    // Pullback level for "buy on dip": the top of the entry zone or the 20-day average, whichever is higher but still below the price
+    let dip = Math.max(p.entryHigh, s20); if (!(dip < c)) dip = c - (F(atr) ? atr : c * .03);
+    const say = k => ({ stage: `${k.value.toLowerCase()} stage`, rs: `${k.value} vs market`, mkt: `market ${k.value.toLowerCase()}`, rsi: `RSI ${k.value.replace(' · ', ' ').toLowerCase()}`, macd: `MACD ${k.value.toLowerCase()}`, bb: `Bollinger: ${k.value.toLowerCase()}`, res: k.value, entry: `entry: ${k.value.toLowerCase()}` })[k.key] || k.value;
+    const top2 = arr => arr.slice().sort((a, b) => Math.abs(b.pts) - Math.abs(a.pts)).slice(0, 2).map(say);
+    const plus = top2(good), minus = top2(checks.filter(k => k.tone === 'bad' || k.tone === 'warn'));
+    const eStop = sg && F(sg.hl) ? Math.min(sg.hl * .99, sg.hl - .3 * (F(atr) ? atr : 0)) : NaN;
+    const action = {
+      early: `Early entry near ${px(c)}: the higher low at ${sg ? px(sg.hl) : '—'} is holding. Stop just below it at ${px(eStop)} (${pc(eStop / c - 1, 1)}). Add to the position if it closes above ${sg ? px(sg.trig) : '—'} (the breakout).`,
+      buy: `Buy in the entry zone ${px(p.entryLow)}–${fmt.n2(p.entryHigh, M)} · stop ${px(p.stop)} · target ${px(p.target)}.`,
+      trigger: `Set a buy-stop just above ${px(p.entryLow)}. Only buy if it trades there — then stop ${px(p.stop)}, target ${px(p.target)}.`,
+      dip: `Strong, but ${stretched.join(', ')}. Wait for a pullback toward ${px(dip)} before buying.`,
+      wait: earnSoon ? `Earnings in ${cd.earnIn} session${cd.earnIn === 1 ? '' : 's'} — let the report pass, then re-check.` : needs.length ? `Not yet — it still needs ${needs.join(', ').replace(/, ([^,]*)$/, ' and $1')}. Re-check after the next scan.` : `Signals are mixed (technical score ${score}). Re-check after the next scan${p.state === 'pending' ? `, or buy only on a close above ${px(p.entryLow)}` : ''}.`,
+      avoid: 'Skip this one for now — and if you own it, consider selling or tightening your stop.'
+    }[v];
+    const short = {
+      early: `Higher low held · stop ${px(eStop)} (${pc(eStop / c - 1, 0)})`,
+      buy: plus.join(' · ') || 'Technicals line up',
+      trigger: `Strong setup · trigger ${px(p.entryLow)}`,
+      dip: `Stretched: ${stretched[0]}`,
+      wait: earnSoon ? `Earnings in ${cd.earnIn}d` : needs.length ? `Needs ${needs[0]}` : minus[0] ? `Weak: ${minus[0]}` : 'Mixed signals',
+      avoid: minus.join(' · ') || 'Weak technicals'
+    }[v];
+    const agree = v === 'avoid' ? bad.length : v === 'early' ? good.length + 1 : good.length, conf = Math.abs(score - 50) >= 25 && agree >= 5 ? 'High' : Math.abs(score - 50) >= 12 ? 'Medium' : 'Low';
+    return { v, score, conf, checks, action, short, plus, minus, stretched, dip, earnSoon, rs63, r63, m63, pb, rsi, squeeze, stage: sg };
+  }
+};
+
 /** Portfolio: the stocks the user owns, checked after every scan against every strategy, the trend, position risk,
  *  fundamentals and upcoming events, giving a SELL / BUY MORE / REVIEW / HOLD verdict with the reasons. */
 const Portfolio = {
@@ -1757,6 +1937,34 @@ const Ind = {
     const smooth = a => { const o = Ind.nan(a.length); for (let i = 2; i < a.length; i++) o[i] = (a[i] + a[i - 1] + a[i - 2]) / 3; return o; };
     const k = smooth(raw); return { k, d: smooth(k) };
   },
+  /** Wilder's ADX with +DI / −DI: +DI crossing above −DI while ADX rises from a low level is a classic sign that a new trend is starting. */
+  adx(h, l, c, n = 14) {
+    const T = c.length, adx = Ind.nan(T), pdi = Ind.nan(T), mdi = Ind.nan(T);
+    if (T <= 2 * n + 1) return { adx, pdi, mdi };
+    let tr = 0, pm = 0, mm = 0; const dx = Ind.nan(T);
+    for (let i = 1; i < T; i++) {
+      const t = Math.max(h[i] - l[i], Math.abs(h[i] - c[i - 1]), Math.abs(l[i] - c[i - 1])), up = h[i] - h[i - 1], dn = l[i - 1] - l[i];
+      const p = up > dn && up > 0 ? up : 0, m = dn > up && dn > 0 ? dn : 0;
+      if (i <= n) { tr += t; pm += p; mm += m; if (i < n) continue; }
+      else { tr = tr - tr / n + t; pm = pm - pm / n + p; mm = mm - mm / n + m; }
+      pdi[i] = tr ? 100 * pm / tr : 0; mdi[i] = tr ? 100 * mm / tr : 0;
+      dx[i] = pdi[i] + mdi[i] ? 100 * Math.abs(pdi[i] - mdi[i]) / (pdi[i] + mdi[i]) : 0;
+      if (i === 2 * n - 1) { let s = 0; for (let k = n; k <= i; k++) s += dx[k]; adx[i] = s / n; }
+      else if (i > 2 * n - 1) adx[i] = (adx[i - 1] * (n - 1) + dx[i]) / n;
+    }
+    return { adx, pdi, mdi };
+  },
+  /** Index of the lowest value in the trailing window of n+1 bars (monotonic deque, O(n)). */
+  argminTrail(a, n) {
+    const out = new Int32Array(a.length), dq = []; let head = 0;
+    for (let i = 0; i < a.length; i++) {
+      while (dq.length > head && a[dq[dq.length - 1]] >= a[i]) dq.pop();
+      dq.push(i); while (dq[head] < i - n) head++;
+      out[i] = dq[head];
+    }
+    return out;
+  },
+  obv(c, v) { const o = new Float64Array(c.length); for (let i = 1; i < c.length; i++) o[i] = o[i - 1] + (c[i] > c[i - 1] ? v[i] : c[i] < c[i - 1] ? -v[i] : 0); return o; },
   maxPrior(a, n) {
     const out = Ind.nan(a.length), dq = []; let head = 0;
     for (let i = 0; i < a.length; i++) {
@@ -1771,11 +1979,12 @@ const Ind = {
     const sl = a => Float64Array.from(a.subarray(s));
     const E = a => { if (s === 0) return a; const out = Ind.nan(T); out.set(a, s); return out; };
     const c = sl(tk.c), h = sl(tk.h), l = sl(tk.l), v = sl(tk.v);
-    const m = Ind.macd(c), st = Ind.stoch(h, l, c);
+    const m = Ind.macd(c), st = Ind.stoch(h, l, c), dm = Ind.adx(h, l, c);
     return {
       M, start: s, o: tk.o, h: tk.h, l: tk.l, c: tk.c, v: tk.v,
       sma10: E(Ind.sma(c, 10)), sma20: E(Ind.sma(c, 20)), sma30: E(Ind.sma(c, 30)), sma50: E(Ind.sma(c, 50)), ema20: E(Ind.emaFrom(c, 20, 0)), sma200: E(Ind.sma(c, 200)), av50: E(Ind.sma(v, 50)),
       rsi: E(Ind.rsi(c)), macd: E(m.m), sig: E(m.s), bbw: E(Ind.bbw(c)), atr: E(Ind.atr(h, l, c)),
+      adx: E(dm.adx), pdi: E(dm.pdi), mdi: E(dm.mdi), obv: E(Ind.obv(c, v)), ll120: Ind.argminTrail(tk.l, 118).map((v, k) => Math.max(v, s)), ll45: Ind.argminTrail(tk.l, 43).map((v, k) => Math.max(v, s)),
       k: E(st.k), d: E(st.d), hh252: E(Ind.maxPrior(h, 252)), hh60: E(Ind.maxPrior(h, 60))
     };
   }
@@ -1788,6 +1997,130 @@ const Ind = {
 const maxH = (x, i, n) => { let m = -Infinity; for (let j = i - n + 1; j <= i; j++) if (x.h[j] > m) m = x.h[j]; return m; };
 const isSwingHigh = (x, j) => x.h[j] >= Math.max(x.h[j - 2], x.h[j - 1], x.h[j + 1], x.h[j + 2]);
 const isSwingLow = (x, j) => x.l[j] <= Math.min(x.l[j - 2], x.l[j - 1], x.l[j + 1], x.l[j + 2]);
+
+/** Trend stage & early-reversal detector.
+ *  Finds the turning point (the lowest low of the last ~6 months, or of a recent pullback inside an uptrend) and checks the
+ *  classic 1-2-3 reversal: (1) a low, (2) a first rally high, (3) a higher low — confirmed when price closes above the rally
+ *  high. Around it, ten early-turn clues are scored (divergences, momentum and moving averages turning, ADX/DI, volume,
+ *  strength vs the market, a squeeze). The result says how far into its trend a stock is: just turning, early, mid or late. */
+const TrendStage = {
+  LABEL: {
+    early:     { t: 'Early entry', icon: '🌱', cls: 'text-lime-100 bg-lime-500/20 ring-lime-400/60' },
+    turning:   { t: 'Turning up', icon: '◔', cls: 'text-sky-200 bg-sky-500/15 ring-sky-400/50' },
+    confirmed: { t: 'Breakout confirmed', icon: '◒', cls: 'text-emerald-200 bg-emerald-500/10 ring-emerald-400/40' },
+    mid:     { t: 'Mid-trend', icon: '◑', cls: 'text-slate-200 bg-slate-500/15 ring-slate-400/40' },
+    late:    { t: 'Late trend', icon: '◕', cls: 'text-amber-200 bg-amber-500/15 ring-amber-400/50' },
+    base:    { t: 'Basing', icon: '▭', cls: 'text-slate-300 bg-slate-500/10 ring-slate-500/30' },
+    down:    { t: 'Downtrend', icon: '▼', cls: 'text-rose-200 bg-rose-500/15 ring-rose-400/50' }
+  },
+  /** 1-2-3 structure from the low at li up to i. */
+  structure(x, li, i) {
+    const lo = x.l[li], atr = x.atr[i] || x.c[i] * .02;
+    let h1 = -1;                                   // (2) first rally high: the first swing high after the low that is ≥1 ATR above it
+    for (let j = li + 2; j <= i - 2; j++) if (isSwingHigh(x, j) && x.h[j] >= lo + atr) { h1 = j; break; }
+    if (h1 < 0) return { lo, li };
+    let hl = -1;                                    // (3) higher low after the rally high
+    for (let j = h1 + 1; j <= i; j++) if (hl < 0 || x.l[j] < x.l[hl]) hl = j;
+    // the rally high is the highest point between the low and the higher low
+    let H = h1; for (let j = li; j <= hl; j++) if (x.h[j] > x.h[H]) H = j;
+    if (hl <= H) { hl = -1; for (let j = H + 1; j <= i; j++) if (hl < 0 || x.l[j] < x.l[hl]) hl = j; }
+    if (hl < 0 || x.l[hl] <= lo + .25 * atr || hl - H < 2) return { lo, li, H, trig: x.h[H] };
+    let br = -1; for (let j = hl + 1; j <= i; j++) if (x.c[j] > x.h[H]) { br = j; break; }
+    return { lo, li, H, trig: x.h[H], hl, hlv: x.l[hl], br };
+  },
+  at(x, i, idxC, full = false) {
+    const s = x.start; if (i - s < 70 || !Number.isFinite(x.atr[i])) return null;
+    const F = Number.isFinite, c = x.c, atr = x.atr[i], M = x.M;
+    // Turning point A: lowest low of the last 120 sessions (a reversal from a decline or base)
+    let li = Math.max(s + 2, x.ll120[i]);
+    let ph = -Infinity; for (let j = Math.max(s, li - 80); j <= li; j++) ph = Math.max(ph, x.h[j]);
+    const drop = 1 - x.l[li] / ph, s50a = x.sma50[li], s50b = x.sma50[Math.max(s, li - 20)];
+    let kind = 'reversal', st = this.structure(x, li, i);
+    const priorDown = drop >= .12 || (F(s50a) && F(s50b) && s50a < s50b * .99);
+    // Turning point B: a pullback low inside an uptrend (a new leg up), used when A is long gone
+    if (i - li > 45) {
+      const lj = Math.max(s + 2, x.ll45[i]);
+      let ph2 = -Infinity; for (let j = Math.max(s, lj - 30); j <= lj; j++) ph2 = Math.max(ph2, x.h[j]);
+      const pull = 1 - x.l[lj] / ph2, upLong = F(x.sma200[lj]) ? x.l[lj] > x.sma200[lj] * .97 : true;
+      if (upLong && (pull >= .08 || ph2 - x.l[lj] >= 3 * atr) && i - lj >= 6) { const st2 = this.structure(x, lj, i); if (st2.hl !== undefined) { li = lj; st = st2; kind = 'leg'; } }
+    }
+    const lo = x.l[li], age = i - li, gain = c[i] / lo - 1, gainAtr = (c[i] - lo) / atr;
+    const sinceBreak = st.br >= 0 && st.br !== undefined ? i - st.br : null;
+    // ---- Ten early-turn clues around the low (only when asked: the scan needs just the stage)
+    const ev = [], add = (key, on, w, text) => ev.push({ key, on: !!on, w, text });
+    if (full) {
+    add('hl', st.hl !== undefined, 15, st.hl !== undefined ? `Higher low at ${fmt.px(st.hlv, M)} (${fmt.dateShort(x.dates?.[st.hl])}) above the ${fmt.px(lo, M)} low — sellers couldn’t push it lower again.` : 'No higher low yet.');
+    add('bos', sinceBreak !== null, 20, sinceBreak !== null ? `Closed above the rally high ${fmt.px(st.trig, M)} ${sinceBreak === 0 ? 'today' : sinceBreak + ' session' + (sinceBreak === 1 ? '' : 's') + ' ago'} — the 1-2-3 reversal is confirmed.` : st.trig ? `Not yet above the rally high ${fmt.px(st.trig, M)} — that’s the trigger.` : 'No rally high yet.');
+    // RSI bullish divergence at the low: an earlier swing low was higher in price but lower in RSI
+    let div = false; for (let j = Math.max(s + 2, li - 40); j <= li - 4; j++) if (isSwingLow(x, j) && x.l[j] > lo && x.rsi[li] > x.rsi[j] + 2 && x.rsi[j] < 45) { div = true; break; }
+    const hm = k => x.macd[k] - x.sig[k]; let mdiv = false; for (let j = Math.max(s + 30, li - 40); j <= li - 4; j++) if (isSwingLow(x, j) && x.l[j] > lo && hm(li) > hm(j)) { mdiv = true; break; }
+    add('div', div || mdiv, 10, div ? 'RSI made a higher low while price made a lower low — selling was already weakening at the bottom.' : mdiv ? 'MACD histogram made a higher low at the price low — downside momentum was fading.' : 'No momentum divergence at the low.');
+    let rmin = Infinity; for (let j = Math.max(s, li - 5); j <= Math.min(i, li + 5); j++) rmin = Math.min(rmin, x.rsi[j]);
+    add('rsi', rmin < 40 && x.rsi[i] > 50, 10, rmin < 40 && x.rsi[i] > 50 ? `RSI climbed from ${rmin.toFixed(0)} at the low to ${x.rsi[i].toFixed(0)} — momentum has flipped from bearish to bullish.` : `RSI ${x.rsi[i].toFixed(0)}${rmin < 40 ? ' — not yet back above 50' : ''}.`);
+    let mx = -1; for (let j = Math.max(li, i - 20); j <= i; j++) if (hm(j) > 0 && hm(j - 1) <= 0 && x.macd[j] < 0) mx = j;
+    const zero = x.macd[i] > 0 && x.macd[Math.max(s, i - 15)] <= 0;
+    add('macd', mx >= 0 || zero, 10, mx >= 0 ? `MACD crossed up from below zero ${i - mx ? (i - mx) + ' sessions ago' : 'today'} — the early-stage momentum cross.` : zero ? 'MACD has just crossed above zero.' : 'No early MACD turn.');
+    let dix = -1; for (let j = Math.max(s + 30, i - 15); j <= i; j++) if (x.pdi[j] > x.mdi[j] && x.pdi[j - 1] <= x.mdi[j - 1]) dix = j;
+    let amin = Infinity; for (let j = Math.max(s + 30, i - 25); j <= i; j++) amin = Math.min(amin, x.adx[j]);
+    const adxOn = x.pdi[i] > x.mdi[i] && (dix >= 0 || amin < 22) && x.adx[i] > x.adx[Math.max(s, i - 5)];
+    add('adx', adxOn, 10, adxOn ? `+DI is above −DI and ADX is rising (${amin.toFixed(0)} → ${x.adx[i].toFixed(0)}) from a trendless level — a new trend is gaining strength.` : `ADX ${F(x.adx[i]) ? x.adx[i].toFixed(0) : '—'}; +DI ${x.pdi[i] > x.mdi[i] ? 'above' : 'below'} −DI.`);
+    const sl = k => x.sma20[k] / x.sma20[k - 5] - 1, maOn = sl(i) > 0 && sl(Math.max(s + 25, li)) < 0 && c[i] > x.sma50[i];
+    add('ma', maOn, 8, maOn ? 'The 20-day average has turned up after falling, and price is back above the 50-day.' : 'Moving averages haven’t turned up together yet.');
+    let ohi = -Infinity; for (let j = Math.max(s, i - 50); j < i; j++) ohi = Math.max(ohi, x.obv[j]);
+    let upV = 0, totV = 0; for (let j = li + 1; j <= i; j++) { totV += x.v[j]; if (c[j] > c[j - 1]) upV += x.v[j]; }
+    const volOn = x.obv[i] >= ohi || (totV && upV / totV >= .56);
+    add('vol', volOn, 9, volOn ? (x.obv[i] >= ohi ? 'On-balance volume is at a 50-day high — buyers are stepping in, often before price confirms.' : `${Math.round(100 * upV / totV)}% of volume since the low came on up days.`) : 'Volume hasn’t confirmed the turn yet.');
+    let rsOn = false;
+    if (idxC) { const rs = k => c[k] / idxC[k]; let rh = -Infinity; for (let j = Math.max(s, i - 50); j < i; j++) rh = Math.max(rh, rs(j)); rsOn = rs(i) >= rh; }
+    add('rs', rsOn, 8, rsOn ? 'Its strength vs the market is at a 50-day high — it’s starting to lead.' : 'Not yet outperforming the market.');
+    let bmin = Infinity, ws = []; for (let j = Math.max(s + 20, i - 120); j <= i; j++) { ws.push(x.bbw[j]); if (j >= li - 10) bmin = Math.min(bmin, x.bbw[j]); }
+    const sq = ws.length > 40 && ws.filter(w => w <= bmin).length / ws.length <= .2;
+    add('sq', sq, 5, sq ? 'Bollinger Bands squeezed tight around the turn — energy was building.' : 'No volatility squeeze before the turn.');
+    }
+    const score = full ? Math.min(100, ev.reduce((a, e) => a + (e.on ? e.w : 0), 0)) : null;
+    // ---- Stage
+    const upTrend = c[i] > x.sma50[i] && (!F(x.sma200[i]) || x.sma50[i] > x.sma200[i]);
+    let code;
+    // Tested on 3 years of US and Canadian data and 1 year of Indian data (scanner setups, outcome = +10% before −7% within 4 weeks):
+    //  • a higher low that has held for 4+ sessions, price within ~3 daily ranges of the low, no breakout yet → clearly better
+    //    than average in all three markets (US 61% vs 51%, Canada 68% vs 53%, India 65% vs 52%)
+    //  • a "higher low" only 1–3 sessions old was no better than average (it often isn't the low yet)
+    //  • the confirmed breakout above the rally high was worse than average (it often pulls back to retest)
+    // So "early entry" is the proven pre-breakout zone; the breakout itself is labelled "confirmed".
+    const hlAge = st.hl !== undefined ? i - st.hl : null;
+    if (st.hl !== undefined && sinceBreak === null && c[i] > st.hlv && gainAtr <= 3 && hlAge >= 4) code = 'early';
+    else if (st.hl !== undefined && sinceBreak === null && c[i] > lo + atr) code = 'turning';
+    else if (sinceBreak !== null && sinceBreak <= 12 && gainAtr <= 7 && gain <= .25) code = 'confirmed';
+    else if (upTrend || (sinceBreak !== null && c[i] > x.sma50[i])) code = (gainAtr > 11 || gain > .4 || age > 100) ? 'late' : 'mid';
+    else if (c[i] < x.sma50[i] && x.sma50[i] < x.sma50[Math.max(s, i - 10)]) code = 'down';
+    else code = 'base';
+    const d = full ? fmt.dateShort(x.dates?.[li]) : '';
+    const text = !full ? '' : {
+      early: `${kind === 'leg' ? 'A new leg up may be starting after a pullback' : 'A new uptrend may be starting after a decline'}: low ${fmt.px(lo, M)} (${d}), a rally to ${fmt.px(st.trig, M)}, then a higher low at ${fmt.px(st.hlv, M)} that has held for ${hlAge} sessions. Price is only ${gainAtr.toFixed(1)}× its daily range above the low — the earliest sensible entry, with a stop just under the higher low. A close above ${fmt.px(st.trig, M)} would confirm the trend.`,
+      turning: hlAge < 4 ? `A higher low may be forming at ${fmt.px(st.hlv, M)} (above the ${fmt.px(lo, M)} low), but it’s only ${hlAge} session${hlAge === 1 ? '' : 's'} old — not proven yet. It becomes an early entry if it holds for a few more sessions.` : `Turning up from a higher low (${fmt.px(st.hlv, M)}), already ${gainAtr.toFixed(1)}× its daily range above the ${fmt.px(lo, M)} low. Not confirmed until it closes above ${fmt.px(st.trig, M)}.`,
+      confirmed: `Breakout confirmed ${sinceBreak ? sinceBreak + ' session' + (sinceBreak === 1 ? '' : 's') + ' ago' : 'today'}: closed above the ${fmt.px(st.trig, M)} rally high after a higher low. This is where most traders buy, and these breakouts often pull back to retest first — the early-entry zone was nearer ${fmt.px(st.hlv, M)}.`,
+      mid: `In an established uptrend: ${age} sessions and ${fmt.pct(gain, 0)} since the ${fmt.px(lo, M)} low (${d}). Better entries come on pullbacks than on breakouts.`,
+      late: `Late in its trend: up ${fmt.pct(gain, 0)} (${gainAtr.toFixed(0)}× its daily range) over ${age} sessions since the ${fmt.px(lo, M)} low. Much of the move may already be done.`,
+      base: `Moving sideways — no trend yet.`,
+      down: `In a downtrend — price is below a falling 50-day average.`
+    }[code];
+    return { code, kind, priorDown, age, gain, gainAtr, lo, li, trig: st.trig, hl: st.hlv, hlIdx: st.hl, hlAge, sinceBreak, score, ev, text, on: ev.filter(e => e.on).length, full };
+  },
+  /** How setups at each stage actually did in this market (from the probability calibration's past setups). */
+  stats(mk) {
+    const cal = mk?.cal; if (!cal?.samples?.length) return null;
+    if (cal._stageStats) return cal._stageStats;
+    // Two outcomes per past setup: +10% within 2 weeks (the probability target) and "+10% reached before a −7% drop" within 4 weeks
+    const ds = mk.ds, g = {}; let n = 0, h = 0, fN = 0, fH = 0;
+    for (const cd of cal.samples) {
+      const k = cd.stage?.code; if (!k) continue; const o = (g[k] ||= { n: 0, hit: 0, fN: 0, fH: 0 }); o.n++; o.hit += cd.hit; n++; h += cd.hit;
+      const tk = ds.tickers[cd.ti], e = tk.c[cd.i]; let r = null;
+      for (let j = cd.i + 1; j <= Math.min(ds.cursor, cd.i + 20) && r === null; j++) { if (tk.l[j] <= e * .93) r = 0; else if (tk.h[j] >= e * 1.10) r = 1; }
+      if (r !== null) { o.fN++; o.fH += r; fN++; fH += r; }
+    }
+    return (cal._stageStats = { by: g, base: n ? h / n : NaN, n, first: fN ? fH / fN : NaN });
+  }
+};
 
 const Patterns = {
   breakout52(x, i) {
@@ -2003,6 +2336,7 @@ const Engine = {
 
   candidate(ds, ti, x, i) {
     const tk = ds.tickers[ti];
+    if (!x.idxc && ds.index) { x.idxc = ds.index.c; x.dates = ds.dates; }
     if (i - x.start < 60 || !(x.av50[i - 1] > 0) || !Number.isFinite(x.atr[i])) return null;
     const pats = Patterns.detectAll(x, i);
     if (!pats.length) return null;
@@ -2023,7 +2357,8 @@ const Engine = {
       belowSma200: x.c[i] < x.sma200[i], comp: { tech, vol, fund: tk.fs.score },
       idxUp: ds.index.c[i] > ds.index.sma200[i], secPct: ds.secPct[tk.sector]?.[i] ?? .5,
       earnIn: nextE !== undefined ? nextE - i : null, fdaIn: nextF !== undefined ? nextF - i : null,
-      newsPos, newsNeg, lastPos, plan: Engine.plan(x, i, best)
+      newsPos, newsNeg, lastPos, plan: Engine.plan(x, i, best),
+      stage: TrendStage.at(x, i, x.idxc)
     };
   },
 
@@ -2195,6 +2530,9 @@ const Calib = {
     ['ext', 'Price already above the entry zone', 'Price at or below the entry zone', cd => cd.plan.state === 'extended' ? 1 : 0],
     ['risk', 'Wider stop (more volatile stock)', 'Tighter stop (calmer stock)', cd => cd.plan.riskPct],
     ['nsig', 'Several confirming signals', 'Few confirming signals', cd => Math.min(4, cd.pats.length)],
+    ['early', 'Early-entry zone (fresh higher low near the low)', 'Not in the early-entry zone', cd => cd.stage?.code === 'early' ? 1 : 0],
+    ['confirmed', 'Just broke out of a reversal (often retests)', 'Not a fresh reversal breakout', cd => cd.stage?.code === 'confirmed' ? 1 : 0],
+    ['late', 'Late in its trend (extended)', 'Not late in its trend', cd => cd.stage?.code === 'late' ? 1 : 0],
     ...Object.entries(PATTERNS).map(([k, v]) => ['pat:' + k, `${v.label} as the trigger`, '', cd => cd.pats[0].key === k ? 1 : 0])
   ],
   vec(cd) { return this.FEATS.map(f => f[3](cd)); },
@@ -2966,8 +3304,8 @@ const UI = {
   },
 
   resetFilters(emit = true) {
-    const f = { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: S().filters.top, mine: false, match: false };
-    $('fQ').value = ''; $('fCap').value = 'all'; $('fSector').value = 'all'; $('fPattern').value = 'all'; $('fMin').value = 0; $('fMinVal').textContent = '0%';
+    const f = { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: S().filters.top, mine: false, match: false, tech: 'all' };
+    $('fTech').value = 'all'; $('fQ').value = ''; $('fCap').value = 'all'; $('fSector').value = 'all'; $('fPattern').value = 'all'; $('fMin').value = 0; $('fMinVal').textContent = '0%';
     if (emit) Store.set({ filters: f }); else S().filters = f;
   },
 
@@ -2983,15 +3321,17 @@ const UI = {
       if (q && !tk.sym.includes(q) && !tk.name.toUpperCase().includes(q)) return false;
       if (f.mine && !MyStocks.has(r.m, tk.sym)) return false;
       if (f.match && !UI.bestOf(r)?.match) return false;
+      if (f.tech && f.tech !== 'all') { const t = Tech.of(r)?.v; if (f.tech === 'stage-early' ? r.cd.stage?.code !== 'early' : f.tech === 'buys' ? !['buy', 'early', 'trigger', 'dip'].includes(t) : t !== f.tech) return false; }
       return true;
     });
     const k = s.sort;
     const cmp = {
       prob: byProb, score: (a, b) => b.sc.total - a.sc.total,
+      tech: (a, b) => (Tech.V[Tech.of(a)?.v || 'wait'].order - Tech.V[Tech.of(b)?.v || 'wait'].order) || (Tech.of(b)?.score ?? 0) - (Tech.of(a)?.score ?? 0) || byProb(a, b),
       upside: (a, b) => b.cd.plan.upside - a.cd.plan.upside, rr: (a, b) => b.cd.plan.rr - a.cd.plan.rr, sym: (a, b) => a.cd.sym.localeCompare(b.cd.sym)
     }[k];
     const mt = r => UI.bestOf(r)?.match ? 1 : 0;
-    return rows.sort(k === 'sym' ? cmp : (a, b) => (mt(b) - mt(a)) || cmp(a, b));
+    return rows.sort(k === 'sym' || k === 'tech' ? cmp : (a, b) => (mt(b) - mt(a)) || cmp(a, b));
   },
   bestOf(r) { return StockBT.peek(r.ds, r.cd.ti); },
   /** One line under the event: the stock's best strategy from its own backtest. */
@@ -3013,6 +3353,64 @@ const UI = {
     return '<span class="text-slate-600">None scheduled</span>';
   },
 
+  /** Technical check at a glance: action badge, score and one dot per indicator. */
+  techDots(t) {
+    return `<span class="inline-flex gap-[3px] align-middle" aria-hidden="true">${t.checks.map(k => `<span class="w-2 h-2 rounded-full" style="background:${Tech.TONE[k.tone]}" title="${U.esc(k.label)}: ${U.esc(k.value)}"></span>`).join('')}</span>`;
+  },
+  /** Drawer: where the stock is in its trend, and the early-turn clues behind it. */
+  stageBlock(sg, row) {
+    if (!sg) return '';
+    const steps = ['down', 'base', 'early', 'turning', 'confirmed', 'mid', 'late'], cur = steps.indexOf(sg.code), M = row.M;
+    const ss = TrendStage.stats(S().mkts[row.m]);
+    return `<div class="mt-3 rounded-lg bg-ink/70 border border-line p-3">
+      <div class="flex flex-wrap items-center gap-2"><p class="text-sm font-semibold">Trend stage</p>${UI.stageChip(sg)}<span class="text-[11px] text-slate-400">early-turn score ${sg.score}/100 · ${sg.on} of 10 clues</span></div>
+      <div class="mt-2.5 grid grid-cols-7 gap-1" role="img" aria-label="Trend stage: ${TrendStage.LABEL[sg.code].t}">${steps.map((k, n) => `<div><div class="h-1.5 rounded-full ${n === cur ? '' : 'opacity-25'}" style="background:${{ down: '#fb7185', base: '#94a3b8', early: '#a3e635', turning: '#38bdf8', confirmed: '#34d399', mid: '#cbd5e1', late: '#fbbf24' }[k]}"></div><p class="mt-1 text-[10px] leading-tight text-center ${n === cur ? 'text-slate-100 font-semibold' : 'text-slate-500'}">${{ down: 'Down', base: 'Base', early: 'Early entry', turning: 'Turning', confirmed: 'Breakout', mid: 'Mid', late: 'Late' }[k]}</p></div>`).join('')}</div>
+      <p class="mt-2 text-xs text-slate-300 leading-relaxed">${U.esc(sg.text)}</p>
+      ${['early', 'turning', 'confirmed'].includes(sg.code) && Number.isFinite(sg.trig) ? `<p class="mt-1 text-xs text-slate-400 num">1-2-3: low ${fmt.px(sg.lo, M)} → rally high ${fmt.px(sg.trig, M)}${Number.isFinite(sg.hl) ? ` → higher low ${fmt.px(sg.hl, M)}` : ''} → ${sg.sinceBreak !== null ? 'broke above the rally high ✓' : `<span class="text-sky-300">trigger: close above ${fmt.px(sg.trig, M)}</span>`}</p>` : ''}
+      <details class="mt-2"><summary class="cursor-pointer text-xs text-sky-300">The 10 early-turn clues</summary>
+        <ul class="mt-2 space-y-1">${sg.ev.map(e => `<li class="flex gap-2 text-[11.5px] ${e.on ? 'text-slate-200' : 'text-slate-500'}"><span class="w-3 shrink-0 ${e.on ? 'text-emerald-300' : 'text-slate-600'}">${e.on ? '✓' : '·'}</span><span>${U.esc(e.text)} <span class="text-slate-600 num">(${e.w})</span></span></li>`).join('')}</ul>
+      </details>
+      ${ss ? `<p class="mt-2 text-[11px] text-slate-500">How each stage did in ${M.name}’s past setups — reached +10% before falling 7%: ${steps.filter(k => ss.by[k]?.fN >= 30).map(k => `${TrendStage.LABEL[k].icon} ${TrendStage.LABEL[k].t} <b class="${ss.by[k].fH / ss.by[k].fN > ss.first + .03 ? 'text-emerald-300' : ss.by[k].fH / ss.by[k].fN < ss.first - .03 ? 'text-rose-300' : 'text-slate-300'}">${fmt.prob(ss.by[k].fH / ss.by[k].fN)}</b> <span class="text-slate-600">(${fmt.num(ss.by[k].fN)})</span>`).join(' · ')} · all setups <b class="text-slate-300">${fmt.prob(ss.first)}</b></p>` : ''}
+    </div>`;
+  },
+  stageChip(sg) {
+    if (!sg) return '';
+    const L = TrendStage.LABEL[sg.code], extra = sg.code === 'early' ? ` · ${sg.gainAtr.toFixed(1)}× ATR off low` : sg.code === 'late' ? ` · ${fmt.pct(sg.gain, 0)}` : '';
+    return `<span class="inline-flex items-center gap-1 h-5 px-1.5 rounded text-[10.5px] ring-1 whitespace-nowrap ${L.cls}" title="${U.esc(sg.text)}">${L.icon} ${L.t}${extra}</span>`;
+  },
+  techPill(t, big = false) {
+    const V = Tech.V[t.v];
+    return `<span class="inline-flex items-center ${big ? 'h-8 px-3 text-sm' : 'h-6 px-2 text-[11px]'} rounded-md font-bold tracking-wide whitespace-nowrap ${V.cls}">${V.label}</span>`;
+  },
+  /** Detail drawer: the full technical check with the action to take. */
+  techSection(row) {
+    const t = Tech.of(row); if (!t) return '';
+    const V = Tech.V[t.v], M = row.M, tone = { good: 'text-emerald-300', ok: 'text-slate-300', warn: 'text-amber-300', bad: 'text-rose-300' };
+    const R = 26, C = 2 * Math.PI * R, col = t.score >= 60 ? '#34d399' : t.score >= 45 ? '#fbbf24' : '#fb7185';
+    return `<section aria-labelledby="techH" class="rounded-xl border p-4" style="border-color:${V.dot}66;background:${V.dot}0d">
+      <div class="flex items-start gap-4">
+        <svg width="64" height="64" viewBox="0 0 64 64" class="shrink-0" role="img" aria-label="Technical score ${t.score} out of 100"><circle cx="32" cy="32" r="${R}" fill="none" stroke="#1f2a37" stroke-width="6"/><circle cx="32" cy="32" r="${R}" fill="none" stroke="${col}" stroke-width="6" stroke-linecap="round" stroke-dasharray="${C * t.score / 100} ${C}" transform="rotate(-90 32 32)"/><text x="32" y="36" text-anchor="middle" font-size="15" font-weight="700" fill="#e2e8f0">${t.score}</text></svg>
+        <div class="min-w-0 flex-1">
+          <div class="flex flex-wrap items-center gap-2"><h3 id="techH" class="font-semibold">Technical check</h3>${UI.techPill(t, true)}<span class="text-xs text-slate-400">${t.conf} confidence</span></div>
+          <p class="mt-1.5 text-sm text-slate-100 leading-relaxed"><b>What to do:</b> ${U.esc(t.action)}</p>
+          ${t.plus.length ? `<p class="mt-1 text-xs text-emerald-300/90">+ ${U.esc(t.plus.join(' · '))}</p>` : ''}${t.minus.length ? `<p class="mt-0.5 text-xs text-rose-300/90">− ${U.esc(t.minus.join(' · '))}</p>` : ''}
+        </div>
+      </div>
+      <div class="mt-3 grid sm:grid-cols-2 gap-2">${t.checks.map(k => `<div class="rounded-lg bg-ink/70 border border-line p-2.5">
+        <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${Tech.TONE[k.tone]}" aria-hidden="true"></span><span class="text-xs text-slate-400">${U.esc(k.label)}</span><span class="ml-auto text-xs font-semibold ${tone[k.tone]}">${U.esc(k.value)}</span></div>
+        <p class="mt-1 text-[11.5px] text-slate-300 leading-snug">${U.esc(k.text)}</p></div>`).join('')}</div>
+      ${UI.stageBlock(t.stage, row)}
+      <p class="mt-2.5 text-[11px] text-slate-500 leading-relaxed">BUY NOW = strong technicals and a good entry right now · BUY EARLY = a possible new trend caught at its start (higher low holding, tight stop under it) · BUY ABOVE = strong, but buy only if it trades above the trigger · BUY ON DIP = strong but stretched, wait for a pullback · WAIT = mixed signals or earnings within 3 days · AVOID = weak technicals. Score: 50 is neutral, above 60 is constructive, below 40 is weak. ${t.earnSoon ? '<span class="text-amber-300">Earnings are due within 3 sessions.</span> ' : ''}Not investment advice.</p>
+    </section>`;
+  },
+  techCell(r, mobile = false) {
+    const t = Tech.of(r); if (!t) return mobile ? '' : '<span class="text-xs text-slate-500">—</span>';
+    const tip = U.esc(`${Tech.V[t.v].label} · technical score ${t.score}/100 · ${t.conf} confidence. ${t.action}`);
+    if (mobile) return `<div class="mt-2.5 flex items-center gap-2 flex-wrap" title="${tip}">${UI.techPill(t)}${UI.stageChip(t.stage)}<span class="num text-[11px] text-slate-400">Tech ${t.score}</span>${UI.techDots(t)}<span class="w-full text-[11px] text-slate-300 leading-snug">${U.esc(t.short)}</span></div>`;
+    return `<div title="${tip}"><div class="flex items-center gap-2">${UI.techPill(t)}<span class="num text-xs text-slate-400">${t.score}</span></div>
+      ${t.stage ? `<div class="mt-1">${UI.stageChip(t.stage)}</div>` : ''}
+      <div class="mt-1.5">${UI.techDots(t)}</div><p class="mt-1 text-[11px] text-slate-300 leading-snug line-clamp-2">${U.esc(t.short)}</p></div>`;
+  },
   results() {
     const s = S(), el = $('results');
     if (!view().some(c => s.mkts[c]?.scan)) {
@@ -3022,6 +3420,13 @@ const UI = {
     const all = UI.filtered(), top = s.filters.top, rows = top ? all.slice(0, top) : all, multi = view().length > 1;
     if (!rows.length && s.filters.match) {
       el.innerHTML = `<div class="rounded-xl border border-dashed border-line bg-panel p-8 text-center"><p class="font-medium text-slate-200">No ◆ matches with these filters</p><p class="mt-1 text-sm text-slate-400">${s.bestProg ? `Still backtesting stocks (${s.bestProg.done}/${s.bestProg.total}) — matches appear as they’re found.` : 'No shortlisted stock fired its best-performing strategy today.'}</p><button type="button" data-action="toggleMatch" class="mt-4 h-9 px-4 rounded-lg border border-line text-sm hover:bg-panel2">Show all stocks</button></div>`;
+      return;
+    }
+    if (!rows.length && s.filters.tech !== 'all' && s.results.length) {
+      const lbl = s.filters.tech === 'stage-early' ? '🌱 early-entry zone' : s.filters.tech === 'buys' ? 'any buy signal' : Tech.V[s.filters.tech]?.label || s.filters.tech;
+      el.innerHTML = `<div class="rounded-xl border border-dashed border-line bg-panel p-8 text-center"><p class="font-medium text-slate-200">No stocks with “${U.esc(lbl)}” in this scan</p>
+        <p class="mt-1 text-sm text-slate-400 max-w-lg mx-auto">${s.filters.tech === 'stage-early' ? 'The early-entry zone is rare by design — about 2 in every 100 setups. Check again after the next scan, or add promising stocks to Strategy watch.' : 'Try another action, or check again after the next scan.'}</p>
+        <button type="button" data-action="techFilter" data-v="all" class="mt-4 h-9 px-4 rounded-lg border border-line text-sm hover:bg-panel2">Show all stocks</button></div>`;
       return;
     }
     if (!rows.length) {
@@ -3041,6 +3446,7 @@ const UI = {
         <thead class="text-left text-[11px] uppercase tracking-wide text-slate-400 border-b border-line"><tr>
           <th scope="col" class="px-3 py-2.5 w-8">#</th><th scope="col" class="px-3 py-2.5">Stock</th>
           <th scope="col" class="px-3 py-2.5" title="Estimated probability of a +10% move within 2 weeks of entry, from this market's historical hit rates">Probability</th>
+          <th scope="col" class="px-3 py-2.5" title="Technical check: trend, trend stage, strength vs the market, RSI, Bollinger Bands, MACD, volume, resistance and entry timing">Tech check</th>
           <th scope="col" class="px-3 py-2.5">Trigger event &amp; why shortlisted</th>
           <th scope="col" class="px-3 py-2.5">Trade plan</th><th scope="col" class="px-3 py-2.5">Catalyst</th>
         </tr></thead>
@@ -3053,7 +3459,8 @@ const UI = {
             <td class="px-3 py-3 whitespace-nowrap"><p class="num text-lg font-semibold leading-none" style="color:${probColor(r)}">${fmt.prob(r.p)}</p>
               <div class="mt-1.5 w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden" aria-hidden="true"><div class="h-full rounded-full" style="width:${Math.min(100, r.p * 100 / .6)}%;background:${probColor(r)}"></div></div>
               <p class="text-[11px] text-slate-500 mt-1 num">score ${sc.total.toFixed(0)}</p></td>
-            <td class="px-3 py-3 min-w-[280px]"><p class="text-slate-100 leading-snug">${U.esc(ev.text)}</p><p class="text-[11px] text-slate-500 mt-0.5">${U.esc(ev.name)} · ${fmt.dateShort(ev.date)}${cd.pats.length > 1 ? ` · +${cd.pats.length - 1} more signal${cd.pats.length > 2 ? 's' : ''}` : ''}</p>
+            <td class="px-3 py-3 w-[190px]">${UI.techCell(r)}</td>
+            <td class="px-3 py-3 min-w-[260px]"><p class="text-slate-100 leading-snug">${U.esc(ev.text)}</p><p class="text-[11px] text-slate-500 mt-0.5">${U.esc(ev.name)} · ${fmt.dateShort(ev.date)}${cd.pats.length > 1 ? ` · +${cd.pats.length - 1} more signal${cd.pats.length > 2 ? 's' : ''}` : ''}</p>
               <div class="mt-1.5 flex flex-wrap gap-1">${Engine.chips(r).map(chip).join('')}</div>${UI.bestLine(r)}</td>
             <td class="px-3 py-3 text-xs num whitespace-nowrap leading-5">
               <span class="text-slate-500">Entry</span> <span class="text-emerald-300">${fmt.px(p.entryLow, M)}–${fmt.n2(p.entryHigh, M)}</span>${p.state === 'extended' ? ' <span class="text-[10px] text-amber-400" title="Price is above the entry zone">EXT</span>' : ''}<br>
@@ -3070,6 +3477,7 @@ const UI = {
           <div class="min-w-0 flex-1"><p class="font-semibold">${UI.bestOf(r)?.match ? '<span class="inline-block mr-1 px-1 rounded text-[10px] font-bold bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/40 align-middle">◆ MATCH</span>' : ''}${MyStocks.has(r.m, cd.sym) ? '<span class="text-amber-300" aria-label="My stock">★</span> ' : ''}${U.esc(cd.sym)} <span class="text-xs font-normal text-slate-500">${multi ? flagTag(M) + ' ' : ''}#${n + 1}</span></p><p class="text-[11px] text-slate-500 truncate">${U.esc(tk.name)} · ${fmt.px(cd.price, M)}</p></div>
           <div class="text-right"><p class="num text-xl font-semibold leading-none" style="color:${probColor(r)}">${fmt.prob(r.p)}</p><p class="text-[10px] text-slate-500 mt-1">probability</p></div>
         </div>
+        ${UI.techCell(r, true)}
         <p class="mt-2.5 text-[13px] text-slate-100 leading-snug"><span class="text-slate-500">Event:</span> ${U.esc(ev.text)} <span class="text-[11px] text-slate-500">(${fmt.dateShort(ev.date)})</span></p>
         <div class="mt-1.5 flex flex-wrap gap-1">${Engine.chips(r).map(chip).join('')}</div>${UI.bestLine(r, true)}
         <div class="mt-2.5 grid grid-cols-3 gap-2 text-[11px]">
@@ -3085,7 +3493,15 @@ const UI = {
         ${prog ? `<span class="text-xs text-slate-500"><span class="inline-block w-2 h-2 rounded-full bg-violet-400 animate-pulse mr-1"></span>Backtesting each stock: ${prog.done}/${prog.total}</span>` : ''}
         ${nMatch ? `<button type="button" data-action="toggleMatch" class="ml-auto text-xs underline underline-offset-2 text-violet-200">${s.filters.match ? 'Show all stocks' : 'Show only matches'}</button>` : ''}
       </div>`;
-    el.innerHTML = banner + `<p class="text-xs text-slate-400 mb-2">Showing ${rows.length} of ${all.length} setups · sorted by ${U.esc(sortName)} · probability = chance of a +10% move within 2 weeks of entry, estimated from each market's past setups</p>` + desk + mobile;
+    const tc = {}; for (const x of all) { const t = Tech.of(x); if (t) tc[t.v] = (tc[t.v] || 0) + 1; }
+    const techBar = `<div class="mb-3 rounded-xl border border-line bg-panel px-3 py-2.5 flex flex-wrap items-center gap-2 text-xs">
+        <span class="text-slate-400 mr-1">Tech check of these ${all.length} stocks:</span>
+        ${Object.keys(Tech.V).map(k => `<button type="button" data-action="techFilter" data-v="${k}" aria-pressed="${s.filters.tech === k}" class="inline-flex items-center gap-1.5 h-7 pl-1 pr-2 rounded-lg ${s.filters.tech === k ? 'ring-2 ring-white/60' : 'ring-1 ring-line'} hover:bg-panel2" title="${Tech.V[k].desc}">${UI.techPill({ v: k })}<span class="num text-slate-200 font-semibold">${tc[k] || 0}</span></button>`).join('')}
+        <button type="button" data-action="techFilter" data-v="stage-early" aria-pressed="${s.filters.tech === 'stage-early'}" class="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg ${s.filters.tech === 'stage-early' ? 'ring-2 ring-white/60' : 'ring-1 ring-lime-500/40'} text-lime-200 hover:bg-panel2" title="Stocks in the early-entry zone: a higher low is holding and price is still within about 3 daily ranges of the low — before the breakout">🌱 Early-entry zone <span class="num font-semibold">${all.filter(x => x.cd.stage?.code === 'early').length}</span></button>
+        ${s.filters.tech !== 'all' ? '<button type="button" data-action="techFilter" data-v="all" class="ml-1 underline underline-offset-2 text-slate-300">Show all</button>' : ''}
+        <span class="w-full text-[11px] text-slate-500">Each stock is checked on 10 indicators (dots, left to right): trend · trend stage (🌱 early → ◕ late) · strength vs market · market · RSI · Bollinger Bands · MACD · volume · resistance · entry timing. <span style="color:#34d399">●</span> good <span style="color:#94a3b8">●</span> neutral <span style="color:#fbbf24">●</span> caution <span style="color:#fb7185">●</span> bad. Click a badge to filter.</span>
+      </div>`;
+    el.innerHTML = banner + techBar + `<p class="text-xs text-slate-400 mb-2">Showing ${rows.length} of ${all.length} setups · sorted by ${U.esc(sortName)} · probability = chance of a +10% move within 2 weeks of entry, estimated from each market's past setups</p>` + desk + mobile;
   },
 
   /* ---------- Detail drawer ---------- */
@@ -3116,6 +3532,7 @@ const UI = {
         <button type="button" data-action="closeDrawer" class="h-9 w-9 inline-flex items-center justify-center rounded-lg hover:bg-panel2" aria-label="Close details"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
       </div>
       <div class="p-4 sm:p-5 space-y-5">
+        ${UI.techSection(row)}
         <section aria-labelledby="sumH" class="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.04] p-4">
           <div class="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
             <div class="flex sm:block items-baseline gap-2 sm:text-center shrink-0">
@@ -3895,6 +4312,7 @@ function wire() {
   $('fCap').addEventListener('change', e => Store.set({ filters: { ...f(), cap: e.target.value } }));
   $('fSector').addEventListener('change', e => Store.set({ filters: { ...f(), sector: e.target.value } }));
   $('fPattern').addEventListener('change', e => Store.set({ filters: { ...f(), pattern: e.target.value } }));
+  $('fTech').addEventListener('change', e => Store.set({ filters: { ...f(), tech: e.target.value } }));
   $('fTop').addEventListener('change', e => Store.set({ filters: { ...f(), top: +e.target.value } }));
   $('fSort').addEventListener('change', e => Store.set({ sort: e.target.value }));
   $('fMin').addEventListener('input', e => { $('fMinVal').textContent = e.target.value + '%'; Store.set({ filters: { ...f(), minProb: +e.target.value } }); });
@@ -3905,10 +4323,10 @@ function wire() {
   $('fReset').addEventListener('click', () => UI.resetFilters());
   $('btnExport').addEventListener('click', () => {
     const rows = UI.filtered(); if (!rows.length) return UI.toast('Nothing to export.', 'warn');
-    const head = ['rank', 'market', 'currency', 'ticker', 'name', 'sector', 'tier', 'probability_pct', 'score', 'trigger_event', 'event_date', 'top_reasons', 'last', 'entry_low', 'entry_high', 'target', 'stop', 'reward_risk', 'next_earnings', ...COMPONENTS.map(c => 'score_' + c.key)];
+    const head = ['rank', 'market', 'currency', 'ticker', 'name', 'sector', 'tier', 'probability_pct', 'tech_check', 'tech_score', 'tech_action', 'score', 'trigger_event', 'event_date', 'top_reasons', 'last', 'entry_low', 'entry_high', 'target', 'stop', 'reward_risk', 'next_earnings', ...COMPONENTS.map(c => 'score_' + c.key)];
     const lines = rows.map((r, n) => {
       const tk = r.ds.tickers[r.cd.ti], p = r.cd.plan, ev = Engine.event(r);
-      return [n + 1, r.m, r.M.ccy, tk.sym, tk.name, tk.sector, r.sc.tier, Number.isFinite(r.p) ? (r.p * 100).toFixed(1) : '', r.sc.total.toFixed(1), ev.text, ev.date, Engine.chips(r).map(c => c.t).join('; '), r.cd.price.toFixed(2), p.entryLow.toFixed(2), p.entryHigh.toFixed(2), p.target.toFixed(2), p.stop.toFixed(2), p.rr.toFixed(2), r.cd.earnIn !== null ? Engine.idxDate(r.ds, r.cd.i + r.cd.earnIn) : '', ...COMPONENTS.map(c => r.sc.comps[c.key].toFixed(1))].map(U.csvCell).join(',');
+      return [n + 1, r.m, r.M.ccy, tk.sym, tk.name, tk.sector, r.sc.tier, Number.isFinite(r.p) ? (r.p * 100).toFixed(1) : '', Tech.V[Tech.of(r)?.v || 'wait'].label, Tech.of(r)?.score ?? '', Tech.of(r)?.action || '', r.sc.total.toFixed(1), ev.text, ev.date, Engine.chips(r).map(c => c.t).join('; '), r.cd.price.toFixed(2), p.entryLow.toFixed(2), p.entryHigh.toFixed(2), p.target.toFixed(2), p.stop.toFixed(2), p.rr.toFixed(2), r.cd.earnIn !== null ? Engine.idxDate(r.ds, r.cd.i + r.cd.earnIn) : '', ...COMPONENTS.map(c => r.sc.comps[c.key].toFixed(1))].map(U.csvCell).join(',');
     });
     U.download(`watchlist-${S().settings.market}-${new Date().toISOString().slice(0, 10)}.csv`, [head.join(','), ...lines].join('\n'));
   });
@@ -3921,6 +4339,7 @@ function wire() {
       switch (act.dataset.action) {
         case 'closeDrawer': UI.closeDrawer(); break;
         case 'copyText': try { await navigator.clipboard.writeText(act.dataset.text); UI.toast('Copied.', 'ok'); } catch { UI.toast('Couldn’t copy — select the text and copy it yourself.', 'warn'); } break;
+        case 'techFilter': { const v = act.dataset.v, cur = S().filters.tech; const nv = cur === v ? 'all' : v; $('fTech').value = nv; Store.set({ filters: { ...S().filters, tech: nv } }); break; }
         case 'toggleMatch': Store.set({ filters: { ...S().filters, match: !S().filters.match } }); break;
         case 'watchAdd': {
           const { m, sym, key } = act.dataset;

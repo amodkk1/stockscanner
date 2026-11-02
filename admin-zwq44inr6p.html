@@ -151,6 +151,8 @@
       </div>
     </details>
 
+    <div id="modeBar" class="mt-4"></div>
+
     <button id="filtersToggle" type="button" aria-expanded="false" aria-controls="filters" class="md:hidden mt-4 w-full h-10 rounded-xl border border-line bg-panel text-sm text-slate-300 inline-flex items-center justify-center gap-2">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 5h18M6 12h12M10 19h4"/></svg><span id="filtersToggleLabel">Filters &amp; sort</span>
     </button>
@@ -207,7 +209,7 @@
   <section id="tab-backtest" role="tabpanel" aria-label="Backtest" hidden>
     <div class="rounded-xl border border-emerald-500/30 bg-panel p-4">
       <h2 class="text-base font-semibold">Backtest one stock — which strategy worked best?</h2>
-      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Pick a stock. The app replays its price history and tests 19 strategies on it — the scanner’s 12 chart-pattern signals, the scanner’s own shortlist and 6 classic trading rules — then compares them with simply buying and holding.</p>
+      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Pick a stock. The app replays its price history and tests 21 strategies on it — the scanner’s 12 chart-pattern signals, the scanner’s own shortlist and 8 trading rules — then compares them with simply buying and holding.</p>
       <form id="sbForm" class="mt-4 grid grid-cols-2 md:grid-cols-6 gap-3 items-end" autocomplete="off" onsubmit="return false">
         <label class="text-xs text-slate-400">Market
           <select id="sbMarket" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select>
@@ -267,7 +269,7 @@
   <section id="tab-portfolio" role="tabpanel" aria-label="Portfolio" hidden>
     <div id="pFormCard" class="rounded-xl border border-amber-500/30 bg-panel p-4">
       <h2 class="text-base font-semibold"><span aria-hidden="true">💼</span> My portfolio</h2>
-      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Add the stocks you own. After every scan the app checks each one against all 19 strategies, its trend, your buy price, its fundamentals and upcoming events, and tells you whether to <span class="text-rose-300 font-medium">sell</span>, <span class="text-emerald-300 font-medium">buy more</span>, <span class="text-amber-300 font-medium">review</span> or <span class="text-sky-300 font-medium">hold</span> — with the reasons. <span id="pSaved">Saved on this device only.</span></p>
+      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Add the stocks you own. After every scan the app checks each one against all 21 strategies, its trend, your buy price, its fundamentals and upcoming events, and tells you whether to <span class="text-rose-300 font-medium">sell</span>, <span class="text-emerald-300 font-medium">buy more</span>, <span class="text-amber-300 font-medium">review</span> or <span class="text-sky-300 font-medium">hold</span> — with the reasons. <span id="pSaved">Saved on this device only.</span></p>
       <form id="pForm" class="mt-4 grid grid-cols-2 md:grid-cols-7 gap-3 items-end" autocomplete="off" novalidate>
         <label class="text-xs text-slate-400">Market
           <select id="pMarket" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select></label>
@@ -341,7 +343,7 @@
     StrikeZone ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-02.1 · admin</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-02.2 · admin</p>
   </div>
 </footer>
 
@@ -579,7 +581,7 @@ const DEFAULTS = {
   earningsMode: 'boost', regimeFilter: 'downgrade', catalystWindow: 10,
   autoTrackA: true, autoRun: true,
   myStocks: { US: [], CA: [], IN: [] }, myStocksDirty: false,
-  stratWatch: [], stratAlerted: {},
+  stratWatch: [], stratAlerted: {}, scanMode: 'momentum',
   portfolio: [], pfAlerted: {},
   visitorLog: null, publicFeed: '', site: null, visitorNames: {}, firebase: null,
   alerts: { newA: true, entry: true, watch: true, portfolio: true, browser: false, webhook: '' },
@@ -1108,6 +1110,8 @@ const StockBT = {
     sma1030: { name: '10/30-day SMA crossover', rule: 'Buys at the next session’s open after the 10-day simple moving average (SMA) closes above the 30-day SMA; sells at the next session’s open after it closes back below.' },
     sma50200: { name: '50/200-day SMA crossover (golden cross)', rule: 'Buys at the next session’s open after the 50-day simple moving average (SMA) closes above the 200-day SMA (a “golden cross”); sells at the next session’s open after it closes back below (a “death cross”).' },
     emasma: { name: '20-day EMA × 50-day SMA crossover', rule: 'Buys at the next session’s open after the 20-day exponential moving average (EMA) closes above the 50-day simple moving average (SMA); sells at the next session’s open after the 20-day EMA closes back below the 50-day SMA.' },
+    washout: { name: 'Washout bottom (oversold sell-off)', rule: 'Buys the day after RSI(14) closes below 30 following an 8%+ drop in 5 sessions with a close below the lower Bollinger Band; sells the day after the first close above the 20-day average, or after 15 sessions; stop 1 ATR under the signal-day low.' },
+    leader: { name: 'Leader pullback (first dip to the 50-day)', rule: 'Buys the day after a stock that ran 40%+ off its 6-month low (RSI above 75 in the last 20 sessions) closes below its 50-day average for the first time; sells at +10%, a −7% stop, or after 20 sessions.' },
     rsi: { name: 'Buy the dip (RSI below 30)', rule: 'Buys the day after RSI(14) closes below 30 (oversold); sells the day after RSI closes above 55, or after 20 sessions.' },
     donchian: { name: 'Breakout (new 20-day high)', rule: 'Buys the day after a close above the highest price of the previous 20 days; sells the day after a close below the lowest price of the previous 10 days.' }
   },
@@ -1148,17 +1152,18 @@ const StockBT = {
     // Classic rules: act at the next session's open
     const hi = (i, n) => { let m = -Infinity; for (let j = i - n; j < i; j++) m = Math.max(m, x.h[j]); return m; };
     const lo = (i, n) => { let m = Infinity; for (let j = i - n; j < i; j++) m = Math.min(m, x.l[j]); return m; };
-    const rule = (key, enter, exit, maxDays = 0) => {
+    const rule = (key, enter, exit, maxDays = 0, stopOf = null) => {
       const s = strats[key]; let pos = null;
       for (let i = sigFrom; i <= last; i++) {
         if (!pos) {
-          if (i < last && enter(i)) { s.signals++; pos = { sig: i, entry: i + 1, px: x.o[i + 1] }; }
+          if (i < last && enter(i)) { s.signals++; pos = { sig: i, entry: i + 1, px: x.o[i + 1], stop: stopOf ? stopOf(i) : null }; }
           else if (i === last && enter(i)) today[key] = { buy: true, event: s.name, nextOpen: true };
           continue;
         }
         if (i === last && pos.entry <= last && exit(i)) today[key] = { ...(today[key] || {}), sellNext: true };
         if (i < pos.entry) continue;
-        const sell = exit(i), timeUp = maxDays && i - pos.entry + 1 >= maxDays;
+        if (pos.stop && x.l[i] <= pos.stop) { const ep = Math.min(x.o[i], pos.stop); s.trades.push({ ...pos, exit: i, exitPx: ep, ret: ep / pos.px - 1, how: 'stopped', open: false }); pos = null; continue; }
+        const sell = exit(i, pos), timeUp = maxDays && i - pos.entry + 1 >= maxDays;
         if ((sell || timeUp) && i < last) { s.trades.push({ ...pos, exit: i + 1, exitPx: x.o[i + 1], ret: x.o[i + 1] / pos.px - 1, how: sell ? 'signal' : 'time', open: false }); pos = null; }
       }
       if (pos) s.trades.push({ ...pos, exit: last, exitPx: x.c[last], ret: x.c[last] / pos.px - 1, how: 'open', open: true });
@@ -1170,6 +1175,8 @@ const StockBT = {
     cross('sma50200', x.sma50, x.sma200);
     rule('emasma', i => ok(x.ema20[i], x.sma50[i], x.ema20[i - 1], x.sma50[i - 1]) && x.ema20[i] > x.sma50[i] && x.ema20[i - 1] <= x.sma50[i - 1], i => x.ema20[i] < x.sma50[i]);
     rule('rsi', i => ok(x.rsi[i]) && x.rsi[i] < 30, i => x.rsi[i] > 55, 20);
+    rule('washout', i => i - tk.start > 30 && ok(x.bbw[i], x.rsi[i]) && Rev.isWashout(x, i), i => x.c[i] > x.sma20[i], 15, i => x.l[i] - x.atr[i]);
+    rule('leader', i => i - tk.start > 130 && ok(x.sma50[i], x.sma50[i - 1]) && Rev.isLeader(x, i), (i, p) => x.h[i] >= p.px * 1.10, 20, i => x.c[i] * .93);
     rule('donchian', i => i - tk.start > 20 && x.c[i] > hi(i, 20), i => x.c[i] < lo(i, 10));
     // Buy & hold benchmark
     const bh = { px: x.o[sigFrom + 1], ret: x.c[last] / x.o[sigFrom + 1] - 1, entry: sigFrom + 1 };
@@ -1516,6 +1523,123 @@ const Tech = {
     }[v];
     const agree = v === 'avoid' ? bad.length : v === 'early' ? good.length + 1 : good.length, conf = Math.abs(score - 50) >= 25 && agree >= 5 ? 'High' : Math.abs(score - 50) >= 12 ? 'Medium' : 'Low';
     return { v, score, conf, checks, action, short, plus, minus, stretched, dip, earnSoon, rs63, r63, m63, pb, rsi, squeeze, stage: sg };
+  }
+};
+
+/** Reversal setups — chosen by testing on this app's own data (3 years USA & Canada, ~3 years India, entry at the
+ *  signal-day close, results compared with buying on a random day under the same exit rule):
+ *   • WASHOUT BOTTOM: RSI(14) < 30, down ≥ 8% in 5 sessions and a close below the lower Bollinger Band.
+ *     Exit: first close above the 20-day average, or after 15 sessions; stop 1 ATR under the signal-day low.
+ *     Avg per trade: USA +2.3% (random day +0.3%), Canada +3.5% (+0.3%), India +1.0% (−0.2%) — better in both halves of the period.
+ *     Waiting for a "confirmation" up-day made it worse, so the entry is the washout day itself.
+ *   • LEADER PULLBACK: a stock that ran ≥ 40% off its 6-month low with RSI above 75 in the last 20 sessions, closing
+ *     below its 50-day average for the first time. Exit: +10% target, −7% stop or 20 sessions.
+ *   • Overbought "free fall" setups were tested too (RSI > 75, climax volume, bearish divergence, lower highs, a break of
+ *     the 20/50-day after a run…). Shorting them lost money in all three markets, and the stocks did BETTER than average
+ *     over the next 20 sessions — so the app does not offer them as sell signals. */
+const Rev = {
+  _c: new Map(),
+  SETUPS: {
+    washout: { label: 'Washout bottom', short: 'Washout', icon: '⤒', desc: 'A sharp sell-off into deeply oversold territory — the kind of panic that usually snaps back toward the 20-day average.' },
+    leader:  { label: 'Leader pullback', short: 'Leader pullback', icon: '↘↗', desc: 'A strong stock (big run, very overbought) pulling back to its 50-day average for the first time — dips in leaders have tended to be bought.' }
+  },
+  /** One pass over every stock in a market: today's setups, recent ones still running, and this market's track record. */
+  analyse(ds, onProgress) {
+    const key = `${ds.key}|${ds.stamp || ''}|${ds.cursor}`;
+    if (this._c.has(key)) return Promise.resolve(this._c.get(key));
+    return (async () => {
+      const last = ds.cursor, M = ds.M, rec = { washout: [], leader: [] }, base = { washout: [], leader: [] }, now = [];
+      let t0 = performance.now();
+      for (let ti = 0; ti < ds.tickers.length; ti++) {
+        const tk = ds.tickers[ti]; if (tk.excluded) continue;
+        const x = Ind.compute(tk, M), s = x.start, c = x.c;
+        const from = Math.max(s + 210, last - 760);
+        for (let i = from; i <= last; i++) {
+          const w = this.isWashout(x, i), lp = !w && this.isLeader(x, i);
+          if (i < last - 20 && (i - from) % 7 === 0) { base.washout.push(this.sim(x, i, 'washout', last)); base.leader.push(this.sim(x, i, 'leader', last)); }
+          if (!w && !lp) continue;
+          const kind = w ? 'washout' : 'leader', t = this.sim(x, i, kind, last), day = w ? this.wDay(x, i) : 1;
+          if (!t.open) rec[kind].push({ ret: t.ret, i, day });
+          if (i >= last - 2 && t.open) { const d = this.describe(ds, ti, x, i, kind, t); d.day = day; const k = now.findIndex(z => z.ti === ti && z.kind === kind); if (k >= 0) now.splice(k, 1); now.push(d); }
+        }
+        if (performance.now() - t0 > 50) { onProgress?.(ti / ds.tickers.length); await U.yieldUI(); t0 = performance.now(); }
+      }
+      const stat = (arr, b) => { const r = arr.map(z => z.ret ?? z); const n = r.length; if (!n) return null; const mid = (arr[0]?.i !== undefined) ? arr.map(z => z.i).sort((a, b) => a - b)[Math.floor(n / 2)] : null;
+        const avg = r.reduce((a, v) => a + v, 0) / n; return { n, avg, win: r.filter(v => v > 0).length / n }; };
+      const bstat = arr => { const r = arr.filter(t => !t.open).map(t => t.ret); return r.length ? { n: r.length, avg: r.reduce((a, v) => a + v, 0) / r.length, win: r.filter(v => v > 0).length / r.length } : null; };
+      const split = arr => { if (arr.length < 40) return null; const s2 = [...arr].sort((a, b) => a.i - b.i), h = Math.floor(s2.length / 2); return [stat(s2.slice(0, h)), stat(s2.slice(h))]; };
+      const track = {};
+      for (const k of Object.keys(this.SETUPS)) track[k] = { ...stat(rec[k]), base: bstat(base[k]), halves: split(rec[k]), years: ((last - Math.max(0, last - 760)) / 252),
+        day1: stat(rec[k].filter(z => z.day === 1)), day2: stat(rec[k].filter(z => z.day >= 2)) };
+      now.sort((a, b) => (b.i - a.i) || (b.conf.length - a.conf.length) || a.rsi - b.rsi);
+      const out = { now, track, date: ds.dates[last] };
+      this._c.set(key, out); onProgress?.(1);
+      return out;
+    })();
+  },
+  bbl(x, i) { const m = x.sma20[i], w = x.bbw[i]; return m - w * m / 2; },
+  isWashout(x, i) {
+    const c = x.c;
+    return x.rsi[i] < 30 && c[i] / c[i - 5] - 1 <= -.08 && c[i] < this.bbl(x, i);
+  },
+  /** Which consecutive day of the washout this is (1 = first). */
+  wDay(x, i) { let n = 0; while (n < 30 && i - n - 6 > x.start && this.isWashout(x, i - n)) n++; return n; },
+  isLeader(x, i) {
+    const c = x.c; if (!(c[i] < x.sma50[i] && c[i - 1] >= x.sma50[i - 1])) return false;
+    let rmax = 0; for (let j = i - 20; j < i; j++) rmax = Math.max(rmax, x.rsi[j]); if (!(rmax > 75)) return false;
+    let lo = Infinity; for (let j = Math.max(x.start, i - 126); j <= i; j++) lo = Math.min(lo, x.l[j]);
+    return c[i] / lo - 1 >= .4;
+  },
+  /** Simulate the setup's exit rule from the signal day's close. */
+  sim(x, i, kind, last) {
+    const e = x.c[i];
+    if (kind === 'washout') {
+      const stop = x.l[i] - x.atr[i];
+      for (let j = i + 1; j <= Math.min(last, i + 15); j++) {
+        if (x.l[j] <= stop) return { ret: Math.min(x.o[j], stop) / e - 1, how: 'stopped', exit: j, stop };
+        if (x.c[j] > x.sma20[j]) return { ret: x.c[j] / e - 1, how: 'target', exit: j, stop };
+      }
+      return i + 15 <= last ? { ret: x.c[i + 15] / e - 1, how: 'time', exit: i + 15, stop } : { open: true, ret: x.c[last] / e - 1, stop };
+    }
+    const stop = e * .93, tgt = e * 1.10;
+    for (let j = i + 1; j <= Math.min(last, i + 20); j++) {
+      if (x.l[j] <= stop) return { ret: -.07, how: 'stopped', exit: j, stop, tgt };
+      if (x.h[j] >= tgt) return { ret: .10, how: 'target', exit: j, stop, tgt };
+    }
+    return i + 20 <= last ? { ret: x.c[i + 20] / e - 1, how: 'time', exit: i + 20, stop, tgt } : { open: true, ret: x.c[last] / e - 1, stop, tgt };
+  },
+  describe(ds, ti, x, i, kind, t) {
+    const tk = ds.tickers[ti], M = ds.M, c = x.c, last = ds.cursor, px = v => fmt.px(v, M), conf = [], risk = [];
+    let rv = 0; for (let j = i - 9; j <= i; j++) if (c[j] < c[j - 1]) rv = Math.max(rv, x.v[j] / x.av50[j - 1]);
+    let lo5 = Infinity, lo20 = Infinity, r5 = Infinity, r20 = Infinity;
+    for (let j = i - 4; j <= i; j++) { lo5 = Math.min(lo5, x.l[j]); r5 = Math.min(r5, x.rsi[j]); }
+    for (let j = i - 29; j <= i - 10; j++) { lo20 = Math.min(lo20, x.l[j]); r20 = Math.min(r20, x.rsi[j]); }
+    const s200up = x.sma200[i] > x.sma200[i - 20];
+    let hi = 0; for (let j = Math.max(x.start, i - 126); j <= i; j++) hi = Math.max(hi, x.h[j]);
+    const drop5 = c[i] / c[i - 5] - 1, dd = c[i] / hi - 1;
+    if (kind === 'washout') {
+      if (x.rsi[i] < 25) conf.push(`RSI ${x.rsi[i].toFixed(0)} — extreme`);
+      if (drop5 <= -.12) conf.push(`−${fmt.pct(-drop5, 0, false)} in 5 days`);
+      if (rv >= 2.5) conf.push(`selling climax ${rv.toFixed(1)}× volume`);
+      if (lo5 <= lo20 && r5 > r20 + 3) conf.push('bullish RSI divergence');
+      if (s200up) conf.push('200-day still rising');
+      if (!s200up && c[i] < x.sma200[i]) risk.push('long-term downtrend (below a falling 200-day)');
+      if (dd <= -.4) risk.push(`down ${fmt.pct(-dd, 0, false)} from its 6-month high`);
+    } else {
+      if (s200up) conf.push('200-day rising');
+      if (x.rsi[i] < 45) conf.push(`RSI cooled to ${x.rsi[i].toFixed(0)}`);
+      if (rv < 1.5) conf.push('quiet volume on the dip');
+      else risk.push(`heavy selling volume (${rv.toFixed(1)}×)`);
+    }
+    const ne = tk.earnIdx?.find(k => k > last); if (ne !== undefined && ne - last <= 5) risk.push(`earnings in ${ne - last} session${ne - last === 1 ? '' : 's'}`);
+    const age = last - i;
+    const what = kind === 'washout'
+      ? `Fell ${fmt.pct(-drop5, 0, false)} in 5 sessions to RSI ${x.rsi[i].toFixed(0)}, closing below the lower Bollinger Band (${px(this.bbl(x, i))})`
+      : `After a ${fmt.pct((c[i] / Math.min(...Array.from({ length: 127 }, (_, k) => x.l[Math.max(x.start, i - k)])) - 1), 0)} run (RSI peaked above 75), it closed below its 50-day average (${px(x.sma50[i])}) for the first time`;
+    const plan = kind === 'washout'
+      ? { entry: c[i], stop: t.stop, exitTxt: `Sell on the first close above the 20-day average (now ${px(x.sma20[last])}, ${fmt.pct(x.sma20[last] / c[last] - 1, 0)} above the current price), or after 15 sessions.`, target: x.sma20[last] }
+      : { entry: c[i], stop: t.stop, target: t.tgt, exitTxt: `Target ${px(t.tgt)} (+10%), stop ${px(t.stop)} (−7%), or sell after 20 sessions.` };
+    return { m: ds.m, M, ds, ti, i, sym: tk.sym, name: tk.name, sector: tk.sector, kind, age, what, conf, risk, plan, rsi: x.rsi[i], price: c[last], since: c[last] / c[i] - 1, date: ds.dates[i] };
   }
 };
 
@@ -3622,6 +3746,8 @@ const UI = {
   },
   results() {
     const s = S(), el = $('results');
+    UI.modeBar();
+    if ((s.settings.scanMode || 'momentum') !== 'momentum') { UI.revResults(); return; }
     if (!view().some(c => s.mkts[c]?.scan)) {
       el.innerHTML = `<div class="rounded-xl border border-line bg-panel p-4 space-y-2">${Array(6).fill('<div class="skeleton h-12"></div>').join('')}<p class="text-xs text-slate-500 pt-1">Running the nightly pipeline and calibrating probabilities…</p></div>`;
       return;
@@ -3769,7 +3895,7 @@ const UI = {
           return `<section aria-labelledby="bsH" class="rounded-xl border ${b.match ? 'border-violet-500/40 bg-violet-500/[0.05]' : 'border-line bg-ink'} p-4">
             <h3 id="bsH" class="font-semibold ${b.match ? 'text-violet-200' : ''}">${b.match ? '◆ ' : ''}Best-performing signal for ${U.esc(tk.sym)} in its own backtest</h3>
             <p class="mt-1 text-sm text-slate-200"><span class="font-medium">${U.esc(x.name)}</span> — ${x.n} trade${x.n === 1 ? '' : 's'}, ${fmt.prob(x.winRate)} won, ${fmt.pct(x.total, 1)} in total (buy &amp; hold ${fmt.pct(b.bh.ret, 1)}).</p>
-            <p class="mt-1 text-xs ${b.match ? 'text-violet-200' : 'text-slate-400'}">${b.match ? `${x.key === 'pat:' + cd.pats[0].key ? 'Today’s event is this signal' : 'This signal also fired today'}, so this setup matches what has worked best on this stock.` : !b.sigReliable ? 'Too few trades to trust this result.' : x.total <= 0 ? 'No signal was profitable on this stock.' : x.winRate < .5 ? 'It won less than half its trades, so it doesn’t count as a match.' : b.today[x.key]?.buy ? 'It also fires today.' : 'It is not signalling today.'}${b.best && b.best.key !== x.key ? ` (Across all 19 strategies, ${U.esc(b.best.name)} did best: ${fmt.pct(b.best.total, 1)}.)` : ''}</p>
+            <p class="mt-1 text-xs ${b.match ? 'text-violet-200' : 'text-slate-400'}">${b.match ? `${x.key === 'pat:' + cd.pats[0].key ? 'Today’s event is this signal' : 'This signal also fired today'}, so this setup matches what has worked best on this stock.` : !b.sigReliable ? 'Too few trades to trust this result.' : x.total <= 0 ? 'No signal was profitable on this stock.' : x.winRate < .5 ? 'It won less than half its trades, so it doesn’t count as a match.' : b.today[x.key]?.buy ? 'It also fires today.' : 'It is not signalling today.'}${b.best && b.best.key !== x.key ? ` (Across all 21 strategies, ${U.esc(b.best.name)} did best: ${fmt.pct(b.best.total, 1)}.)` : ''}</p>
             <div class="mt-3 flex flex-wrap gap-2">
               <button type="button" data-action="watchAdd" data-m="${row.m}" data-sym="${U.esc(tk.sym)}" data-key="auto" data-hold="${b.hold}" class="h-8 px-3 rounded-lg bg-violet-500/90 text-white text-xs font-semibold hover:bg-violet-400">◆ Watch &amp; alert me</button>
               <button type="button" data-action="btStock" data-m="${row.m}" data-sym="${U.esc(tk.sym)}" class="h-8 px-3 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">See full backtest</button>
@@ -4182,6 +4308,68 @@ const UI = {
       : `<p class="p-4 text-sm text-slate-400">No stocks match these filters. Try “has any track record”, or lower the minimum number of past trades.</p>`}
       <p class="px-3 pb-3 text-[11px] text-slate-500">Each stock’s full price history is replayed with the same rules as the Backtest tab (${f.hold}-day limit for pattern trades). “Won” means the trade closed with a profit. Past results don’t guarantee future ones. Not investment advice.</p>
     </div>`;
+  },
+
+  /* ---------- Reversal scanner modes (Watchlist) ---------- */
+  modeBar() {
+    const el = $('modeBar'); if (!el) return;
+    const m = S().settings.scanMode || 'momentum';
+    const b = (k, t, sub) => `<button type="button" data-action="scanMode" data-mode="${k}" aria-pressed="${m === k}" class="flex-1 min-w-[150px] text-left rounded-lg px-3 py-2 ${m === k ? 'bg-panel2 ring-2 ring-emerald-400/70' : 'ring-1 ring-line hover:bg-panel2'}"><span class="block text-sm font-semibold ${m === k ? 'text-slate-100' : 'text-slate-300'}">${t}</span><span class="block text-[11px] text-slate-400 leading-snug">${sub}</span></button>`;
+    el.innerHTML = `<div class="flex flex-wrap gap-2" role="group" aria-label="What to scan for">
+      ${b('momentum', 'Breakouts &amp; momentum', 'Stocks breaking out or trending up (the original scanner)')}
+      ${b('washout', '⤒ Bottoms — washouts', 'Sharp sell-offs into deep oversold — the bounce setup')}
+      ${b('leader', '↘↗ Leader pullbacks', 'Strong stocks dipping to their 50-day for the first time')}</div>`;
+    const rev = m !== 'momentum';
+    $('filters').classList.toggle('md:grid', !rev); $('filters').classList.toggle('md:hidden', rev); $('filtersToggle').classList.toggle('hidden', rev);
+  },
+  async revResults() {
+    const el = $('results'), mode = S().settings.scanMode, codes = view().filter(c => S().mkts[c]?.ds), S0 = Rev.SETUPS[mode];
+    if (!codes.length) { el.innerHTML = '<div class="skeleton h-40"></div>'; return; }
+    const tok = (UI._revTok = (UI._revTok || 0) + 1);
+    const ready = codes.every(c => Rev._c.has(`${S().mkts[c].ds.key}|${S().mkts[c].ds.stamp || ''}|${S().mkts[c].ds.cursor}`));
+    if (!ready) el.innerHTML = `<div class="rounded-xl border border-line bg-panel p-4"><p class="text-sm text-slate-300">Checking every stock in ${codes.map(c => MARKETS[c].name).join(', ')} for ${S0.label.toLowerCase()} setups and testing the setup on ${codes.length > 1 ? 'each market’s' : 'the market’s'} last 3 years…</p><div class="mt-3 h-1.5 rounded-full bg-ink overflow-hidden"><div id="revProg" class="h-full bg-emerald-400 transition-all" style="width:2%"></div></div></div>`;
+    const res = [];
+    for (const c of codes) { res.push([c, await Rev.analyse(S().mkts[c].ds, p => { const e = $('revProg'); if (e) e.style.width = Math.round(100 * (res.length + p) / codes.length) + '%'; })]); if (tok !== UI._revTok) return; }
+    if (tok !== UI._revTok || S().settings.scanMode !== mode || S().tab !== 'watchlist') return;
+    const rows = res.flatMap(([, r]) => r.now.filter(x => x.kind === mode)), multi = codes.length > 1;
+    const tone = v => v > 0 ? 'text-emerald-300' : v < 0 ? 'text-rose-300' : 'text-slate-300';
+    const trackLine = ([c, r]) => { const t = r.track[mode], M = MARKETS[c]; if (!t?.n) return `<li>${flagTag(M)} ${M.name}: not enough history yet.</li>`;
+      return `<li>${flagTag(M)} <b class="text-slate-200">${M.name}</b>, last ${t.years.toFixed(1)} years: ${fmt.num(t.n)} ${S0.short.toLowerCase()} trades, average <b class="${tone(t.avg)}">${fmt.pct(t.avg, 1)}</b> per trade, ${fmt.prob(t.win)} winners${t.base ? ` — buying on a random day with the same exit rule: ${fmt.pct(t.base.avg, 1)} (${fmt.prob(t.base.win)})` : ''}.${t.halves ? ` First half of the period ${fmt.pct(t.halves[0].avg, 1)}, second half ${fmt.pct(t.halves[1].avg, 1)}.` : ''}${mode === 'washout' && t.day1 && t.day2 ? ` <span class="text-slate-400">Bought on the 1st day: ${fmt.pct(t.day1.avg, 1)} · on the 2nd day or later: <b class="${tone(t.day2.avg - t.day1.avg)}">${fmt.pct(t.day2.avg, 1)}</b>.</span>` : ''}</li>`; };
+    const tv = r => `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(({ CA: 'TSX:', IN: 'NSE:', US: '' })[r.m] + r.sym.replace('.', (r.m === 'CA' ? '.' : '-')))}`;
+    const when = r => r.age === 0 ? '<span class="text-emerald-300 font-semibold">Today</span>' : `<span class="text-slate-300">${r.age} session${r.age === 1 ? '' : 's'} ago</span>`;
+    const card = r => { const M = r.M, p = r.plan;
+      return `<li class="rounded-xl border ${r.age === 0 ? 'border-emerald-500/40' : 'border-line'} bg-panel p-3">
+        <div class="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
+          <div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(r.sym)} <span class="text-xs font-normal text-slate-400">${multi ? flagTag(M) + ' ' : ''}${U.esc(r.name)} · ${U.esc(r.sector)}</span></p>
+            <p class="text-[11px] text-slate-400">${r.kind === 'washout' ? `<span class="font-semibold ${r.day >= 2 ? 'text-emerald-300' : 'text-amber-200'}">Washout day ${r.day}</span> · ` : ''}${when(r)} · ${fmt.date(r.date)}${r.age ? ` · since then ${'<span class="' + tone(r.since) + '">' + fmt.pct(r.since, 1) + '</span>'}` : ''} · now ${fmt.px(r.price, M)}</p></div>
+          <div class="flex flex-wrap gap-1.5 sm:shrink-0">
+            <button type="button" data-action="watchAdd" data-m="${r.m}" data-sym="${U.esc(r.sym)}" data-key="${r.kind}" class="h-7 px-2.5 rounded-lg border border-violet-500/40 text-xs text-violet-300 hover:bg-violet-500/10">◆ Watch</button>
+            <button type="button" data-action="revPf" data-m="${r.m}" data-sym="${U.esc(r.sym)}" data-px="${r.price}" class="h-7 px-2.5 rounded-lg border border-amber-500/40 text-xs text-amber-300 hover:bg-amber-500/10">💼 Portfolio</button>
+            <button type="button" data-action="btStock" data-m="${r.m}" data-sym="${U.esc(r.sym)}" class="h-7 px-2.5 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Backtest</button>
+            <a href="${tv(r)}" target="_blank" rel="noopener" class="h-7 px-2.5 inline-flex items-center rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Chart ↗</a>
+          </div>
+        </div>
+        <p class="mt-2 text-sm text-slate-100 leading-snug">${U.esc(r.what)}.</p>
+        <div class="mt-1.5 flex flex-wrap gap-1">${r.conf.map(t => `<span class="inline-flex items-center h-5 px-1.5 rounded text-[10.5px] ring-1 ring-emerald-500/30 text-emerald-300">✓ ${U.esc(t)}</span>`).join('')}${r.risk.map(t => `<span class="inline-flex items-center h-5 px-1.5 rounded text-[10.5px] ring-1 ring-amber-500/40 text-amber-300">! ${U.esc(t)}</span>`).join('')}</div>
+        <div class="mt-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+          <div class="rounded-lg bg-ink border border-line p-2"><p class="text-[11px] text-slate-400">Entry</p><p class="num font-semibold text-emerald-300">${fmt.px(p.entry, M)}</p><p class="text-[10px] text-slate-500">${r.age ? 'signal-day close' : 'today’s close / next open'}</p></div>
+          <div class="rounded-lg bg-ink border border-line p-2"><p class="text-[11px] text-slate-400">Stop</p><p class="num font-semibold text-rose-300">${fmt.px(p.stop, M)}</p><p class="text-[10px] text-slate-500">${fmt.pct(p.stop / p.entry - 1, 1)}</p></div>
+          <div class="rounded-lg bg-ink border border-line p-2"><p class="text-[11px] text-slate-400">${r.kind === 'washout' ? 'Exit target (20-day avg)' : 'Target'}</p><p class="num font-semibold text-sky-300">${fmt.px(p.target, M)}</p><p class="text-[10px] text-slate-500">${fmt.pct(p.target / p.entry - 1, 1)} from entry</p></div>
+          <div class="rounded-lg bg-ink border border-line p-2"><p class="text-[11px] text-slate-400">Time limit</p><p class="num font-semibold">${r.kind === 'washout' ? 15 : 20} sessions</p><p class="text-[10px] text-slate-500">sell if nothing happens</p></div>
+        </div>
+        <p class="mt-2 text-[11px] text-slate-400">${U.esc(p.exitTxt)}${r.kind === 'washout' ? (r.day === 1 ? ' Day 1 of a washout: historically the 2nd and later days were better entries in the USA and Canada — consider a starter position now and adding if the selling continues.' : ` Day ${r.day}: deeper into the washout, which has historically been the better entry.`) : ''}</p>
+      </li>`; };
+    el.innerHTML = `<div class="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.04] p-4 mb-3">
+        <h3 class="font-semibold">${S0.icon} ${S0.label}</h3>
+        <p class="mt-1 text-sm text-slate-300 max-w-4xl">${S0.desc} ${mode === 'washout' ? 'Rule: RSI below 30, down 8% or more in 5 sessions, and a close below the lower Bollinger Band — bought while it is happening, not after a “confirmation” bounce (waiting made results worse). Each day the condition holds counts as a signal.' : 'Rule: ran 40% or more off its 6-month low with RSI above 75 in the last month, then closes below its 50-day average for the first time.'}</p>
+        <p class="mt-2 text-xs text-slate-400">Track record, tested on this app’s own data:</p>
+        <ul class="mt-1 space-y-0.5 text-xs text-slate-300">${res.map(trackLine).join('')}</ul>
+        <details class="mt-2 text-xs text-slate-400"><summary class="cursor-pointer text-sky-300">Why there’s no “overbought — about to crash” sell list</summary>
+          <p class="mt-1.5 leading-relaxed">We tested the classic top signals on 3 years of data in all three markets: RSI above 75, buying-climax volume, bearish divergence, lower highs, closing below the upper band, and the first close under the 20- or 50-day average after a big run. Shorting every one of them lost money, and those stocks rose <i>more</i> than average over the next 4 weeks. Strong, overbought stocks have tended to keep going, so the app won’t label them “sell”. If you own one, protect the gain with a trailing stop instead (the Portfolio tab does this).</p></details>
+      </div>
+      <p class="text-xs text-slate-400 mb-2">${rows.length ? `${rows.length} setup${rows.length === 1 ? '' : 's'} from the last 3 sessions that are still open (not stopped out or already at target) · newest first` : ''}</p>
+      ${rows.length ? `<ul class="space-y-2">${rows.map(card).join('')}</ul>` : `<div class="rounded-xl border border-dashed border-line bg-panel p-8 text-center"><p class="font-medium text-slate-200">No ${S0.label.toLowerCase()} setups in the last 3 sessions</p><p class="mt-1 text-sm text-slate-400 max-w-lg mx-auto">${mode === 'washout' ? 'Washouts come in clusters during sell-offs; in calm or rising markets there can be none for days. Check again after the next scan.' : 'These are occasional — check again after the next scan.'}</p></div>`}
+      <p class="mt-3 text-[11px] text-slate-500">Past results came from a simple test (entry at the signal-day close, the exit rules shown, no costs). They will differ from real trading and don’t guarantee future results. Not investment advice.</p>`;
   },
 
   /* ---------- Portfolio tab ---------- */
@@ -4878,6 +5066,13 @@ function wire() {
           try { await fetch(vl.formUrl, { method: 'POST', mode: 'no-cors', body: b }); UI.toast('Test visit sent. It shows in the sheet at once and here within about 5 minutes (Refresh).', 'ok'); }
           catch { UI.toast('Couldn’t send the test visit — check box A.', 'error'); }
           break;
+        }
+        case 'scanMode': S().settings.scanMode = act.dataset.mode; Store.persist(); UI.results(); break;
+        case 'revPf': {
+          if (Account.locked()) { UI.acctOpen('register'); UI.toast('Create a free account (or sign in) to keep a portfolio.', 'info'); break; }
+          Store.set({ tab: 'portfolio' }); $('pMarket').value = act.dataset.m; UI.portfolioForm();
+          $('pStock').value = act.dataset.sym; $('pQty').value = ''; $('pCost').value = (+act.dataset.px).toFixed(2); $('pDate').value = '';
+          window.scrollTo({ top: 0 }); $('pQty').focus(); UI.toast(`Type how many shares of ${act.dataset.sym} you own, check the price, then press “Add / update”.`, 'info'); break;
         }
         case 'techFilter': { const v = act.dataset.v, cur = S().filters.tech; const nv = cur === v ? 'all' : v; $('fTech').value = nv; Store.set({ filters: { ...S().filters, tech: nv } }); break; }
         case 'toggleMatch': Store.set({ filters: { ...S().filters, match: !S().filters.match } }); break;

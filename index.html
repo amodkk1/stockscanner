@@ -99,8 +99,10 @@
   </div>
   <div class="mx-auto max-w-7xl px-4 pb-2">
     <div id="marketBar" role="radiogroup" aria-label="Market" class="flex gap-1.5 overflow-x-auto scroll-thin"></div>
+    <div id="dataBar" class="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] leading-tight" aria-live="polite"></div>
   </div>
   <nav class="mx-auto max-w-7xl px-2 sm:px-4 flex gap-1 overflow-x-auto scroll-thin" role="tablist" aria-label="Sections">
+    <button role="tab" data-tab="markets" class="tab">Markets</button>
     <button role="tab" data-tab="watchlist" class="tab">Watchlist</button>
     <button role="tab" data-tab="portfolio" class="tab">Portfolio</button>
     <button role="tab" data-tab="watch" class="tab">Strategy watch</button>
@@ -121,7 +123,9 @@
 
 <main id="main" class="mx-auto max-w-7xl px-4 py-5 pb-24">
   <!-- ============ WATCHLIST ============ -->
-  <section id="tab-watchlist" role="tabpanel" aria-label="Watchlist">
+  <section id="tab-markets" role="tabpanel" aria-label="Markets"><div id="marketsView"></div></section>
+
+  <section id="tab-watchlist" role="tabpanel" aria-label="Watchlist" hidden>
     <div id="statCards" class="grid grid-cols-2 lg:grid-cols-5 gap-3"></div>
     <div id="scheduleBar" class="mt-3"></div>
 
@@ -181,7 +185,7 @@
         <button type="button" id="fMine" aria-pressed="false" class="h-8 px-2.5 rounded-lg text-sm ring-1 ring-line text-slate-400">★ Mine</button>
         <label class="ml-2 text-xs text-slate-400">Tech check
           <select id="fTech" class="ml-1 h-8 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">
-            <option value="all">All</option><option value="stage-early">🌱 Early-entry zone</option><option value="buys">Any buy signal</option><option value="buy">BUY NOW</option><option value="early">BUY EARLY</option><option value="trigger">BUY ABOVE</option><option value="dip">BUY ON DIP</option><option value="wait">WAIT</option><option value="avoid">AVOID</option>
+            <option value="all">All</option><option value="stage-early">🌱 Early-entry zone</option><option value="buys">Any buy signal (not WAIT)</option><option value="buy">BUY NOW</option><option value="early">BUY EARLY</option><option value="trigger">BUY ABOVE</option><option value="washout">BUY · WASHOUT</option><option value="leaderpb">BUY · LEADER DIP</option><option value="dip">WAIT · EXTENDED</option><option value="wait">WAIT</option><option value="avoid">AVOID</option>
           </select>
         </label>
         <label class="ml-2 text-xs text-slate-400">Show
@@ -340,7 +344,7 @@
     StrikeZone ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-02.2 · public</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-03.2 · public</p>
   </div>
 </footer>
 
@@ -372,6 +376,10 @@
   </details>
 </aside>
 
+<div id="chartBackdrop" class="fade fixed inset-0 z-[55] bg-black/70 hidden" aria-hidden="true"></div>
+<div id="chartModal" role="dialog" aria-modal="true" aria-labelledby="chartTitle" class="hidden fixed z-[56] inset-0 sm:inset-4 lg:inset-8 sm:rounded-2xl border border-line bg-panel shadow-2xl overflow-y-auto scroll-thin">
+  <div id="chartBody"></div>
+</div>
 <div id="acctBackdrop" class="fade fixed inset-0 z-40 bg-black/60 hidden" aria-hidden="true"></div>
 <div id="acctModal" role="dialog" aria-modal="true" aria-labelledby="acctTitle" class="hidden fixed z-50 inset-x-3 top-14 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 sm:w-[430px] max-h-[86vh] overflow-y-auto scroll-thin rounded-2xl border border-line bg-panel shadow-2xl">
   <div id="acctBody" class="p-5"></div>
@@ -391,7 +399,7 @@ const BUILD = 'public';
 const MARKETS = {
   US: {
     code: 'US', name: 'USA', long: 'United States', flag: '🇺🇸', exch: 'NYSE · NASDAQ', ccy: 'USD', sym: '$', locale: 'en-US',
-    tz: 'America/New_York', tzLabel: 'ET', closeTxt: '4:00 PM ET', run: [16, 15], index: 'S&P 500', idxSyms: ['SPY', 'VOO'],
+    tz: 'America/New_York', tzLabel: 'ET', closeTxt: '4:00 PM ET', updTxt: '5:00 PM ET', run: [17, 0], index: 'S&P 500', idxSyms: ['SPY', 'VOO'],
     usd: 1, px: [3, 360], cap: [1.5e8, 1.5e12], symStyle: 'us', gAdj: 0, peAdj: 1,
     regulator: 'SEC / FINRA', regNote: 'Publishing recommendations to others can trigger SEC investment-adviser registration.',
     prefixes: ['Apex', 'Nova', 'Helix', 'Cobalt', 'Summit', 'Vertex', 'Lumen', 'Arbor', 'Quanta', 'Meridian', 'Northwind', 'Silverline', 'Bluecrest', 'Ironwood', 'Pinnacle', 'Crescent', 'Orion', 'Harbor', 'Stratus', 'Keystone', 'Redwood', 'Atlas', 'Tidewater', 'Granite', 'Beacon', 'Falcon', 'Zenith', 'Cascade', 'Ember', 'Juniper', 'Sterling', 'Prism', 'Vantage', 'Sable', 'Kestrel', 'Larkspur'],
@@ -399,7 +407,7 @@ const MARKETS = {
   },
   CA: {
     code: 'CA', name: 'Canada', long: 'Canada', flag: '🇨🇦', exch: 'TSX · TSX Venture', ccy: 'CAD', sym: 'C$', locale: 'en-CA',
-    tz: 'America/Toronto', tzLabel: 'ET', closeTxt: '4:00 PM ET', run: [16, 15], index: 'S&P/TSX Composite', idxSyms: ['XIC', 'XIU', 'XIC.TO', 'XIU.TO'],
+    tz: 'America/Toronto', tzLabel: 'ET', closeTxt: '4:00 PM ET', updTxt: '5:00 PM ET', run: [17, 0], index: 'S&P/TSX Composite', idxSyms: ['XIC', 'XIU', 'XIC.TO', 'XIU.TO'],
     usd: .73, px: [1, 180], cap: [6e7, 3e11], symStyle: 'ca', gAdj: -.01, peAdj: .9,
     regulator: 'CIRO / CSA', regNote: 'Advising others in Canada generally requires registration with provincial regulators (CSA).',
     prefixes: ['Maple', 'Boreal', 'Laurentian', 'Cariboo', 'Fraser', 'Muskoka', 'Tundra', 'Prairie', 'Cascadia', 'Northstar', 'Rideau', 'Huron', 'Kootenay', 'Chinook', 'Glacier', 'Timberline', 'Saguenay', 'Hudson', 'Ottawa Valley', 'Klondike', 'Okanagan', 'Gaspé', 'Yukon', 'Selkirk'],
@@ -407,7 +415,7 @@ const MARKETS = {
   },
   IN: {
     code: 'IN', name: 'India', long: 'India', flag: '🇮🇳', exch: 'NSE · BSE', ccy: 'INR', sym: '₹', locale: 'en-IN',
-    tz: 'Asia/Kolkata', tzLabel: 'IST', closeTxt: '3:30 PM IST', run: [16, 0], index: 'Nifty 50', idxSyms: ['NIFTYBEES', 'NIFTY', 'NIFTYBEES.NS'],
+    tz: 'Asia/Kolkata', tzLabel: 'IST', closeTxt: '3:30 PM IST', updTxt: '4:39 PM IST', run: [16, 39], index: 'Nifty 50', idxSyms: ['NIFTYBEES', 'NIFTY', 'NIFTYBEES.NS'],
     usd: .012, px: [20, 6000], cap: [8e9, 2e13], symStyle: 'in', gAdj: .05, peAdj: 1.35,
     regulator: 'SEBI', regNote: 'Publishing stock recommendations in India requires SEBI Research Analyst registration.',
     prefixes: ['Surya', 'Kaveri', 'Deccan', 'Konark', 'Sahyadri', 'Narmada', 'Prithvi', 'Tejas', 'Anant', 'Nilgiri', 'Aravali', 'Vayu', 'Sagar', 'Shakti', 'Indus', 'Kesari', 'Vridhi', 'Akash', 'Meru', 'Chandra', 'Pragati', 'Udaan', 'Satpura', 'Godavari'],
@@ -578,7 +586,7 @@ const DEFAULTS = {
   earningsMode: 'boost', regimeFilter: 'downgrade', catalystWindow: 10,
   autoTrackA: true, autoRun: true,
   myStocks: { US: [], CA: [], IN: [] }, myStocksDirty: false,
-  stratWatch: [], stratAlerted: {}, scanMode: 'momentum',
+  stratWatch: [], stratAlerted: {}, scanMode: 'momentum', ixRange: 126,
   portfolio: [], pfAlerted: {},
   visitorLog: null, publicFeed: '', site: null, visitorNames: {}, firebase: null,
   alerts: { newA: true, entry: true, watch: true, portfolio: true, browser: false, webhook: '' },
@@ -622,13 +630,13 @@ const Store = (() => {
     alerts: Array.isArray(saved.alerts) ? saved.alerts : [],
     prevA: saved.prevA || {},
     disclaimerSeen: !!saved.disclaimerSeen,
-    tab: 'watchlist',
+    tab: 'markets',
     mkts: {},            // code -> { ds, scan, cal, fit }
     results: [],         // ranked rows for the markets in view
     filters: { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: 25, mine: false, tech: 'all' },
     mySync: { state: 'idle', msg: '' },
     sbt: null, sbtBusy: false,
-    bestTick: 0, bestProg: null, watchTick: 0, pfTick: 0, acct: 0, finder: null,
+    bestTick: 0, bestProg: null, watchTick: 0, pfTick: 0, acct: 0, feedTick: 0, idxTick: 0, finder: null,
     sort: 'prob',
     busy: false,
     pipes: {},           // code -> { stages, runs, ms }
@@ -931,7 +939,9 @@ const Feed = {
         : ({ 401: 'the GitHub token is invalid or expired', 403: 'access denied or rate-limited — check the token has read access to this repo', 404: `${file} not found — check owner, repo and branch, that the token can read this private repo, and that the workflow has run at least once` }[r.status] || `HTTP ${r.status}`);
       throw new Error(`Feed: ${why}.`);
     }
-    try { return await r.json(); } catch { throw new Error(`Feed: ${file} is not valid JSON.`); }
+    let j; try { j = await r.json(); } catch { throw new Error(`Feed: ${file} is not valid JSON.`); }
+    if (file === 'meta.json') { this.lastMeta = j; this.lastMetaAt = Date.now(); try { Store.set({ feedTick: Date.now() }); } catch { } }
+    return j;
   },
   /** Load one market: fetch meta, reuse the cached copy if unchanged, otherwise download. Falls back to cache offline. */
   /** Changes whenever the data job publishes this market again (new date or new stocks). */
@@ -1354,12 +1364,14 @@ const Finder = {
 const Tech = {
   _c: new Map(),
   V: {
-    buy:     { label: 'BUY NOW',   cls: 'bg-emerald-500 text-ink',                                   dot: '#34d399', order: 0, desc: 'Strong setup, good timing' },
-    early:   { label: 'BUY EARLY', cls: 'bg-lime-400 text-ink',                                      dot: '#a3e635', order: 1, desc: 'Start of a possible new trend — higher low holding, entry close to the low, tight stop' },
-    trigger: { label: 'BUY ABOVE', cls: 'bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/70', dot: '#6ee7b7', order: 2, desc: 'Strong setup — buy only if it breaks the trigger price' },
-    dip:     { label: 'BUY ON DIP', cls: 'bg-sky-500/20 text-sky-100 ring-1 ring-sky-400/60',        dot: '#38bdf8', order: 3, desc: 'Strong stock, but stretched — wait for a pullback' },
-    wait:    { label: 'WAIT',      cls: 'bg-amber-500/20 text-amber-100 ring-1 ring-amber-400/60',  dot: '#fbbf24', order: 4, desc: 'Mixed signals — not yet' },
-    avoid:   { label: 'AVOID',     cls: 'bg-rose-500/25 text-rose-100 ring-1 ring-rose-400/60',     dot: '#fb7185', order: 5, desc: 'Weak technicals — skip (sell if you own it)' }
+    buy:      { label: 'BUY NOW',          cls: 'bg-emerald-500 text-ink',                                    dot: '#34d399', order: 0, desc: 'Strong setup and a good entry right now' },
+    washout:  { label: 'BUY · WASHOUT',    cls: 'bg-teal-400 text-ink',                                       dot: '#2dd4bf', order: 1, desc: 'Panic sell-off into deep oversold — the tested bounce setup' },
+    leaderpb: { label: 'BUY · LEADER DIP', cls: 'bg-teal-500/20 text-teal-100 ring-1 ring-teal-400/70',       dot: '#5eead4', order: 2, desc: 'A strong stock’s first dip to its 50-day — a tested setup' },
+    early:    { label: 'BUY EARLY',        cls: 'bg-lime-400 text-ink',                                       dot: '#a3e635', order: 3, desc: 'Start of a possible new trend — higher low holding, entry close to the low, tight stop' },
+    trigger:  { label: 'BUY ABOVE',        cls: 'bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/70', dot: '#6ee7b7', order: 4, desc: 'Strong setup — buy only if it trades above the trigger price' },
+    dip:      { label: 'WAIT · EXTENDED',  cls: 'bg-sky-500/20 text-sky-100 ring-1 ring-sky-400/60',          dot: '#38bdf8', order: 5, desc: 'Strong trend but already run up — don’t buy here; wait for a pullback to the price shown' },
+    wait:     { label: 'WAIT',             cls: 'bg-amber-500/20 text-amber-100 ring-1 ring-amber-400/60',   dot: '#fbbf24', order: 6, desc: 'Mixed signals — not yet' },
+    avoid:    { label: 'AVOID',            cls: 'bg-rose-500/25 text-rose-100 ring-1 ring-rose-400/60',      dot: '#fb7185', order: 7, desc: 'Weak technicals — skip (sell if you own it)' }
   },
   TONE: { good: '#34d399', ok: '#94a3b8', warn: '#fbbf24', bad: '#fb7185' },
   of(r) {
@@ -1414,7 +1426,7 @@ const Tech = {
       : ['Downtrend', 'bad', -1, `The ${M.index} is below its 200-day average — most stocks struggle and breakouts fail more often.`];
     add('mkt', 'Market', mk[0], mk[1], mk[2], mk[3]);
     // 4. RSI
-    const rsi = x.rsi[i], rsi5 = x.rsi[back(5)], up = trend[2] > 0, rvol = x.v[i] / x.av50[i - 1], isBreakout = cd.pats.some(q => PATTERNS[q.key]?.group === 'Breakout' || q.key === 'bullFlag' || q.key === 'cupHandle' || q.key === 'ascTriangle') && cd.pats[0].at === i;
+    const rsi = x.rsi[i], rsi5 = x.rsi[back(5)], up = trend[2] > 0, rvol = x.v[i] / x.av50[i - 1], isBreakout = cd.pats.some(q => PATTERNS[q.key]?.group === 'Breakout' || q.key === 'bullFlag' || q.key === 'cupHandle' || q.key === 'ascTriangle') && cd.pats[0]?.at === i;
     const rT = !F(rsi) ? ['n/a', 'ok', 0, 'RSI not available.']
       : rsi >= 78 ? (stretched.push(`RSI ${rsi.toFixed(0)}`), ['Overbought', 'bad', -1, `RSI ${rsi.toFixed(0)} — overbought. Buying here often means buying the top of a short-term run.`])
       : rsi >= 70 && !(isBreakout && rvol >= 1.5) ? (stretched.push(`RSI ${rsi.toFixed(0)}`), ['Hot', 'warn', 0, `RSI ${rsi.toFixed(0)} — overbought territory without a volume-backed breakout. A small pullback usually gives a better entry.`])
@@ -1495,7 +1507,12 @@ const Tech = {
     else if (score < 45 || bad.length >= 3 || (trend[2] <= -1.5 && rsT[2] < 0)) v = 'avoid';
     else if (score >= (early ? 62 : 68) && !needs.length) v = stretched.length ? 'dip' : p.state === 'pending' ? 'trigger' : p.rr >= 1.5 ? 'buy' : 'wait';
     else v = 'wait';
-    if (earnSoon && ['buy', 'early', 'trigger', 'dip'].includes(v)) v = 'wait';
+    // The two setups that tested well on this app's data take priority over the general tally
+    let washI = -1; for (let k = 0; k <= 2; k++) if (i - k - 6 > tk.start && Rev.isWashout(x, i - k)) { washI = i - k; break; }
+    const washStop = washI >= 0 ? x.l[washI] - x.atr[washI] : NaN, washLive = washI >= 0 && x.l[i] > washStop && !(washI < i && x.c[i] > s20);
+    const leaderNow = Rev.isLeader(x, i);
+    if (washLive) v = 'washout'; else if (leaderNow && trend[2] >= 0) v = 'leaderpb';
+    if (earnSoon && ['buy', 'washout', 'leaderpb', 'early', 'trigger'].includes(v)) v = 'wait';
     // Pullback level for "buy on dip": the top of the entry zone or the 20-day average, whichever is higher but still below the price
     let dip = Math.max(p.entryHigh, s20); if (!(dip < c)) dip = c - (F(atr) ? atr : c * .03);
     const say = k => ({ stage: `${k.value.toLowerCase()} stage`, rs: `${k.value} vs market`, mkt: `market ${k.value.toLowerCase()}`, rsi: `RSI ${k.value.replace(' · ', ' ').toLowerCase()}`, macd: `MACD ${k.value.toLowerCase()}`, bb: `Bollinger: ${k.value.toLowerCase()}`, res: k.value, entry: `entry: ${k.value.toLowerCase()}` })[k.key] || k.value;
@@ -1503,23 +1520,59 @@ const Tech = {
     const plus = top2(good), minus = top2(checks.filter(k => k.tone === 'bad' || k.tone === 'warn'));
     const eStop = sg && F(sg.hl) ? Math.min(sg.hl * .99, sg.hl - .3 * (F(atr) ? atr : 0)) : NaN;
     const action = {
+      washout: `Washout bottom${washI < i ? ` (started ${i - washI} session${i - washI === 1 ? '' : 's'} ago)` : ''}: buy near ${px(c)}, stop ${px(washStop)} (${pc(washStop / c - 1, 1)}), sell on the first close above the 20-day average (${px(s20)}, ${pc(s20 / c - 1, 0)} above) or after 15 sessions. A tested setup: it beat buying on a random day in all three markets.`,
+      leaderpb: `Leader pullback: first close below the 50-day after a big run. Buy near ${px(c)}, stop ${px(c * .93)} (−7%), target ${px(c * 1.1)} (+10%), or sell after 20 sessions.`,
       early: `Early entry near ${px(c)}: the higher low at ${sg ? px(sg.hl) : '—'} is holding. Stop just below it at ${px(eStop)} (${pc(eStop / c - 1, 1)}). Add to the position if it closes above ${sg ? px(sg.trig) : '—'} (the breakout).`,
       buy: `Buy in the entry zone ${px(p.entryLow)}–${fmt.n2(p.entryHigh, M)} · stop ${px(p.stop)} · target ${px(p.target)}.`,
       trigger: `Set a buy-stop just above ${px(p.entryLow)}. Only buy if it trades there — then stop ${px(p.stop)}, target ${px(p.target)}.`,
-      dip: `Strong, but ${stretched.join(', ')}. Wait for a pullback toward ${px(dip)} before buying.`,
+      dip: `Don’t buy here. The trend is strong, but the stock has already run up (${stretched.join(', ')}). Buying extended stocks means a wider stop and more risk. Wait for a pullback toward ${px(dip)}, or a tight sideways pause, before buying.`,
       wait: earnSoon ? `Earnings in ${cd.earnIn} session${cd.earnIn === 1 ? '' : 's'} — let the report pass, then re-check.` : needs.length ? `Not yet — it still needs ${needs.join(', ').replace(/, ([^,]*)$/, ' and $1')}. Re-check after the next scan.` : `Signals are mixed (technical score ${score}). Re-check after the next scan${p.state === 'pending' ? `, or buy only on a close above ${px(p.entryLow)}` : ''}.`,
       avoid: 'Skip this one for now — and if you own it, consider selling or tightening your stop.'
     }[v];
     const short = {
+      washout: `Washout: RSI ${F(rsi) ? rsi.toFixed(0) : '—'}, ${pc(c / x.c[i - 5] - 1, 0)} in 5d · stop ${px(washStop)}`,
+      leaderpb: `First dip to the 50-day after a big run`,
       early: `Higher low held · stop ${px(eStop)} (${pc(eStop / c - 1, 0)})`,
       buy: plus.join(' · ') || 'Technicals line up',
       trigger: `Strong setup · trigger ${px(p.entryLow)}`,
-      dip: `Stretched: ${stretched[0]}`,
+      dip: `Already run up (${stretched[0]}) — wait for ~${px(dip)}`,
       wait: earnSoon ? `Earnings in ${cd.earnIn}d` : needs.length ? `Needs ${needs[0]}` : minus[0] ? `Weak: ${minus[0]}` : 'Mixed signals',
       avoid: minus.join(' · ') || 'Weak technicals'
     }[v];
     const agree = v === 'avoid' ? bad.length : v === 'early' ? good.length + 1 : good.length, conf = Math.abs(score - 50) >= 25 && agree >= 5 ? 'High' : Math.abs(score - 50) >= 12 ? 'Medium' : 'Low';
-    return { v, score, conf, checks, action, short, plus, minus, stretched, dip, earnSoon, rs63, r63, m63, pb, rsi, squeeze, stage: sg };
+    // ---- One-line trend status a trader would say out loud
+    const near52 = F(x.hh252[i]) && c >= x.hh252[i] * .95, below20 = c < s20;
+    const ts = washLive ? ['bottom', 'Bottoming — washout', 'Sharp sell-off into deep oversold. These have tended to bounce toward the 20-day average.']
+      : sg && ['early', 'turning'].includes(sg.code) ? ['shaping', 'Uptrend shaping up', `A higher low is in place${sg.code === 'early' ? ' and holding' : ''} — a new trend may be starting. Confirmation above ${px(sg.trig)}.`]
+      : sg?.code === 'confirmed' ? ['fresh', 'Fresh breakout from a turn', `Just broke above its rally high (${px(sg.trig)}). Breakouts often retest — the safer entry is a pullback toward ${px(sg.hl)}–${px(sg.trig)}.`]
+      : trend[2] <= -1.5 ? ['down', 'Downtrend', 'Below falling averages — lower highs and lower lows. Let it base first.']
+      : trend[2] >= 1 && (sg?.code === 'late' || stretched.length) ? ['extended', 'Extended uptrend', `Strong trend that has already run up${near52 ? ' to near its high' : ''}${F(r63) ? ` (${pc(r63, 0)} in 3 months)` : ''}. Good stock, poor entry — buy pullbacks, not highs.`]
+      : trend[2] >= 1 && (tone('macd') === 'bad' || tone('vol') === 'bad' || below20) ? ['weakening', 'Uptrend, losing momentum', `Still above its 50-day, but ${[tone('macd') === 'bad' ? 'MACD is falling' : '', tone('vol') === 'bad' ? 'selling volume is rising' : '', below20 ? 'it slipped below the 20-day' : ''].filter(Boolean).join(', ')}. Watch the 50-day (${px(s50)}).`]
+      : trend[2] >= 1 ? ['up', 'Established uptrend', 'Higher highs and higher lows above rising averages.']
+      : ['side', 'Sideways — no clear trend', 'Price is chopping around its averages. Wait for a direction.'];
+    const tally = { pos: checks.filter(k => k.tone === 'good').length, neu: checks.filter(k => k.tone === 'ok').length, neg: checks.filter(k => k.tone === 'warn' || k.tone === 'bad').length };
+    return { v, score, conf, checks, action, short, plus, minus, stretched, dip, earnSoon, rs63, r63, m63, pb, rsi, squeeze, stage: sg, trendStat: { code: ts[0], label: ts[1], text: ts[2] }, tally, washI, leaderNow };
+  },
+  TS: { bottom: ['⤒', 'text-teal-200 bg-teal-500/15 ring-teal-400/50'], shaping: ['🌱', 'text-lime-100 bg-lime-500/15 ring-lime-400/50'], fresh: ['◒', 'text-emerald-200 bg-emerald-500/10 ring-emerald-400/40'],
+    down: ['▼', 'text-rose-200 bg-rose-500/15 ring-rose-400/50'], extended: ['⚠', 'text-amber-100 bg-amber-500/15 ring-amber-400/50'], weakening: ['↘', 'text-orange-200 bg-orange-500/15 ring-orange-400/50'],
+    up: ['▲', 'text-emerald-200 bg-emerald-500/15 ring-emerald-400/50'], side: ['↔', 'text-slate-300 bg-slate-500/10 ring-slate-500/30'] },
+  /** A technical check for ANY stock (not only shortlisted ones): uses today's setup if there is one, otherwise a neutral plan. */
+  _a: new Map(),
+  ofAny(ds, ti) {
+    const k = `${ds.key}|${ds.stamp || ''}|${ds.cursor}|${ti}`;
+    if (this._a.has(k)) return this._a.get(k);
+    const tk = ds.tickers[ti], x = Ind.compute(tk, ds.M), i = ds.cursor;
+    if (!x.idxc && ds.index) { x.idxc = ds.index.c; x.dates = ds.dates; }
+    let cd = null; try { cd = Engine.candidate(ds, ti, x, i); } catch { }
+    if (!cd) {
+      const c = x.c[i], atr = x.atr[i] || c * .02; let sw = Infinity; for (let j = i - 9; j <= i; j++) sw = Math.min(sw, x.l[j]);
+      const stop = Math.max(c - 2.5 * atr, Math.min(sw * .995, c - atr)), risk = c - stop, target = c + Math.max(2.5 * risk, c * .1);
+      const nextE = tk.earnIdx?.find(t => t > i);
+      cd = { ti, i, sym: tk.sym, price: c, pats: [], plan: { entryLow: c, entryHigh: c * 1.02, stop, target, rr: (target - c) / risk, riskPct: risk / c, upside: target / c - 1, state: 'inzone' }, earnIn: nextE !== undefined ? nextE - i : null, stage: TrendStage.at(x, i, x.idxc) };
+    }
+    let t = null; try { t = this.assess(ds, ti, cd); } catch (e) { console.warn('tech any', e); }
+    if (this._a.size > 500) this._a.clear();
+    this._a.set(k, t); return t;
   }
 };
 
@@ -1637,6 +1690,62 @@ const Rev = {
       ? { entry: c[i], stop: t.stop, exitTxt: `Sell on the first close above the 20-day average (now ${px(x.sma20[last])}, ${fmt.pct(x.sma20[last] / c[last] - 1, 0)} above the current price), or after 15 sessions.`, target: x.sma20[last] }
       : { entry: c[i], stop: t.stop, target: t.tgt, exitTxt: `Target ${px(t.tgt)} (+10%), stop ${px(t.stop)} (−7%), or sell after 20 sessions.` };
     return { m: ds.m, M, ds, ti, i, sym: tk.sym, name: tk.name, sector: tk.sector, kind, age, what, conf, risk, plan, rsi: x.rsi[i], price: c[last], since: c[last] / c[i] - 1, date: ds.dates[i] };
+  }
+};
+
+/** Market indices (Markets page): real index points published by the data job in indices.json; on demo data, the
+ *  app's own simulated market index stands in. */
+const Idx = {
+  list: null, gen: null, err: null, demo: false, _busy: null,
+  ORDER: ['^GSPC', '^IXIC', '^DJI', '^GSPTSE', '^TX60', '^NSEI', '^BSESN', '^NSEBANK'],
+  live() { const st = S().settings; return Feed.configured(st.feed) && MARKET_CODES.some(c => st.sources[c] === 'live'); },
+  async load(force = false) {
+    if (this._busy) return this._busy;
+    if (this.list && !force) return this.list;
+    this._busy = (async () => {
+      this.err = null;
+      if (this.live()) {
+        try {
+          const j = await Feed.get(S().settings.feed, 'indices.json');
+          const arr = Object.values(j.indices || {}).filter(d => d.c?.length > 30);
+          this.list = arr.sort((a, b) => this.ORDER.indexOf(a.s) - this.ORDER.indexOf(b.s)); this.gen = j.generated; this.demo = false;
+        } catch (e) { this.err = /not found/.test(e.message) ? 'Index data isn’t in the data feed yet — it appears after the next data update (with the updated fetch.py).' : e.message; this.list = []; }
+      } else this.demoList();
+      this._busy = null; Store.set({ idxTick: Date.now() });
+      return this.list;
+    })();
+    return this._busy;
+  },
+  demoList() {
+    this.demo = true;
+    this.list = MARKET_CODES.map(c => { const ds = S().mkts[c]?.ds; if (!ds?.index) return null;
+      const n = ds.cursor + 1, c0 = Array.from(ds.index.c.subarray(0, n)), sc = { US: 58, CA: 260, IN: 240 }[c];
+      const cl = c0.map(v => v * sc);
+      return { s: 'demo-' + c, n: `${MARKETS[c].index} (simulated)`, m: c, dates: ds.dates.slice(0, n), o: cl, h: cl, l: cl, c: cl, asOf: ds.dates[ds.cursor] }; }).filter(Boolean);
+  },
+  /** Indicators + a plain-English read for one index. */
+  read(d) {
+    const T = d.c.length, c = Float64Array.from(d.c), h = Float64Array.from(d.h), l = Float64Array.from(d.l), i = T - 1;
+    const s50 = Ind.sma(c, 50), s200 = Ind.sma(c, 200), s20 = Ind.sma(c, 20), rsi = Ind.rsi(c), dm = Ind.adx(h, l, c), bbw = Ind.bbw(c);
+    const bu = new Float64Array(T).fill(NaN), bl = new Float64Array(T).fill(NaN);
+    for (let k = 19; k < T; k++) { bu[k] = s20[k] + bbw[k] * s20[k] / 2; bl[k] = s20[k] - bbw[k] * s20[k] / 2; }
+    let hi = -Infinity; for (let k = Math.max(0, i - 251); k <= i; k++) hi = Math.max(hi, h[k] || c[k]);
+    const F = Number.isFinite, chg = c[i] - c[i - 1], pct = c[i] / c[i - 1] - 1;
+    const up200 = F(s200[i]) && c[i] > s200[i], gold = F(s200[i]) && s50[i] > s200[i], s50up = s50[i] > s50[Math.max(0, i - 10)];
+    const pb = (c[i] - bl[i]) / (bu[i] - bl[i]), adx = dm.adx[i], diUp = dm.pdi[i] > dm.mdi[i], r = rsi[i], off = c[i] / hi - 1;
+    const chips = [
+      F(s200[i]) ? [up200 ? 'good' : 'bad', `${up200 ? '▲ Above' : '▼ Below'} 200-day`] : null,
+      F(s200[i]) ? [gold ? 'good' : 'bad', gold ? '50 > 200 (golden)' : '50 < 200 (death)'] : null,
+      F(r) ? [r >= 70 ? 'warn' : r <= 30 ? 'warn' : r >= 50 ? 'good' : 'ok', `RSI ${r.toFixed(0)}${r >= 70 ? ' overbought' : r <= 30 ? ' oversold' : ''}`] : null,
+      F(adx) ? [adx >= 25 ? (diUp ? 'good' : 'bad') : 'ok', `ADX ${adx.toFixed(0)} ${adx >= 25 ? 'strong' : adx >= 20 ? 'building' : 'weak'} ${diUp ? '↑' : '↓'}`] : null,
+      F(pb) ? [pb > 1 ? 'warn' : pb < 0 ? 'warn' : 'ok', pb > 1 ? 'Above upper band' : pb < 0 ? 'Below lower band' : pb >= .5 ? 'Upper half of bands' : 'Lower half of bands'] : null,
+      [off > -.03 ? 'good' : off < -.1 ? 'bad' : 'ok', off > -.005 ? 'At 52-week high' : `${fmt.pct(off, 1)} from 52-wk high`]
+    ].filter(Boolean);
+    const trend = !F(s200[i]) ? 'Not enough history for the 200-day' : up200 && gold && s50up ? 'Uptrend' : up200 ? 'Above the 200-day, trend mixed' : !gold && !s50up ? 'Downtrend' : 'Below the 200-day';
+    const strength = !F(adx) ? '' : adx >= 25 ? `ADX ${adx.toFixed(0)} says the trend is strong${diUp ? ' and pointing up' : ' and pointing down'}` : adx >= 20 ? `ADX ${adx.toFixed(0)}: a trend is building` : `ADX ${adx.toFixed(0)}: no strong trend (choppy)`;
+    const heat = !F(r) ? '' : r >= 70 ? `RSI ${r.toFixed(0)} is overbought — pullbacks are common from here` : r <= 30 ? `RSI ${r.toFixed(0)} is oversold — bounces are common from here` : `RSI ${r.toFixed(0)} is ${r >= 50 ? 'healthy' : 'soft'}`;
+    const tone = !F(s200[i]) ? 'ok' : up200 && gold ? 'good' : !up200 && !gold ? 'bad' : 'warn';
+    return { i, c: c[i], chg, pct, s50, s200, bu, bl, rsi, adx: dm.adx, pdi: dm.pdi, mdi: dm.mdi, chips, tone, trend, text: [trend, strength, heat].filter(Boolean).join(' · ') + '.', hi, off };
   }
 };
 
@@ -3279,6 +3388,101 @@ const Charts = {
     chart.timeScale().fitContent();
     return chart;
   },
+  /** Full chart for any stock: candles, volume, 20/50/200-day averages, Bollinger Bands, tested-setup markers and the
+   *  plan's levels, with a synced RSI panel underneath. Returns the chart objects (to remove on close). */
+  full(el, rsiEl, ds, ti, x, t, range) {
+    const tk = ds.tickers[ti], M = ds.M, i = ds.cursor, from = Math.max(tk.start, i - range + 1);
+    if (!this.ok()) { this.fallbackLines(el, [Array.from({ length: i - from + 1 }, (_, k) => tk.c[from + k])], ['#34d399']); return []; }
+    const chart = LightweightCharts.createChart(el, this.base(M));
+    const candles = chart.addCandlestickSeries({ upColor: '#34d399', downColor: '#f87171', borderVisible: false, wickUpColor: '#34d399', wickDownColor: '#f87171', priceLineVisible: false });
+    const bars = [], vols = [];
+    for (let k = from; k <= i; k++) {
+      if (!Number.isFinite(tk.c[k])) continue;
+      bars.push({ time: ds.dates[k], open: tk.o[k], high: tk.h[k], low: tk.l[k], close: tk.c[k] });
+      vols.push({ time: ds.dates[k], value: tk.v[k], color: tk.c[k] >= tk.o[k] ? 'rgba(52,211,153,0.3)' : 'rgba(248,113,113,0.3)' });
+    }
+    candles.setData(bars);
+    candles.priceScale().applyOptions({ scaleMargins: { top: .05, bottom: .2 } });
+    const vs = chart.addHistogramSeries({ priceScaleId: 'vol', priceFormat: { type: 'volume' }, priceLineVisible: false, lastValueVisible: false });
+    vs.setData(vols); chart.priceScale('vol').applyOptions({ scaleMargins: { top: .84, bottom: 0 } });
+    const line = (arr, color, width = 1, style = 0) => { const s = chart.addLineSeries({ color, lineWidth: width, lineStyle: style, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+      const d = []; for (let k = from; k <= i; k++) if (Number.isFinite(arr[k])) d.push({ time: ds.dates[k], value: arr[k] }); s.setData(d); return s; };
+    const bu = new Float64Array(tk.c.length).fill(NaN), bl = new Float64Array(tk.c.length).fill(NaN);
+    for (let k = from; k <= i; k++) { const m = x.sma20[k], w = x.bbw[k]; if (Number.isFinite(m) && Number.isFinite(w)) { bu[k] = m + w * m / 2; bl[k] = m - w * m / 2; } }
+    line(bu, 'rgba(167,139,250,0.55)', 1, 2); line(bl, 'rgba(167,139,250,0.55)', 1, 2);
+    line(x.sma20, '#94a3b8'); line(x.sma50, '#38bdf8', 2); line(x.sma200, '#f59e0b', 2);
+    // markers: tested setups in view + today's scanner trigger
+    const marks = [], wide = el.clientWidth > 520;
+    for (let k = Math.max(from, tk.start + 30); k <= i; k++) {
+      if (Rev.isWashout(x, k) && !Rev.isWashout(x, k - 1)) marks.push({ time: ds.dates[k], position: 'belowBar', color: '#2dd4bf', shape: 'arrowUp', text: 'W' });
+      else if (k - tk.start > 130 && Rev.isLeader(x, k)) marks.push({ time: ds.dates[k], position: 'belowBar', color: '#5eead4', shape: 'arrowUp', text: 'L' });
+    }
+    if (t?.stage && Number.isFinite(t.stage.li) && t.stage.li >= from && ['early', 'turning', 'confirmed'].includes(t.stage.code)) {
+      marks.push({ time: ds.dates[t.stage.li], position: 'belowBar', color: '#a3e635', shape: 'circle', text: wide ? 'Low' : '' });
+      if (Number.isFinite(t.stage.hlIdx) && t.stage.hlIdx >= from) marks.push({ time: ds.dates[t.stage.hlIdx], position: 'belowBar', color: '#a3e635', shape: 'circle', text: wide ? 'Higher low' : 'HL' });
+    }
+    const seen = new Set(); candles.setMarkers(marks.sort((a, b) => a.time < b.time ? -1 : a.time > b.time ? 1 : 0).filter(m => !seen.has(m.time) && seen.add(m.time)));
+    // levels for the current call
+    const pl = (price, color, title, style = 2) => Number.isFinite(price) && candles.createPriceLine({ price, color, lineWidth: 1, lineStyle: style, axisLabelVisible: true, title });
+    if (t) {
+      const c = tk.c[i];
+      if (t.v === 'washout') { pl(c - 0, '#2dd4bf', 'Entry'); pl(tk.l[t.washI] - x.atr[t.washI], '#f87171', 'Stop'); pl(x.sma20[i], '#38bdf8', 'Exit (20-day)'); }
+      else if (t.v === 'leaderpb') { pl(c, '#5eead4', 'Entry'); pl(c * .93, '#f87171', 'Stop'); pl(c * 1.1, '#38bdf8', 'Target'); }
+      else if (t.v === 'dip') pl(t.dip, '#38bdf8', 'Pullback buy zone');
+      else if (t.v === 'early' && t.stage) { pl(t.stage.hl, '#a3e635', 'Higher low'); pl(t.stage.trig, '#34d399', 'Breakout'); }
+      else if (t.v === 'trigger' || t.v === 'buy') { const r = S().results.find(z => z.m === ds.m && z.cd.ti === ti); const p = r?.cd.plan; if (p) { pl(p.entryLow, '#34d399', t.v === 'trigger' ? 'Trigger' : 'Entry'); pl(p.stop, '#f87171', 'Stop'); pl(p.target, '#38bdf8', 'Target'); } }
+    }
+    chart.timeScale().fitContent();
+    // RSI panel, kept in step with the price chart
+    const rc = LightweightCharts.createChart(rsiEl, { ...this.base(), rightPriceScale: { borderColor: '#1f2a37', scaleMargins: { top: .1, bottom: .1 } }, timeScale: { borderColor: '#1f2a37', rightOffset: 6, visible: false } });
+    const rs = rc.addLineSeries({ color: '#c4b5fd', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: true });
+    const rd = []; for (let k = from; k <= i; k++) if (Number.isFinite(x.rsi[k])) rd.push({ time: ds.dates[k], value: +x.rsi[k].toFixed(1) });
+    rs.setData(rd);
+    rs.createPriceLine({ price: 70, color: 'rgba(251,113,133,0.6)', lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: '70' });
+    rs.createPriceLine({ price: 30, color: 'rgba(52,211,153,0.6)', lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: '30' });
+    let syncing = false;
+    const sync = (a, b) => a.timeScale().subscribeVisibleLogicalRangeChange(r => { if (syncing || !r) return; syncing = true; try { b.timeScale().setVisibleLogicalRange(r); } catch { } syncing = false; });
+    sync(chart, rc); sync(rc, chart);
+    try { rc.timeScale().setVisibleLogicalRange(chart.timeScale().getVisibleLogicalRange()); } catch { }
+    return [chart, rc];
+  },
+  /** Index chart: candles with 50/200-day and Bollinger Bands, and an RSI + ADX panel underneath (time scales synced). */
+  index(el, subEl, d, range, big) {
+    if (!el || !subEl) return [];
+    const r = Idx.read(d), T = d.c.length, from = Math.max(0, T - range), M = MARKETS[d.m];
+    if (!this.ok()) { this.fallbackLines(el, [d.c.slice(from)], ['#34d399']); return []; }
+    const still = big ? {} : { handleScroll: false, handleScale: false, crosshair: { mode: 0, horzLine: { visible: false, labelVisible: false } } };
+    const logo = big ? {} : { attributionLogo: false };
+    const bo = this.base(M); bo.layout = { ...bo.layout, ...logo, fontSize: big ? 11 : 10 };
+    const opts = { ...bo, ...still, ...(big ? {} : { rightPriceScale: { borderColor: '#1f2a37', scaleMargins: { top: .08, bottom: .06 } }, timeScale: { borderColor: '#1f2a37', rightOffset: 2, fixLeftEdge: true, fixRightEdge: true } }) };
+    const ch = LightweightCharts.createChart(el, opts);
+    const flat = d.h === d.c;
+    const ser = flat ? ch.addAreaSeries({ lineColor: '#34d399', topColor: 'rgba(52,211,153,0.18)', bottomColor: 'rgba(52,211,153,0)', lineWidth: 2, priceLineVisible: false })
+      : ch.addCandlestickSeries({ upColor: '#34d399', downColor: '#f87171', borderVisible: false, wickUpColor: '#34d399', wickDownColor: '#f87171', priceLineVisible: false });
+    const bars = [];
+    for (let k = from; k < T; k++) bars.push(flat ? { time: d.dates[k], value: d.c[k] } : { time: d.dates[k], open: d.o[k], high: d.h[k], low: d.l[k], close: d.c[k] });
+    ser.setData(bars);
+    const line = (arr, color, w = 1, style = 0) => { const s = ch.addLineSeries({ color, lineWidth: w, lineStyle: style, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
+      const pts = []; for (let k = from; k < T; k++) if (Number.isFinite(arr[k])) pts.push({ time: d.dates[k], value: arr[k] }); s.setData(pts); };
+    line(r.bu, 'rgba(167,139,250,0.55)', 1, 2); line(r.bl, 'rgba(167,139,250,0.55)', 1, 2);
+    line(r.s50, '#38bdf8', big ? 2 : 1.5); line(r.s200, '#f59e0b', big ? 2 : 1.5);
+    ch.timeScale().fitContent();
+    const sb = this.base(); sb.layout = { ...sb.layout, ...logo, fontSize: big ? 11 : 9 };
+    const sc = LightweightCharts.createChart(subEl, { ...sb, ...still, rightPriceScale: { borderColor: '#1f2a37', scaleMargins: { top: .08, bottom: .08 } }, timeScale: { visible: false, borderColor: '#1f2a37', ...(big ? {} : { fixLeftEdge: true, fixRightEdge: true }) } });
+    const rs = sc.addLineSeries({ color: '#c4b5fd', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: big, title: big ? 'RSI' : '' });
+    const ax = sc.addLineSeries({ color: '#fb923c', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: big, title: big ? 'ADX' : '' });
+    const pts = arr => { const o = []; for (let k = from; k < T; k++) if (Number.isFinite(arr[k])) o.push({ time: d.dates[k], value: +arr[k].toFixed(1) }); return o; };
+    rs.setData(pts(r.rsi)); ax.setData(pts(r.adx));
+    rs.createPriceLine({ price: 70, color: 'rgba(251,113,133,0.5)', lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: '' });
+    rs.createPriceLine({ price: 30, color: 'rgba(52,211,153,0.5)', lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: '' });
+    ax.createPriceLine({ price: 25, color: 'rgba(251,146,60,0.35)', lineWidth: 1, lineStyle: 3, axisLabelVisible: false, title: '' });
+    sc.timeScale().fitContent();
+    let syncing = false;
+    const sync = (a, b) => a.timeScale().subscribeVisibleLogicalRangeChange(v => { if (syncing || !v) return; syncing = true; try { b.timeScale().setVisibleLogicalRange(v); } catch { } syncing = false; });
+    sync(ch, sc); sync(sc, ch);
+    try { sc.timeScale().setVisibleLogicalRange(ch.timeScale().getVisibleLogicalRange()); } catch { }
+    return [ch, sc];
+  },
   fallbackLines(el, series, colors, hlines = []) {
     const cv = document.createElement('canvas'); el.innerHTML = ''; el.appendChild(cv);
     const draw = () => {
@@ -3327,6 +3531,22 @@ const UI = {
     setTimeout(() => { el.style.transition = 'opacity .3s'; el.style.opacity = '0'; setTimeout(() => el.remove(), 300); }, kind === 'error' ? 6000 : 3200);
   },
 
+  /** Always-visible line per market: which trading day the prices are from, when they were published, and the next update. */
+  dataBar() {
+    const el = $('dataBar'); if (!el) return;
+    const st = S().settings, meta = Feed.lastMeta?.markets || {};
+    const when = (iso, M) => { if (!iso) return ''; const d = new Date(iso); return d.toLocaleString('en-US', { timeZone: M.tz, month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) + ' ' + M.tzLabel; };
+    const day = iso => iso ? new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }) : '—';
+    el.innerHTML = MARKET_CODES.map(c => {
+      const M = MARKETS[c], ds = S().mkts[c]?.ds, live = st.sources[c] === 'live', mm = meta[c];
+      if (!live) return `<span class="text-slate-500">${flagTag(M)} ${M.name}: <span class="text-slate-400">demo data</span>${ds ? ` (simulated ${fmt.dateShort(ds.dates[ds.cursor])})` : ''}</span>`;
+      const asOf = mm?.asOf || (ds?.source === 'live' ? ds.dates[ds.cursor] : null);
+      const expect = Cal.lastClose(M, new Date(Date.now() - 45 * 60000));
+      const behind = asOf ? Cal.tradingDaysBetween(asOf, expect) : 0;
+      const tone = !asOf ? 'text-slate-400' : behind > 0 ? 'text-amber-300' : 'text-emerald-300';
+      return `<span class="text-slate-400" title="Prices are end-of-day closing prices. The data job runs every weekday at ${M.updTxt}; new data usually appears within about 30 minutes.">${flagTag(M)} ${M.name}: <b class="${tone} font-semibold">${asOf ? `prices of ${day(asOf)}` : 'loading…'}</b>${mm?.generated ? ` <span class="text-slate-500">· updated ${when(mm.generated, M)}</span>` : ''}${behind > 0 ? ` <span class="text-amber-300">· ${behind} session${behind === 1 ? '' : 's'} behind</span>` : ''} <span class="text-slate-600">· next ${M.updTxt}</span></span>`;
+    }).join('');
+  },
   marketBar() {
     const cur = S().settings.market, busy = S().busy;
     const opts = [...MARKET_CODES.map(c => ({ c, label: MARKETS[c].name, flag: MARKETS[c].flag, sub: MARKETS[c].exch })), { c: 'ALL', label: 'All markets', flag: '🌐', sub: 'Ranked together' }];
@@ -3363,16 +3583,17 @@ const UI = {
   tabs() {
     if (!Admin.is && ['settings', 'visitors'].includes(S().tab)) S().tab = 'watchlist';
     const t = S().tab;
-    Visit.track('tab', { watchlist: 'Watchlist', portfolio: 'Portfolio', watch: 'Strategy watch', backtest: 'Backtest', paper: 'Paper log', pipeline: 'Pipeline', settings: 'Settings', visitors: 'Visitors' }[t]);
+    Visit.track('tab', { markets: 'Markets', watchlist: 'Watchlist', portfolio: 'Portfolio', watch: 'Strategy watch', backtest: 'Backtest', paper: 'Paper log', pipeline: 'Pipeline', settings: 'Settings', visitors: 'Visitors' }[t]);
     document.querySelectorAll('[role=tab]').forEach(b => {
       const on = b.dataset.tab === t;
       b.setAttribute('aria-selected', on);
       b.className = `tab shrink-0 px-3 py-2.5 text-sm border-b-2 -mb-px ${on ? 'border-emerald-400 text-slate-100 font-medium' : 'border-transparent text-slate-400 hover:text-slate-200'}`;
     });
-    for (const k of ['watchlist', 'portfolio', 'watch', 'backtest', 'paper', 'pipeline', 'visitors', 'settings']) { const sec = $('tab-' + k); if (sec) sec.hidden = k !== t; }
+    for (const k of ['markets', 'watchlist', 'portfolio', 'watch', 'backtest', 'paper', 'pipeline', 'visitors', 'settings']) { const sec = $('tab-' + k); if (sec) sec.hidden = k !== t; }
     
     if (t === 'watch') UI.watchForm();
     if (t === 'portfolio') UI.portfolioOpen();
+    if (t === 'markets') UI.markets();
     if (t === 'watchlist') UI.results();
     
     if (t === 'paper') UI.paper();
@@ -3404,7 +3625,7 @@ const UI = {
     const local = d => d.toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
     $('scheduleBar').innerHTML = `<div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-400">
       <span class="inline-flex items-center gap-1.5"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Next scan in ${h}h ${m}m${S().settings.autoRun ? '' : ' · auto-run off'}${codes.some(c => S().settings.sources[c] === 'live') ? ' · live feed checked every 30 min' : ''}</span>
-      ${items.map(({ M, nr }) => `<span>${flagTag(M)} <span class="text-slate-200">${local(nr.at)}</span> <span class="text-slate-500">(after ${M.closeTxt} close)</span></span>`).join('')}</div>`;
+      ${items.map(({ M, nr }) => `<span>${flagTag(M)} <span class="text-slate-200">${local(nr.at)}</span> <span class="text-slate-500">(data update ${M.updTxt}, after the ${M.closeTxt} close)</span></span>`).join('')}</div>`;
   },
 
   filterOptions() {
@@ -3445,7 +3666,7 @@ const UI = {
       if (q && !tk.sym.includes(q) && !tk.name.toUpperCase().includes(q)) return false;
       if (f.mine && !MyStocks.has(r.m, tk.sym)) return false;
       if (f.match && !UI.bestOf(r)?.match) return false;
-      if (f.tech && f.tech !== 'all') { const t = Tech.of(r)?.v; if (f.tech === 'stage-early' ? r.cd.stage?.code !== 'early' : f.tech === 'buys' ? !['buy', 'early', 'trigger', 'dip'].includes(t) : t !== f.tech) return false; }
+      if (f.tech && f.tech !== 'all') { const t = Tech.of(r)?.v; if (f.tech === 'stage-early' ? r.cd.stage?.code !== 'early' : f.tech === 'buys' ? !['buy', 'washout', 'leaderpb', 'early', 'trigger'].includes(t) : t !== f.tech) return false; }
       return true;
     });
     const k = s.sort;
@@ -3497,6 +3718,19 @@ const UI = {
       ${ss ? `<p class="mt-2 text-[11px] text-slate-500">How each stage did in ${M.name}’s past setups — reached +10% before falling 7%: ${steps.filter(k => ss.by[k]?.fN >= 30).map(k => `${TrendStage.LABEL[k].icon} ${TrendStage.LABEL[k].t} <b class="${ss.by[k].fH / ss.by[k].fN > ss.first + .03 ? 'text-emerald-300' : ss.by[k].fH / ss.by[k].fN < ss.first - .03 ? 'text-rose-300' : 'text-slate-300'}">${fmt.prob(ss.by[k].fH / ss.by[k].fN)}</b> <span class="text-slate-600">(${fmt.num(ss.by[k].fN)})</span>`).join(' · ')} · all setups <b class="text-slate-300">${fmt.prob(ss.first)}</b></p>` : ''}
     </div>`;
   },
+  trendChip(t, big = false) {
+    if (!t?.trendStat) return '';
+    const [ic, cls] = Tech.TS[t.trendStat.code];
+    return `<span class="inline-flex items-center gap-1 ${big ? 'h-7 px-2 text-xs' : 'h-5 px-1.5 text-[10.5px]'} rounded ring-1 whitespace-nowrap ${cls}" title="${U.esc(t.trendStat.text)}">${ic} ${U.esc(t.trendStat.label)}</span>`;
+  },
+  tallyBar(t, wide = false) {
+    if (!t?.tally) return '';
+    const { pos, neu, neg } = t.tally, n = pos + neu + neg || 1;
+    return `<span class="inline-flex items-center gap-1.5 align-middle" title="${pos} positive · ${neu} neutral · ${neg} negative indicators"><span class="inline-flex h-1.5 ${wide ? 'w-28' : 'w-16'} rounded-full overflow-hidden bg-slate-800"><span style="width:${100 * pos / n}%;background:#34d399"></span><span style="width:${100 * neu / n}%;background:#64748b"></span><span style="width:${100 * neg / n}%;background:#fb7185"></span></span><span class="num text-[10.5px]"><span class="text-emerald-300">${pos}+</span> <span class="text-rose-300">${neg}−</span></span></span>`;
+  },
+  chartBtn(m, sym, label = '📈 Chart', cls = 'h-7 px-2.5 rounded-lg border border-sky-500/40 text-xs text-sky-300 hover:bg-sky-500/10') {
+    return `<span role="button" tabindex="0" data-action="chart" data-m="${m}" data-sym="${U.esc(sym)}" class="inline-flex items-center gap-1 cursor-pointer ${cls}" title="Open the chart and full technical check for ${U.esc(sym)}">${label}</span>`;
+  },
   stageChip(sg) {
     if (!sg) return '';
     const L = TrendStage.LABEL[sg.code], extra = sg.code === 'early' ? ` · ${sg.gainAtr.toFixed(1)}× ATR off low` : sg.code === 'late' ? ` · ${fmt.pct(sg.gain, 0)}` : '';
@@ -3517,22 +3751,34 @@ const UI = {
         <div class="min-w-0 flex-1">
           <div class="flex flex-wrap items-center gap-2"><h3 id="techH" class="font-semibold">Technical check</h3>${UI.techPill(t, true)}<span class="text-xs text-slate-400">${t.conf} confidence</span></div>
           <p class="mt-1.5 text-sm text-slate-100 leading-relaxed"><b>What to do:</b> ${U.esc(t.action)}</p>
-          ${t.plus.length ? `<p class="mt-1 text-xs text-emerald-300/90">+ ${U.esc(t.plus.join(' · '))}</p>` : ''}${t.minus.length ? `<p class="mt-0.5 text-xs text-rose-300/90">− ${U.esc(t.minus.join(' · '))}</p>` : ''}
+          ${UI.scorecard(t)}
         </div>
       </div>
       <div class="mt-3 grid sm:grid-cols-2 gap-2">${t.checks.map(k => `<div class="rounded-lg bg-ink/70 border border-line p-2.5">
         <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${Tech.TONE[k.tone]}" aria-hidden="true"></span><span class="text-xs text-slate-400">${U.esc(k.label)}</span><span class="ml-auto text-xs font-semibold ${tone[k.tone]}">${U.esc(k.value)}</span></div>
         <p class="mt-1 text-[11.5px] text-slate-300 leading-snug">${U.esc(k.text)}</p></div>`).join('')}</div>
       ${UI.stageBlock(t.stage, row)}
-      <p class="mt-2.5 text-[11px] text-slate-500 leading-relaxed">BUY NOW = strong technicals and a good entry right now · BUY EARLY = a possible new trend caught at its start (higher low holding, tight stop under it) · BUY ABOVE = strong, but buy only if it trades above the trigger · BUY ON DIP = strong but stretched, wait for a pullback · WAIT = mixed signals or earnings within 3 days · AVOID = weak technicals. Score: 50 is neutral, above 60 is constructive, below 40 is weak. ${t.earnSoon ? '<span class="text-amber-300">Earnings are due within 3 sessions.</span> ' : ''}Not investment advice.</p>
+      <p class="mt-2.5 text-[11px] text-slate-500 leading-relaxed">BUY NOW = strong technicals and a good entry right now · BUY · WASHOUT / BUY · LEADER DIP = the two setups that tested best on this app’s data · BUY EARLY = a possible new trend caught at its start (higher low holding, tight stop under it) · BUY ABOVE = strong, but buy only if it trades above the trigger · WAIT · EXTENDED = strong trend but already run up — don’t buy here, wait for the pullback price shown · WAIT = mixed signals or earnings within 3 days · AVOID = weak technicals. Score: 50 is neutral, above 60 is constructive, below 40 is weak. ${t.earnSoon ? '<span class="text-amber-300">Earnings are due within 3 sessions.</span> ' : ''}Not investment advice.</p>
     </section>`;
+  },
+  /** Trend status + every positive and negative indicator, side by side. */
+  scorecard(t) {
+    const pos = t.checks.filter(k => k.tone === 'good'), neg = t.checks.filter(k => k.tone === 'bad' || k.tone === 'warn'), neu = t.checks.filter(k => k.tone === 'ok');
+    const li = (k, c) => `<li class="flex gap-1.5"><span class="${c} shrink-0">${c === 'text-emerald-300' ? '+' : c === 'text-rose-300' ? '−' : '•'}</span><span><b class="font-medium text-slate-200">${U.esc(k.label)}:</b> ${U.esc(k.value)}</span></li>`;
+    return `<div class="mt-2 rounded-lg bg-ink/60 border border-line p-2.5">
+      <div class="flex flex-wrap items-center gap-2"><span class="text-xs text-slate-400">Trend</span>${UI.trendChip(t, true)}<span class="ml-auto">${UI.tallyBar(t, true)}</span></div>
+      <p class="mt-1 text-xs text-slate-300">${U.esc(t.trendStat.text)}</p>
+      <div class="mt-2 grid sm:grid-cols-2 gap-x-4 gap-y-1 text-[11.5px]">
+        <ul class="space-y-0.5"><li class="text-[10.5px] uppercase tracking-wide text-emerald-300/80">Positive (${pos.length})</li>${pos.map(k => li(k, 'text-emerald-300')).join('') || '<li class="text-slate-500">none</li>'}</ul>
+        <ul class="space-y-0.5"><li class="text-[10.5px] uppercase tracking-wide text-rose-300/80">Negative (${neg.length})</li>${neg.map(k => li(k, 'text-rose-300')).join('') || '<li class="text-slate-500">none</li>'}${neu.length ? `<li class="pt-1 text-[10.5px] uppercase tracking-wide text-slate-500">Neutral (${neu.length})</li>${neu.map(k => li(k, 'text-slate-500')).join('')}` : ''}</ul>
+      </div></div>`;
   },
   techCell(r, mobile = false) {
     const t = Tech.of(r); if (!t) return mobile ? '' : '<span class="text-xs text-slate-500">—</span>';
     const tip = U.esc(`${Tech.V[t.v].label} · technical score ${t.score}/100 · ${t.conf} confidence. ${t.action}`);
-    if (mobile) return `<div class="mt-2.5 flex items-center gap-2 flex-wrap" title="${tip}">${UI.techPill(t)}${UI.stageChip(t.stage)}<span class="num text-[11px] text-slate-400">Tech ${t.score}</span>${UI.techDots(t)}<span class="w-full text-[11px] text-slate-300 leading-snug">${U.esc(t.short)}</span></div>`;
+    if (mobile) return `<div class="mt-2.5 flex items-center gap-2 flex-wrap" title="${tip}">${UI.techPill(t)}${UI.trendChip(t)}${UI.tallyBar(t)}${UI.techDots(t)}<span class="w-full text-[11px] text-slate-300 leading-snug">${U.esc(t.short)}</span></div>`;
     return `<div title="${tip}"><div class="flex items-center gap-2">${UI.techPill(t)}<span class="num text-xs text-slate-400">${t.score}</span></div>
-      ${t.stage ? `<div class="mt-1">${UI.stageChip(t.stage)}</div>` : ''}
+      <div class="mt-1">${UI.trendChip(t)}</div><div class="mt-1">${UI.tallyBar(t)}</div>
       <div class="mt-1.5">${UI.techDots(t)}</div><p class="mt-1 text-[11px] text-slate-300 leading-snug line-clamp-2">${U.esc(t.short)}</p></div>`;
   },
   results() {
@@ -3581,7 +3827,7 @@ const UI = {
           const { cd, sc, M, ds } = r, tk = ds.tickers[cd.ti], p = cd.plan, ev = Engine.event(r);
           return `<tr class="row-click align-top" tabindex="0" data-open="${r.key}" aria-label="${U.esc(cd.sym)}, ${M.name}, probability ${fmt.prob(r.p)}, ${U.esc(ev.text)}">
             <td class="px-3 py-3 text-slate-500 num">${n + 1}</td>
-            <td class="px-3 py-3"><div class="flex items-start gap-2.5">${tierBadge(sc.tier)}<div class="min-w-0"><p class="font-semibold text-slate-100 whitespace-nowrap">${UI.bestOf(r)?.match ? '<span class="inline-block mr-1 px-1 rounded text-[10px] font-bold bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/40 align-middle" title="Today’s signal is this stock’s best-performing strategy">◆ MATCH</span>' : ''}${MyStocks.has(r.m, cd.sym) ? '<span class="text-amber-300" title="My stock">★</span> ' : ''}${U.esc(cd.sym)} ${multi ? `<span class="text-[11px] font-normal text-slate-400">${flagTag(M)} ${M.code}</span>` : ''}</p><p class="text-[11px] text-slate-500 truncate max-w-[170px]">${U.esc(tk.name)}</p><p class="text-[11px] text-slate-500 truncate max-w-[170px]">${U.esc(tk.sector)} · ${fmt.px(cd.price, M)}</p></div></div></td>
+            <td class="px-3 py-3"><div class="flex items-start gap-2.5">${tierBadge(sc.tier)}<div class="min-w-0"><p class="font-semibold text-slate-100 whitespace-nowrap">${UI.bestOf(r)?.match ? '<span class="inline-block mr-1 px-1 rounded text-[10px] font-bold bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/40 align-middle" title="Today’s signal is this stock’s best-performing strategy">◆ MATCH</span>' : ''}${MyStocks.has(r.m, cd.sym) ? '<span class="text-amber-300" title="My stock">★</span> ' : ''}${U.esc(cd.sym)} ${multi ? `<span class="text-[11px] font-normal text-slate-400">${flagTag(M)} ${M.code}</span>` : ''}</p><p class="text-[11px] text-slate-500 truncate max-w-[170px]">${U.esc(tk.name)}</p><p class="text-[11px] text-slate-500 truncate max-w-[170px]">${U.esc(tk.sector)} · ${fmt.px(cd.price, M)}</p><p class="mt-1">${UI.chartBtn(r.m, cd.sym, '📈 Chart', 'h-6 px-2 rounded-md border border-sky-500/40 text-[11px] text-sky-300 hover:bg-sky-500/10')}</p></div></div></td>
             <td class="px-3 py-3 whitespace-nowrap"><p class="num text-lg font-semibold leading-none" style="color:${probColor(r)}">${fmt.prob(r.p)}</p>
               <div class="mt-1.5 w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden" aria-hidden="true"><div class="h-full rounded-full" style="width:${Math.min(100, r.p * 100 / .6)}%;background:${probColor(r)}"></div></div>
               <p class="text-[11px] text-slate-500 mt-1 num">score ${sc.total.toFixed(0)}</p></td>
@@ -3600,7 +3846,7 @@ const UI = {
       const { cd, sc, M, ds } = r, tk = ds.tickers[cd.ti], p = cd.plan, ev = Engine.event(r);
       return `<li><button type="button" data-open="${r.key}" class="w-full text-left rounded-xl border border-line bg-panel p-3 active:bg-panel2">
         <div class="flex items-start gap-2.5">${tierBadge(sc.tier)}
-          <div class="min-w-0 flex-1"><p class="font-semibold">${UI.bestOf(r)?.match ? '<span class="inline-block mr-1 px-1 rounded text-[10px] font-bold bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/40 align-middle">◆ MATCH</span>' : ''}${MyStocks.has(r.m, cd.sym) ? '<span class="text-amber-300" aria-label="My stock">★</span> ' : ''}${U.esc(cd.sym)} <span class="text-xs font-normal text-slate-500">${multi ? flagTag(M) + ' ' : ''}#${n + 1}</span></p><p class="text-[11px] text-slate-500 truncate">${U.esc(tk.name)} · ${fmt.px(cd.price, M)}</p></div>
+          <div class="min-w-0 flex-1"><p class="font-semibold">${UI.bestOf(r)?.match ? '<span class="inline-block mr-1 px-1 rounded text-[10px] font-bold bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/40 align-middle">◆ MATCH</span>' : ''}${MyStocks.has(r.m, cd.sym) ? '<span class="text-amber-300" aria-label="My stock">★</span> ' : ''}${U.esc(cd.sym)} <span class="text-xs font-normal text-slate-500">${multi ? flagTag(M) + ' ' : ''}#${n + 1}</span></p><p class="text-[11px] text-slate-500 truncate">${U.esc(tk.name)} · ${fmt.px(cd.price, M)}</p><p class="mt-1">${UI.chartBtn(r.m, cd.sym, '📈 Chart', 'h-6 px-2 rounded-md border border-sky-500/40 text-[11px] text-sky-300')}</p></div>
           <div class="text-right"><p class="num text-xl font-semibold leading-none" style="color:${probColor(r)}">${fmt.prob(r.p)}</p><p class="text-[10px] text-slate-500 mt-1">probability</p></div>
         </div>
         ${UI.techCell(r, true)}
@@ -3653,6 +3899,7 @@ const UI = {
         ${tierBadge(sc.tier)}
         <div class="min-w-0 flex-1"><h2 id="drawerTitle" class="font-semibold text-lg leading-tight">${U.esc(tk.sym)} <span class="text-sm font-normal text-slate-400">${fmt.px(cd.price, M)}</span></h2>
           <p class="text-xs text-slate-400 truncate">${flagTag(M)} ${M.exch} · ${U.esc(tk.name)} · ${U.esc(tk.sector)} · ${fmt.cap(tk.cap, M)}</p></div>
+        ${UI.chartBtn(row.m, tk.sym, '📈 Chart', 'h-9 px-3 rounded-lg border border-sky-500/40 text-sm text-sky-300 hover:bg-sky-500/10')}
         <button type="button" data-action="btStock" data-m="${row.m}" data-sym="${U.esc(tk.sym)}" class="hidden sm:inline-flex h-9 px-3 items-center rounded-lg border border-line text-sm text-slate-300 hover:bg-panel2">Backtest</button>
         <button type="button" data-action="track" data-key="${row.key}" class="h-9 px-3 rounded-lg border border-emerald-500/40 text-emerald-300 text-sm hover:bg-emerald-500/10">Track</button>
         <button type="button" data-action="closeDrawer" class="h-9 w-9 inline-flex items-center justify-center rounded-lg hover:bg-panel2" aria-label="Close details"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
@@ -3852,6 +4099,7 @@ const UI = {
             <div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(w.sym)} <span class="text-xs font-normal text-slate-400">${flagTag(M)} ${M.name}</span> ${hl ? hl.html : ''}</p>
               <p class="text-xs text-slate-300">${U.esc(Watch.label(w.key, e.res))}</p></div>
             <div class="flex items-center gap-1.5 shrink-0">
+              ${UI.chartBtn(w.m, w.sym)}
               <button type="button" data-action="btStock" data-m="${w.m}" data-sym="${U.esc(w.sym)}" class="h-7 px-2.5 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Backtest</button>
               <button type="button" data-action="watchRemove" data-id="${w.id}" class="h-7 w-7 inline-flex items-center justify-center rounded-lg text-slate-500 hover:text-rose-300 hover:bg-rose-500/10" aria-label="Stop watching ${U.esc(w.sym)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
             </div>
@@ -3997,7 +4245,7 @@ const UI = {
           <td class="px-3 py-2"><div class="flex justify-end gap-1.5 whitespace-nowrap">
             ${watching.has(r.sym) ? '<span class="h-7 px-2 inline-flex items-center text-xs text-violet-300">◆ Watching</span>' : `<button type="button" data-action="finderWatch" data-sym="${U.esc(r.sym)}" class="h-7 px-2.5 rounded-lg border border-violet-500/40 text-xs text-violet-300 hover:bg-violet-500/10">◆ Watch</button>`}
             ${owned.has(r.sym) ? '<span class="h-7 px-2 inline-flex items-center text-xs text-amber-300">💼 Owned</span>' : `<button type="button" data-action="finderPf" data-sym="${U.esc(r.sym)}" class="h-7 px-2.5 rounded-lg border border-amber-500/40 text-xs text-amber-300 hover:bg-amber-500/10">💼 Portfolio</button>`}
-            <button type="button" data-action="btStock" data-m="${f.m}" data-sym="${U.esc(r.sym)}" class="h-7 px-2.5 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Backtest</button></div></td>
+            ${UI.chartBtn(f.m, r.sym, '📈')}<button type="button" data-action="btStock" data-m="${f.m}" data-sym="${U.esc(r.sym)}" class="h-7 px-2.5 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Backtest</button></div></td>
         </tr>`).join('')}</tbody></table></div>
         <div class="p-3 flex flex-wrap items-center gap-3 text-xs text-slate-400">Showing ${fmt.num(shown.length)} of ${fmt.num(rows.length)} matching stocks.
           ${rows.length > shown.length ? '<button type="button" data-action="finderMore" class="h-8 px-3 rounded-lg border border-line text-slate-200 hover:bg-panel2">Show 50 more</button>' : ''}</div>`
@@ -4042,7 +4290,7 @@ const UI = {
             <button type="button" data-action="watchAdd" data-m="${r.m}" data-sym="${U.esc(r.sym)}" data-key="${r.kind}" class="h-7 px-2.5 rounded-lg border border-violet-500/40 text-xs text-violet-300 hover:bg-violet-500/10">◆ Watch</button>
             <button type="button" data-action="revPf" data-m="${r.m}" data-sym="${U.esc(r.sym)}" data-px="${r.price}" class="h-7 px-2.5 rounded-lg border border-amber-500/40 text-xs text-amber-300 hover:bg-amber-500/10">💼 Portfolio</button>
             <button type="button" data-action="btStock" data-m="${r.m}" data-sym="${U.esc(r.sym)}" class="h-7 px-2.5 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Backtest</button>
-            <a href="${tv(r)}" target="_blank" rel="noopener" class="h-7 px-2.5 inline-flex items-center rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Chart ↗</a>
+            ${UI.chartBtn(r.m, r.sym)}
           </div>
         </div>
         <p class="mt-2 text-sm text-slate-100 leading-snug">${U.esc(r.what)}.</p>
@@ -4066,6 +4314,156 @@ const UI = {
       <p class="text-xs text-slate-400 mb-2">${rows.length ? `${rows.length} setup${rows.length === 1 ? '' : 's'} from the last 3 sessions that are still open (not stopped out or already at target) · newest first` : ''}</p>
       ${rows.length ? `<ul class="space-y-2">${rows.map(card).join('')}</ul>` : `<div class="rounded-xl border border-dashed border-line bg-panel p-8 text-center"><p class="font-medium text-slate-200">No ${S0.label.toLowerCase()} setups in the last 3 sessions</p><p class="mt-1 text-sm text-slate-400 max-w-lg mx-auto">${mode === 'washout' ? 'Washouts come in clusters during sell-offs; in calm or rising markets there can be none for days. Check again after the next scan.' : 'These are occasional — check again after the next scan.'}</p></div>`}
       <p class="mt-3 text-[11px] text-slate-500">Past results came from a simple test (entry at the signal-day close, the exit rules shown, no costs). They will differ from real trading and don’t guarantee future results. Not investment advice.</p>`;
+  },
+
+  /* ---------- Chart + full technical check, from anywhere ---------- */
+  async chartOpen(m, sym, range) {
+    if (!m || !sym || !MARKETS[m]) return;
+    UI._chart = { m, sym, range: range || UI._chart?.range || 250 };
+    UI.lastFocus = UI.lastFocus || document.activeElement;
+    $('chartModal').classList.remove('hidden'); const bd = $('chartBackdrop'); bd.classList.remove('hidden'); requestAnimationFrame(() => bd.classList.add('open'));
+    document.body.style.overflow = 'hidden';
+    if (!S().mkts[m]?.ds) { $('chartBody').innerHTML = `<div class="p-6 text-sm text-slate-300">Loading ${MARKETS[m].name} data…</div>`; await App.run({ codes: [m], reason: `Loading ${MARKETS[m].name} for a chart` }); }
+    UI.chartRender();
+  },
+  chartClose() {
+    (UI._chartObjs || []).forEach(c => { try { c.remove(); } catch { } }); UI._chartObjs = [];
+    $('chartModal').classList.add('hidden'); const bd = $('chartBackdrop'); bd.classList.remove('open'); setTimeout(() => bd.classList.add('hidden'), 200);
+    document.body.style.overflow = ''; UI.lastFocus?.focus?.(); UI.lastFocus = null;
+  },
+  chartRender() {
+    const st = UI._chart, el = $('chartBody'); if (!st) return;
+    (UI._chartObjs || []).forEach(c => { try { c.remove(); } catch { } }); UI._chartObjs = [];
+    const ds = S().mkts[st.m]?.ds, M = MARKETS[st.m];
+    const ti = ds ? ds.tickers.findIndex(t => t.sym === st.sym) : -1;
+    const close = `<button type="button" data-action="chartClose" class="h-9 w-9 inline-flex items-center justify-center rounded-lg hover:bg-panel2" aria-label="Close chart"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>`;
+    const tvUrl = `https://www.tradingview.com/chart/?symbol=${encodeURIComponent(({ CA: 'TSX:', IN: 'NSE:', US: '' })[st.m] + (st.m === 'US' ? st.sym.replace('.', '-') : st.sym))}`;
+    if (ti < 0) { el.innerHTML = `<div class="p-4 flex items-center gap-2"><h2 id="chartTitle" class="font-semibold">${U.esc(st.sym)}</h2><span class="ml-auto">${close}</span></div><p class="px-4 pb-6 text-sm text-slate-300">${U.esc(st.sym)} isn’t in the ${M.name} data yet. <a class="text-sky-300 underline" href="${tvUrl}" target="_blank" rel="noopener">Open it on TradingView ↗</a></p>`; return; }
+    const tk = ds.tickers[ti], i = ds.cursor, c = tk.c[i], day = c / tk.c[i - 1] - 1, t = Tech.ofAny(ds, ti), x = Ind.compute(tk, M);
+    const rng = [[63, '3M'], [126, '6M'], [250, '1Y'], [760, 'All']];
+    let hh = -Infinity, ll = Infinity; for (let j = Math.max(tk.start, i - 251); j <= i; j++) { hh = Math.max(hh, tk.h[j]); ll = Math.min(ll, tk.l[j]); }
+    let sup = Infinity, res = -Infinity; for (let j = Math.max(tk.start, i - 19); j <= i; j++) sup = Math.min(sup, tk.l[j]); for (let j = Math.max(tk.start, i - 59); j <= i; j++) res = Math.max(res, tk.h[j]);
+    const lvl = (k, v, note = '') => `<div class="flex justify-between gap-2 py-1 border-b border-line/50"><span class="text-slate-400">${k}</span><span class="num text-slate-200 text-right">${fmt.px(v, M)} <span class="text-[10.5px] ${v > c ? 'text-emerald-300/80' : 'text-rose-300/80'}">${fmt.pct(v / c - 1, 1)}</span>${note ? `<span class="block text-[10px] text-slate-500">${note}</span>` : ''}</span></div>`;
+    const setups = [];
+    if (t?.washI >= 0) setups.push(`⤒ Washout bottom${t.washI < i ? ` (${i - t.washI}d ago)` : ' today'}`);
+    if (t?.leaderNow) setups.push('↘↗ Leader pullback today');
+    if (t?.stage?.code === 'early') setups.push('🌱 Early-entry zone');
+    const cand = S().results.find(r => r.m === st.m && r.cd.ti === ti);
+    if (cand) cand.cd.pats.forEach(p => setups.push(`${p.name} (scanner)`));
+    el.innerHTML = `
+      <div class="sticky top-0 z-10 bg-panel/95 backdrop-blur border-b border-line px-3 sm:px-4 py-2.5 flex flex-wrap items-center gap-2">
+        <div class="min-w-0 mr-auto"><h2 id="chartTitle" class="font-semibold text-lg leading-tight">${U.esc(tk.sym)} <span class="text-sm font-normal text-slate-300 num">${fmt.px(c, M)}</span> <span class="text-sm num ${day >= 0 ? 'text-emerald-300' : 'text-rose-300'}">${fmt.pct(day, 2)}</span></h2>
+          <p class="text-xs text-slate-400 truncate">${flagTag(M)} ${M.exch} · ${U.esc(tk.name)} · ${U.esc(tk.sector)} · close of ${fmt.date(ds.dates[i])}</p></div>
+        <div class="flex rounded-lg ring-1 ring-line overflow-hidden" role="group" aria-label="Chart period">${rng.map(([n, l]) => `<button type="button" data-action="chartRange" data-n="${n}" class="h-8 px-2.5 text-xs ${st.range === n ? 'bg-panel2 text-slate-100 font-semibold' : 'text-slate-400 hover:bg-panel2'}">${l}</button>`).join('')}</div>
+        <a href="${tvUrl}" target="_blank" rel="noopener" class="h-8 px-2.5 inline-flex items-center rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">TradingView ↗</a>
+        <button type="button" data-action="btStock" data-m="${st.m}" data-sym="${U.esc(tk.sym)}" class="h-8 px-2.5 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Backtest</button>
+        <button type="button" data-action="watchAdd" data-m="${st.m}" data-sym="${U.esc(tk.sym)}" data-key="auto" class="h-8 px-2.5 rounded-lg border border-violet-500/40 text-xs text-violet-300 hover:bg-violet-500/10">◆ Watch</button>
+        <button type="button" data-action="revPf" data-m="${st.m}" data-sym="${U.esc(tk.sym)}" data-px="${c}" class="h-8 px-2.5 rounded-lg border border-amber-500/40 text-xs text-amber-300 hover:bg-amber-500/10">💼 Portfolio</button>
+        ${close}
+      </div>
+      <div class="p-3 sm:p-4 grid lg:grid-cols-[minmax(0,1fr)_400px] gap-4">
+        <div class="min-w-0">
+          <div id="cxMain" class="h-[340px] sm:h-[440px] rounded-lg border border-line bg-ink"></div>
+          <div id="cxRsi" class="mt-1 h-[110px] rounded-lg border border-line bg-ink"></div>
+          <p class="mt-1.5 text-[11px] text-slate-500 flex flex-wrap gap-x-3 gap-y-1"><span><span style="color:#94a3b8">━</span> 20-day</span><span><span style="color:#38bdf8">━</span> 50-day</span><span><span style="color:#f59e0b">━</span> 200-day</span><span><span style="color:#a78bfa">┅</span> Bollinger Bands</span><span><span style="color:#2dd4bf">▲</span> W = washout</span><span><span style="color:#5eead4">▲</span> L = leader pullback</span><span>Lower panel: RSI (70 overbought · 30 oversold)</span></p>
+          ${setups.length ? `<p class="mt-2 text-xs text-slate-300"><b>Active setups:</b> ${setups.map(U.esc).join(' · ')}</p>` : ''}
+        </div>
+        <aside class="space-y-3 min-w-0">
+          ${t ? `<div class="rounded-xl border p-3" style="border-color:${Tech.V[t.v].dot}66;background:${Tech.V[t.v].dot}0d">
+              <div class="flex flex-wrap items-center gap-2">${UI.techPill(t, true)}<span class="text-xs text-slate-400">score ${t.score}/100 · ${t.conf} confidence</span></div>
+              <p class="mt-2 text-sm text-slate-100 leading-relaxed"><b>What to do:</b> ${U.esc(t.action)}</p>
+              ${UI.scorecard(t)}
+            </div>` : '<p class="text-sm text-slate-400">Not enough history for a technical check.</p>'}
+          <div class="rounded-xl border border-line bg-ink/60 p-3 text-xs">
+            <p class="font-semibold text-sm mb-1">Key levels</p>
+            ${lvl('52-week high', hh, c >= hh * .97 ? 'at or near the high' : '')}${lvl('Resistance (3-month high)', res)}${lvl('20-day average', x.sma20[i])}${lvl('50-day average', x.sma50[i])}${Number.isFinite(x.sma200[i]) ? lvl('200-day average', x.sma200[i]) : ''}${lvl('Support (4-week low)', sup)}${lvl('52-week low', ll)}
+          </div>
+          ${t ? `<details class="rounded-xl border border-line bg-ink/60 p-3"><summary class="cursor-pointer text-sm font-semibold">All 10 indicators explained</summary>
+            <ul class="mt-2 space-y-1.5">${t.checks.map(k => `<li class="text-[11.5px] text-slate-300"><span class="inline-block w-2 h-2 rounded-full mr-1.5" style="background:${Tech.TONE[k.tone]}"></span><b class="text-slate-200">${U.esc(k.label)} · ${U.esc(k.value)}</b> — ${U.esc(k.text)}</li>`).join('')}</ul></details>` : ''}
+          <p class="text-[10.5px] text-slate-500">Daily bars from the app’s data feed. Not investment advice.</p>
+        </aside>
+      </div>`;
+    requestAnimationFrame(() => { try { UI._chartObjs = Charts.full($('cxMain'), $('cxRsi'), ds, ti, x, t, st.range); } catch (e) { console.error(e); } });
+  },
+
+  /* ---------- Markets (landing page) ---------- */
+  async markets() {
+    const el = $('marketsView'); if (!el || S().tab !== 'markets') return;
+    (UI._ixObjs || []).forEach(c => { try { c.remove(); } catch { } }); UI._ixObjs = [];
+    if (!Idx.list) {
+      el.innerHTML = `<div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">${Array(8).fill('<div class="skeleton h-[300px]"></div>').join('')}</div>`;
+      await Idx.load(); if (S().tab !== 'markets') return;
+      return UI.markets();
+    }
+    const range = S().settings.ixRange || 126, list = Idx.list, tok = (UI._ixTok = (UI._ixTok || 0) + 1);
+    const M0 = c => MARKETS[c];
+    const glance = MARKET_CODES.map(c => {
+      const M = M0(c), mine = list.filter(d => d.m === c), lead = mine[0], rd = lead ? Idx.read(lead) : null;
+      const ds = S().mkts[c]?.ds; let br = '';
+      if (ds && ds.cursor > 60) { let a50 = 0, a200 = 0, n = 0, n2 = 0; const i = ds.cursor;
+        for (const tk of ds.tickers) { if (tk.excluded || i - tk.start < 200) continue; let s = 0; for (let k = i - 49; k <= i; k++) s += tk.c[k]; let s2 = 0; for (let k = i - 199; k <= i; k++) s2 += tk.c[k]; n++; if (tk.c[i] > s / 50) a50++; if (tk.c[i] > s2 / 200) a200++; }
+        if (n) br = ` · <span title="Share of the market’s stocks trading above their own 50- and 200-day averages (market breadth)">${Math.round(100 * a50 / n)}% of stocks above 50-day, ${Math.round(100 * a200 / n)}% above 200-day</span>`; }
+      const col = { good: 'text-emerald-300', warn: 'text-amber-300', bad: 'text-rose-300', ok: 'text-slate-300' };
+      return `<span class="text-xs text-slate-400">${flagTag(M)} <b class="text-slate-200">${M.name}</b>: ${rd ? `<span class="${col[rd.tone]}">${U.esc(rd.trend)}</span>` : 'no index data'}${br}</span>`;
+    }).join('');
+    const rbtn = (n, l) => `<button type="button" data-action="ixRange" data-n="${n}" class="h-7 px-2.5 text-xs ${range === n ? 'bg-panel2 text-slate-100 font-semibold' : 'text-slate-400 hover:bg-panel2'}">${l}</button>`;
+    const chipCls = { good: 'ring-emerald-500/40 text-emerald-300', bad: 'ring-rose-500/40 text-rose-300', warn: 'ring-amber-500/40 text-amber-300', ok: 'ring-line text-slate-300' };
+    const card = (d, k) => {
+      const M = M0(d.m), r = Idx.read(d), up = r.chg >= 0;
+      const val = v => v.toLocaleString(M.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return `<article class="rounded-xl border border-line bg-panel p-3 flex flex-col min-w-0" aria-label="${U.esc(d.n)}">
+        <div class="flex items-start gap-2">
+          <div class="min-w-0 flex-1"><p class="text-[11px] text-slate-400 truncate">${flagTag(M)} ${M.name} · close of ${fmt.dateShort(d.dates[r.i])}</p><h3 class="font-semibold text-sm truncate" title="${U.esc(d.n)}">${U.esc(d.n)}</h3></div>
+          <div class="text-right shrink-0"><p class="num text-lg font-bold leading-tight">${val(r.c)}</p><p class="num text-xs font-semibold ${up ? 'text-emerald-300' : 'text-rose-300'}">${up ? '▲' : '▼'} ${up ? '+' : '−'}${val(Math.abs(r.chg))} (${fmt.pct(r.pct, 2)})</p></div>
+        </div>
+        <div id="ixm${k}" class="mt-1 h-[128px] cursor-pointer overflow-hidden" role="img" aria-label="${U.esc(d.n)} chart" data-action="ixOpen" data-k="${k}"></div>
+        <div id="ixs${k}" class="h-[44px] border-t border-line/60 overflow-hidden"></div>
+        <div class="mt-1.5 flex flex-wrap gap-1 max-h-[44px] overflow-hidden">${r.chips.map(([t, x]) => `<span class="inline-flex items-center h-5 px-1.5 rounded text-[10.5px] ring-1 whitespace-nowrap ${chipCls[t]}">${U.esc(x)}</span>`).join('')}</div>
+        <p class="mt-1 text-[11px] text-slate-400 leading-snug line-clamp-1" title="${U.esc(r.text)}">${U.esc(r.text)}</p>
+      </article>`;
+    };
+    el.innerHTML = `
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-1 mb-2">${glance}
+        <div class="ml-auto flex items-center gap-2"><span class="text-[11px] text-slate-500 hidden md:inline"><span style="color:#38bdf8">━</span> 50-day <span style="color:#f59e0b">━</span> 200-day <span style="color:#a78bfa">┅</span> Bollinger · lower panel: <span style="color:#c4b5fd">RSI</span> & <span style="color:#fb923c">ADX</span></span>
+          <div class="flex rounded-lg ring-1 ring-line overflow-hidden" role="group" aria-label="Chart period">${rbtn(63, '3M')}${rbtn(126, '6M')}${rbtn(250, '1Y')}${rbtn(760, '3Y')}</div></div>
+      </div>
+      ${Idx.err ? `<div class="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm text-amber-200">${U.esc(Idx.err)}</div>` : ''}
+      ${Idx.demo ? '<p class="mb-2 text-xs text-amber-300/90">Demo data: these are the app’s simulated market indices. Switch the markets to the live feed to see the real S&P 500, TSX and Nifty.</p>' : ''}
+      ${list.length ? `<div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">${list.map(card).join('')}</div>` : (Idx.err ? '' : '<div class="skeleton h-40"></div>')}
+      <p class="mt-2 text-[11px] text-slate-500">Index points from Yahoo Finance, end of day, updated with each market’s data (India 4:39 PM IST, USA & Canada 5 PM ET). Click a chart to enlarge it. Charts: TradingView Lightweight Charts™. Not investment advice.</p>`;
+    requestAnimationFrame(() => { if (tok !== UI._ixTok) return; list.forEach((d, k) => { try { UI._ixObjs.push(...Charts.index($('ixm' + k), $('ixs' + k), d, range, false)); } catch (e) { console.error(e); } }); });
+  },
+  indexOpen(k) {
+    const d = Idx.list?.[k]; if (!d) return;
+    UI._chart = null; UI.lastFocus = document.activeElement;
+    (UI._chartObjs || []).forEach(c => { try { c.remove(); } catch { } }); UI._chartObjs = [];
+    $('chartModal').classList.remove('hidden'); const bd = $('chartBackdrop'); bd.classList.remove('hidden'); requestAnimationFrame(() => bd.classList.add('open'));
+    document.body.style.overflow = 'hidden';
+    const M = MARKETS[d.m], r = Idx.read(d), up = r.chg >= 0, range = UI._ixBig || 250, val = v => Number.isFinite(v) ? v.toLocaleString(M.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+    let lo = Infinity; for (let j = Math.max(0, r.i - 251); j <= r.i; j++) lo = Math.min(lo, d.l[j] || d.c[j]);
+    const lvl = (n, v) => `<div class="flex justify-between gap-2 py-1 border-b border-line/50"><span class="text-slate-400">${n}</span><span class="num text-slate-200">${val(v)} <span class="text-[10.5px] ${v > r.c ? 'text-emerald-300/80' : 'text-rose-300/80'}">${Number.isFinite(v) ? fmt.pct(v / r.c - 1, 1) : ''}</span></span></div>`;
+    const rbtn = (n, l) => `<button type="button" data-action="ixBigRange" data-k="${k}" data-n="${n}" class="h-8 px-2.5 text-xs ${range === n ? 'bg-panel2 text-slate-100 font-semibold' : 'text-slate-400 hover:bg-panel2'}">${l}</button>`;
+    const chipCls = { good: 'ring-emerald-500/40 text-emerald-300', bad: 'ring-rose-500/40 text-rose-300', warn: 'ring-amber-500/40 text-amber-300', ok: 'ring-line text-slate-300' };
+    const tv = { '^GSPC': 'SP:SPX', '^IXIC': 'NASDAQ:IXIC', '^DJI': 'DJ:DJI', '^GSPTSE': 'TSX:TSX', '^TX60': 'TSX:TX60', '^NSEI': 'NSE:NIFTY', '^BSESN': 'BSE:SENSEX', '^NSEBANK': 'NSE:BANKNIFTY' }[d.s];
+    $('chartBody').innerHTML = `
+      <div class="sticky top-0 z-10 bg-panel/95 backdrop-blur border-b border-line px-3 sm:px-4 py-2.5 flex flex-wrap items-center gap-2">
+        <div class="min-w-0 mr-auto"><h2 id="chartTitle" class="font-semibold text-lg leading-tight">${U.esc(d.n)} <span class="text-sm font-normal text-slate-300 num">${val(r.c)}</span> <span class="text-sm num ${up ? 'text-emerald-300' : 'text-rose-300'}">${up ? '▲ +' : '▼ −'}${val(Math.abs(r.chg))} (${fmt.pct(r.pct, 2)})</span></h2>
+          <p class="text-xs text-slate-400">${flagTag(M)} ${M.name} · close of ${fmt.date(d.dates[r.i])}</p></div>
+        <div class="flex rounded-lg ring-1 ring-line overflow-hidden">${rbtn(126, '6M')}${rbtn(250, '1Y')}${rbtn(760, '3Y')}</div>
+        ${tv ? `<a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tv)}" target="_blank" rel="noopener" class="h-8 px-2.5 inline-flex items-center rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">TradingView ↗</a>` : ''}
+        <button type="button" data-action="chartClose" class="h-9 w-9 inline-flex items-center justify-center rounded-lg hover:bg-panel2" aria-label="Close chart"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="p-3 sm:p-4 grid lg:grid-cols-[minmax(0,1fr)_320px] gap-4">
+        <div class="min-w-0"><div id="ixBigM" class="h-[360px] sm:h-[460px] rounded-lg border border-line bg-ink"></div><div id="ixBigS" class="mt-1 h-[130px] rounded-lg border border-line bg-ink"></div>
+          <p class="mt-1.5 text-[11px] text-slate-500"><span style="color:#38bdf8">━</span> 50-day · <span style="color:#f59e0b">━</span> 200-day · <span style="color:#a78bfa">┅</span> Bollinger Bands · lower panel: <span style="color:#c4b5fd">RSI</span> (70/30) and <span style="color:#fb923c">ADX</span> (above 25 = strong trend)</p></div>
+        <aside class="space-y-3">
+          <div class="rounded-xl border border-line bg-ink/60 p-3"><p class="text-sm font-semibold">The read</p><p class="mt-1 text-sm text-slate-200">${U.esc(r.text)}</p>
+            <div class="mt-2 flex flex-wrap gap-1">${r.chips.map(([t, x]) => `<span class="inline-flex items-center h-6 px-2 rounded text-[11px] ring-1 ${chipCls[t]}">${U.esc(x)}</span>`).join('')}</div></div>
+          <div class="rounded-xl border border-line bg-ink/60 p-3 text-xs"><p class="font-semibold text-sm mb-1">Key levels</p>${lvl('52-week high', r.hi)}${lvl('50-day average', r.s50[r.i])}${lvl('200-day average', r.s200[r.i])}${lvl('Upper Bollinger', r.bu[r.i])}${lvl('Lower Bollinger', r.bl[r.i])}${lvl('52-week low', lo)}
+            <div class="flex justify-between gap-2 py-1"><span class="text-slate-400">ADX · +DI / −DI</span><span class="num text-slate-200">${r.adx[r.i]?.toFixed(1)} · ${r.pdi[r.i]?.toFixed(1)} / ${r.mdi[r.i]?.toFixed(1)}</span></div></div>
+        </aside>
+      </div>`;
+    requestAnimationFrame(() => { try { UI._chartObjs = Charts.index($('ixBigM'), $('ixBigS'), d, range, true); } catch (e) { console.error(e); } });
   },
 
   /* ---------- Portfolio tab ---------- */
@@ -4143,7 +4541,7 @@ const UI = {
             </div>
             <span class="shrink-0 px-2.5 py-1 rounded-md ring-1 text-xs font-bold tracking-wide ${vd.badge}">${vd.label}</span>
             <div class="flex items-center gap-1.5 shrink-0">
-              ${ok ? `<button type="button" data-action="btStock" data-m="${h.m}" data-sym="${U.esc(h.sym)}" class="h-7 px-2.5 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Backtest</button>
+              ${ok ? `${UI.chartBtn(h.m, h.sym)}<button type="button" data-action="btStock" data-m="${h.m}" data-sym="${U.esc(h.sym)}" class="h-7 px-2.5 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Backtest</button>
               <button type="button" data-action="watchAdd" data-m="${h.m}" data-sym="${U.esc(h.sym)}" data-key="auto" class="h-7 px-2.5 rounded-lg border border-violet-500/40 text-xs text-violet-300 hover:bg-violet-500/10">◆ Watch</button>` : ''}
               <button type="button" data-action="pfEdit" data-id="${h.id}" class="h-7 px-2.5 rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">Edit</button>
               <button type="button" data-action="pfRemove" data-id="${h.id}" class="h-7 w-7 inline-flex items-center justify-center rounded-lg text-slate-500 hover:text-rose-300 hover:bg-rose-500/10" aria-label="Remove ${U.esc(h.sym)} from your portfolio"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
@@ -4225,7 +4623,7 @@ const UI = {
           <span class="mt-1.5 w-2 h-2 rounded-full shrink-0 ${dot[stt.kind]}" aria-hidden="true"></span>
           <div class="flex-1 min-w-0"><p class="font-semibold text-sm">${U.esc(sym)} ${hl ? hl.html : ''}</p>${hot.length ? `<p class="text-xs text-yellow-200 leading-snug">⚡ ${U.esc(StockBT.hotText(hot, MARKETS[c]))}</p>` : ''}<p class="text-xs ${txt[stt.kind]} leading-snug">${U.esc(stt.text)}</p></div>
           ${stt.row ? `<button type="button" data-open="${stt.row.key}" class="text-xs text-emerald-300 hover:underline shrink-0">View</button>` : ''}
-          ${stt.kind === 'hit' || stt.kind === 'scanned' ? `<button type="button" data-action="btStock" data-m="${c}" data-sym="${U.esc(sym)}" class="text-xs text-slate-300 hover:underline shrink-0">Backtest</button>` : ''}
+          ${stt.kind === 'hit' || stt.kind === 'scanned' ? `${UI.chartBtn(c, sym, 'Chart', 'text-xs text-sky-300 hover:underline shrink-0')}<button type="button" data-action="btStock" data-m="${c}" data-sym="${U.esc(sym)}" class="text-xs text-slate-300 hover:underline shrink-0">Backtest</button>` : ''}
           <button type="button" data-action="myRemove" data-m="${c}" data-sym="${U.esc(sym)}" class="shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-rose-300 hover:bg-rose-500/10" aria-label="Remove ${U.esc(sym)} from my stocks"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
         </li>`; }).join('')}</ul></div>`).join('');
   },
@@ -4266,7 +4664,7 @@ const UI = {
     const verdict = !best
       ? `<div class="rounded-xl border border-line bg-panel p-4"><p class="font-semibold">No strategy completed a trade for ${U.esc(r.sym)} in this period.</p><p class="text-sm text-slate-400 mt-1">Choose “All available history” or a longer period. Buying and holding returned <span class="${pctC(r.bh.ret)}">${fmt.pct(r.bh.ret, 1)}</span> over ${span}.</p></div>`
       : `<div class="rounded-xl border ${r.confident ? 'border-emerald-500/40 bg-emerald-500/[0.04]' : 'border-amber-500/40 bg-amber-500/[0.04]'} p-4">
-          <p class="text-xs text-slate-400">${flagTag(M)} ${U.esc(r.sym)} · ${U.esc(r.name)} · ${span} · max ${r.hold} days per trade</p>
+          <div class="flex flex-wrap items-center gap-2"><p class="text-xs text-slate-400 flex-1">${flagTag(M)} ${U.esc(r.sym)} · ${U.esc(r.name)} · ${span} · max ${r.hold} days per trade</p>${UI.chartBtn(r.m, r.sym)}</div>
           <h3 class="mt-1 text-lg font-semibold">Best strategy: <span class="${r.confident ? 'text-emerald-300' : 'text-amber-300'}">${U.esc(best.name)}</span></h3>
           <p class="mt-1 text-sm text-slate-200">${best.n} trade${best.n === 1 ? '' : 's'} · ${fmt.prob(best.winRate)} won · <strong class="${pctC(best.total)}">${fmt.pct(best.total, 1)} in total</strong> (${fmt.pct(best.avg, 2)} per trade) · worst drop ${fmt.pct(-best.maxDD, 1)}</p>
           <p class="mt-1 text-sm text-slate-300">Simply buying and holding returned <span class="${pctC(r.bh.ret)}">${fmt.pct(r.bh.ret, 1)}</span> over the same period — this strategy ${beat ? '<span class="text-emerald-300">beat</span>' : '<span class="text-rose-300">did not beat</span>'} it${beat ? '' : ', so for this stock holding would have worked better'}.</p>
@@ -4520,6 +4918,8 @@ function wire() {
   });
 
   document.addEventListener('click', async e => {
+    const ch = e.target.closest('[data-action="chart"]');
+    if (ch) { e.preventDefault(); e.stopPropagation(); UI.chartOpen(ch.dataset.m, ch.dataset.sym); return; }
     const open = e.target.closest('[data-open]');
     if (open) { UI.openDetail(open.dataset.open); return; }
     const act = e.target.closest('[data-action]'); if (!act) return;
@@ -4529,11 +4929,17 @@ function wire() {
         case 'copyText': try { await navigator.clipboard.writeText(act.dataset.text); UI.toast('Copied.', 'ok'); } catch { UI.toast('Couldn’t copy — select the text and copy it yourself.', 'warn'); } break;
         case 'scanMode': S().settings.scanMode = act.dataset.mode; Store.persist(); UI.results(); break;
         case 'revPf': {
+          if (!$('chartModal').classList.contains('hidden')) UI.chartClose(); UI.closeDrawer();
           if (Account.locked()) { UI.acctOpen('register'); UI.toast('Create a free account (or sign in) to keep a portfolio.', 'info'); break; }
           Store.set({ tab: 'portfolio' }); $('pMarket').value = act.dataset.m; UI.portfolioForm();
           $('pStock').value = act.dataset.sym; $('pQty').value = ''; $('pCost').value = (+act.dataset.px).toFixed(2); $('pDate').value = '';
           window.scrollTo({ top: 0 }); $('pQty').focus(); UI.toast(`Type how many shares of ${act.dataset.sym} you own, check the price, then press “Add / update”.`, 'info'); break;
         }
+        case 'chartClose': UI.chartClose(); break;
+        case 'ixRange': S().settings.ixRange = +act.dataset.n; Store.persist(); UI.markets(); break;
+        case 'ixOpen': UI.indexOpen(+act.dataset.k); break;
+        case 'ixBigRange': UI._ixBig = +act.dataset.n; UI.indexOpen(+act.dataset.k); break;
+        case 'chartRange': UI._chart.range = +act.dataset.n; UI.chartRender(); break;
         case 'techFilter': { const v = act.dataset.v, cur = S().filters.tech; const nv = cur === v ? 'all' : v; $('fTech').value = nv; Store.set({ filters: { ...S().filters, tech: nv } }); break; }
         case 'toggleMatch': Store.set({ filters: { ...S().filters, match: !S().filters.match } }); break;
         case 'watchAdd': {
@@ -4605,6 +5011,7 @@ function wire() {
         case 'mySync': await MyStocks.sync(MARKET_CODES.filter(c => MyStocks.list(c).some(sym => MyStocks.status(c, sym).kind === 'pending'))); break;
         case 'btStock': {
           const { m, sym } = act.dataset;
+          if (!$('chartModal').classList.contains('hidden')) UI.chartClose();
           UI.closeDrawer(); Store.set({ tab: 'backtest' });
           $('sbMarket').value = m; UI.sbList(); $('sbStock').value = sym;
           $('tab-backtest').scrollIntoView({ block: 'start' }); window.scrollTo({ top: 0 });
@@ -4627,7 +5034,8 @@ function wire() {
   });
 
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { UI.closeDrawer(); UI.closeAlerts(); UI.acctClose(); }
+    if (e.key === 'Escape') { if (!$('chartModal').classList.contains('hidden')) { UI.chartClose(); return; } UI.closeDrawer(); UI.closeAlerts(); UI.acctClose(); }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-action="chart"]')) { e.preventDefault(); UI.chartOpen(e.target.dataset.m, e.target.dataset.sym); return; }
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('tr[data-open]')) { e.preventDefault(); UI.openDetail(e.target.dataset.open); }
     if (e.key === 'Tab') {
       const dlg = [$('acctModal'), $('drawer'), $('alertsPanel')].find(d => !d.classList.contains('hidden'));
@@ -4687,6 +5095,7 @@ function wire() {
 
   // Accounts
   $('acctBackdrop').addEventListener('click', () => UI.acctClose());
+  $('chartBackdrop').addEventListener('click', () => UI.chartClose());
   $('acctBody').addEventListener('submit', async e => {
     if (e.target.id !== 'acctForm') return;
     e.preventDefault();
@@ -4797,6 +5206,10 @@ function wire() {
  * 20. SUBSCRIPTIONS + BOOT
  * ===================================================================== */
 Store.on(['busy', 'mkts', 'results', 'alerts', 'settings'], () => UI.header());
+Store.on(['feedTick', 'mkts', 'settings'], () => UI.dataBar());
+Store.on(['idxTick'], () => UI.markets());
+Store.on(['feedTick'], () => { const g = Feed.lastMeta?.generated; if (g && Idx.list && Idx.metaGen && g !== Idx.metaGen) { Idx.metaGen = g; Idx.load(true); } else if (g) Idx.metaGen = g; });
+Store.on(['mkts'], () => { if (Idx.demo || !Idx.list) { if (!Idx.live()) { Idx.demoList(); if (S().tab === 'markets') UI.markets(); } } });
 Store.on(['tab'], () => UI.tabs());
 Store.on(['results', 'settings', 'mkts'], () => UI.stats());
 Store.on(['results', 'filters', 'sort'], () => { UI.results(); UI.tierChips(); });
@@ -4828,12 +5241,18 @@ async function boot() {
   if (!S().disclaimerSeen) $('disclaimer').classList.remove('hidden');
   $('fTop').value = String(S().filters.top); $('fSort').value = S().sort;
   UI.filterOptions(); UI.tabs(); UI.header(); UI.stats(); UI.results(); UI.tierChips(); UI.schedule(); UI.myStocks();
+  UI.dataBar();
+  if (MARKET_CODES.some(c => S().settings.sources[c] === 'live') && Feed.configured(S().settings.feed)) Feed.get(S().settings.feed, 'meta.json').catch(() => {});
   MyStocks.pull();
   const nextAt = {}; MARKET_CODES.forEach(c => { nextAt[c] = Cal.nextRun(MARKETS[c]).at.getTime(); });
   setInterval(() => {
     UI.schedule();
     const due = MARKET_CODES.filter(c => Date.now() >= nextAt[c]);
     due.forEach(c => { nextAt[c] = Cal.nextRun(MARKETS[c]).at.getTime(); });
+    // Live markets: the data job runs at the update time; look for the new data 15, 35 and 60 minutes later
+    const liveDue = due.filter(c => S().settings.sources[c] === 'live');
+    if (liveDue.length && S().settings.autoRun) [15, 35, 60].forEach(mn => setTimeout(() => { App.checkLive(MARKET_CODES); if (!Feed.lastMetaAt || Date.now() - Feed.lastMetaAt > 60000) Feed.get(S().settings.feed, 'meta.json').catch(() => {}); }, mn * 60000));
+    UI.dataBar();
     const run = due.filter(c => S().mkts[c]?.ds);
     if (run.length && S().settings.autoRun && !S().busy) {
       const demo = run.filter(c => S().mkts[c].ds.source === 'demo'), csv = run.filter(c => S().mkts[c].ds.source === 'csv');

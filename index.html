@@ -344,7 +344,7 @@
     StrikeZone ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-03.2 · public</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-03.4 · public</p>
   </div>
 </footer>
 
@@ -586,7 +586,7 @@ const DEFAULTS = {
   earningsMode: 'boost', regimeFilter: 'downgrade', catalystWindow: 10,
   autoTrackA: true, autoRun: true,
   myStocks: { US: [], CA: [], IN: [] }, myStocksDirty: false,
-  stratWatch: [], stratAlerted: {}, scanMode: 'momentum', ixRange: 126,
+  stratWatch: [], stratAlerted: {}, scanMode: 'momentum', ixRange: 126, ixHide: [], ixView: 'charts',
   portfolio: [], pfAlerted: {},
   visitorLog: null, publicFeed: '', site: null, visitorNames: {}, firebase: null,
   alerts: { newA: true, entry: true, watch: true, portfolio: true, browser: false, webhook: '' },
@@ -1697,7 +1697,17 @@ const Rev = {
  *  app's own simulated market index stands in. */
 const Idx = {
   list: null, gen: null, err: null, demo: false, _busy: null,
-  ORDER: ['^GSPC', '^IXIC', '^DJI', '^GSPTSE', '^TX60', '^NSEI', '^BSESN', '^NSEBANK'],
+  ORDER: ['^GSPC', '^IXIC', '^DJI', '^GSPTSE', '^TX60', '^NSEI', '^BSESN', '^NSEBANK', 'GC=F', 'SI=F', 'BTC-USD'],
+  /** Gold, silver and Bitcoin are not a stock market: they get their own group label (prices in USD). */
+  GROUP: { GL: { code: 'GL', name: 'Gold, silver & crypto', short: 'Global', flag: '🌐', locale: 'en-US' } },
+  TAG: { 'GC=F': 'USD/oz', 'SI=F': 'USD/oz', 'BTC-USD': 'USD' },
+  M(m) { return MARKETS[m] || this.GROUP[m] || { name: m, flag: '', locale: 'en-US' }; },
+  tag(d) { return this.TAG[d.s] || this.M(d.m).name; },
+  /** Bars in one year: Bitcoin trades every day, everything else ~252 days a year. */
+  yr(d) { return d.s === 'BTC-USD' ? 365 : 252; },
+  /** First bar inside the last n "trading days" of time, measured by date so 7-day markets line up with the rest. */
+  fromBar(d, n) { const T = d.c.length, cut = new Date(Date.parse(d.dates[T - 1]) - n * (365 / 252) * 864e5).toISOString().slice(0, 10); let k = T - 1; while (k > 0 && d.dates[k - 1] >= cut) k--; return k; },
+  hidden() { return new Set(S().settings.ixHide || []); },
   live() { const st = S().settings; return Feed.configured(st.feed) && MARKET_CODES.some(c => st.sources[c] === 'live'); },
   async load(force = false) {
     if (this._busy) return this._busy;
@@ -1729,7 +1739,7 @@ const Idx = {
     const s50 = Ind.sma(c, 50), s200 = Ind.sma(c, 200), s20 = Ind.sma(c, 20), rsi = Ind.rsi(c), dm = Ind.adx(h, l, c), bbw = Ind.bbw(c);
     const bu = new Float64Array(T).fill(NaN), bl = new Float64Array(T).fill(NaN);
     for (let k = 19; k < T; k++) { bu[k] = s20[k] + bbw[k] * s20[k] / 2; bl[k] = s20[k] - bbw[k] * s20[k] / 2; }
-    let hi = -Infinity; for (let k = Math.max(0, i - 251); k <= i; k++) hi = Math.max(hi, h[k] || c[k]);
+    let hi = -Infinity; for (let k = Math.max(0, i - this.yr(d) + 1); k <= i; k++) hi = Math.max(hi, h[k] || c[k]);
     const F = Number.isFinite, chg = c[i] - c[i - 1], pct = c[i] / c[i - 1] - 1;
     const up200 = F(s200[i]) && c[i] > s200[i], gold = F(s200[i]) && s50[i] > s200[i], s50up = s50[i] > s50[Math.max(0, i - 10)];
     const pb = (c[i] - bl[i]) / (bu[i] - bl[i]), adx = dm.adx[i], diUp = dm.pdi[i] > dm.mdi[i], r = rsi[i], off = c[i] / hi - 1;
@@ -3447,40 +3457,46 @@ const Charts = {
     return [chart, rc];
   },
   /** Index chart: candles with 50/200-day and Bollinger Bands, and an RSI + ADX panel underneath (time scales synced). */
-  index(el, subEl, d, range, big) {
+  index(el, subEl, d, range, big, onClick) {
     if (!el || !subEl) return [];
-    const r = Idx.read(d), T = d.c.length, from = Math.max(0, T - range), M = MARKETS[d.m];
+    const r = Idx.read(d), T = d.c.length, from = Idx.fromBar(d, range), M = Idx.M(d.m);
     if (!this.ok()) { this.fallbackLines(el, [d.c.slice(from)], ['#34d399']); return []; }
-    const still = big ? {} : { handleScroll: false, handleScale: false, crosshair: { mode: 0, horzLine: { visible: false, labelVisible: false } } };
+    // All history is loaded; only the chosen period is shown. Drag to scroll back, pinch / drag the date axis to zoom.
+    const still = big ? {} : { handleScroll: { mouseWheel: false, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false }, handleScale: { mouseWheel: false, pinch: true, axisPressedMouseMove: { time: true, price: false }, axisDoubleClickReset: true }, crosshair: { mode: 0, horzLine: { visible: false, labelVisible: false } } };
     const logo = big ? {} : { attributionLogo: false };
     const bo = this.base(M); bo.layout = { ...bo.layout, ...logo, fontSize: big ? 11 : 10 };
-    const opts = { ...bo, ...still, ...(big ? {} : { rightPriceScale: { borderColor: '#1f2a37', scaleMargins: { top: .08, bottom: .06 } }, timeScale: { borderColor: '#1f2a37', rightOffset: 2, fixLeftEdge: true, fixRightEdge: true } }) };
+    const opts = { ...bo, ...still, ...(big ? {} : { rightPriceScale: { borderColor: '#1f2a37', scaleMargins: { top: .08, bottom: .06 } }, timeScale: { borderColor: '#1f2a37', rightOffset: 2, fixLeftEdge: true } }) };
     const ch = LightweightCharts.createChart(el, opts);
+    ch.timeScale().applyOptions({ minBarSpacing: 0.05 }); // lets a small card fit 3 years of daily bars
     const flat = d.h === d.c;
     const ser = flat ? ch.addAreaSeries({ lineColor: '#34d399', topColor: 'rgba(52,211,153,0.18)', bottomColor: 'rgba(52,211,153,0)', lineWidth: 2, priceLineVisible: false })
       : ch.addCandlestickSeries({ upColor: '#34d399', downColor: '#f87171', borderVisible: false, wickUpColor: '#34d399', wickDownColor: '#f87171', priceLineVisible: false });
     const bars = [];
-    for (let k = from; k < T; k++) bars.push(flat ? { time: d.dates[k], value: d.c[k] } : { time: d.dates[k], open: d.o[k], high: d.h[k], low: d.l[k], close: d.c[k] });
+    for (let k = 0; k < T; k++) bars.push(flat ? { time: d.dates[k], value: d.c[k] } : { time: d.dates[k], open: d.o[k], high: d.h[k], low: d.l[k], close: d.c[k] });
     ser.setData(bars);
     const line = (arr, color, w = 1, style = 0) => { const s = ch.addLineSeries({ color, lineWidth: w, lineStyle: style, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false });
-      const pts = []; for (let k = from; k < T; k++) if (Number.isFinite(arr[k])) pts.push({ time: d.dates[k], value: arr[k] }); s.setData(pts); };
+      const pts = []; for (let k = 0; k < T; k++) if (Number.isFinite(arr[k])) pts.push({ time: d.dates[k], value: arr[k] }); s.setData(pts); };
     line(r.bu, 'rgba(167,139,250,0.55)', 1, 2); line(r.bl, 'rgba(167,139,250,0.55)', 1, 2);
     line(r.s50, '#38bdf8', big ? 2 : 1.5); line(r.s200, '#f59e0b', big ? 2 : 1.5);
-    ch.timeScale().fitContent();
+    const show = n => { try { ch.timeScale().setVisibleLogicalRange({ from: Idx.fromBar(d, n) - .5, to: T - 1 + 2 }); } catch { } };
+    show(range);
+    if (onClick) ch.subscribeClick(() => onClick());
     const sb = this.base(); sb.layout = { ...sb.layout, ...logo, fontSize: big ? 11 : 9 };
-    const sc = LightweightCharts.createChart(subEl, { ...sb, ...still, rightPriceScale: { borderColor: '#1f2a37', scaleMargins: { top: .08, bottom: .08 } }, timeScale: { visible: false, borderColor: '#1f2a37', ...(big ? {} : { fixLeftEdge: true, fixRightEdge: true }) } });
+    const sc = LightweightCharts.createChart(subEl, { ...sb, ...still, rightPriceScale: { borderColor: '#1f2a37', scaleMargins: { top: .08, bottom: .08 } }, timeScale: { visible: false, borderColor: '#1f2a37', ...(big ? {} : { fixLeftEdge: true }) } });
+    sc.timeScale().applyOptions({ minBarSpacing: 0.05 });
     const rs = sc.addLineSeries({ color: '#c4b5fd', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: big, title: big ? 'RSI' : '' });
     const ax = sc.addLineSeries({ color: '#fb923c', lineWidth: 1.5, priceLineVisible: false, lastValueVisible: big, title: big ? 'ADX' : '' });
-    const pts = arr => { const o = []; for (let k = from; k < T; k++) if (Number.isFinite(arr[k])) o.push({ time: d.dates[k], value: +arr[k].toFixed(1) }); return o; };
+    const pts = arr => { const o = []; for (let k = 0; k < T; k++) if (Number.isFinite(arr[k])) o.push({ time: d.dates[k], value: +arr[k].toFixed(1) }); return o; };
     rs.setData(pts(r.rsi)); ax.setData(pts(r.adx));
     rs.createPriceLine({ price: 70, color: 'rgba(251,113,133,0.5)', lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: '' });
     rs.createPriceLine({ price: 30, color: 'rgba(52,211,153,0.5)', lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: '' });
     ax.createPriceLine({ price: 25, color: 'rgba(251,146,60,0.35)', lineWidth: 1, lineStyle: 3, axisLabelVisible: false, title: '' });
-    sc.timeScale().fitContent();
+    if (onClick) sc.subscribeClick(() => onClick());
     let syncing = false;
     const sync = (a, b) => a.timeScale().subscribeVisibleLogicalRangeChange(v => { if (syncing || !v) return; syncing = true; try { b.timeScale().setVisibleLogicalRange(v); } catch { } syncing = false; });
     sync(ch, sc); sync(sc, ch);
     try { sc.timeScale().setVisibleLogicalRange(ch.timeScale().getVisibleLogicalRange()); } catch { }
+    ch._show = show; ch._T = T;
     return [ch, sc];
   },
   fallbackLines(el, series, colors, hlines = []) {
@@ -4395,8 +4411,8 @@ const UI = {
       await Idx.load(); if (S().tab !== 'markets') return;
       return UI.markets();
     }
-    const range = S().settings.ixRange || 126, list = Idx.list, tok = (UI._ixTok = (UI._ixTok || 0) + 1);
-    const M0 = c => MARKETS[c];
+    const maxT = Math.max(126, ...Idx.list.filter(d => Idx.yr(d) === 252).map(d => d.c.length)), range = Math.min(maxT, Math.max(126, S().settings.ixRange || 126)), list = Idx.list, tok = (UI._ixTok = (UI._ixTok || 0) + 1);
+    const M0 = c => Idx.M(c), hid = Idx.hidden(), view = S().settings.ixView === 'compact' ? 'compact' : 'charts', shown = list.map((d, k) => [d, k]).filter(([d]) => !hid.has(d.s));
     const glance = MARKET_CODES.map(c => {
       const M = M0(c), mine = list.filter(d => d.m === c), lead = mine[0], rd = lead ? Idx.read(lead) : null;
       const ds = S().mkts[c]?.ds; let br = '';
@@ -4406,18 +4422,31 @@ const UI = {
       const col = { good: 'text-emerald-300', warn: 'text-amber-300', bad: 'text-rose-300', ok: 'text-slate-300' };
       return `<span class="text-xs text-slate-400">${flagTag(M)} <b class="text-slate-200">${M.name}</b>: ${rd ? `<span class="${col[rd.tone]}">${U.esc(rd.trend)}</span>` : 'no index data'}${br}</span>`;
     }).join('');
-    const rbtn = (n, l) => `<button type="button" data-action="ixRange" data-n="${n}" class="h-7 px-2.5 text-xs ${range === n ? 'bg-panel2 text-slate-100 font-semibold' : 'text-slate-400 hover:bg-panel2'}">${l}</button>`;
+    const vbtn = (v, l) => `<button type="button" data-action="ixView" data-v="${v}" aria-pressed="${view === v}" class="h-7 px-2.5 text-xs ${view === v ? 'bg-panel2 text-slate-100 font-semibold' : 'text-slate-400 hover:bg-panel2'}">${l}</button>`;
+    const groups = [...MARKET_CODES, 'GL'].map(c => [c, list.filter(d => d.m === c)]).filter(([, a]) => a.length);
+    const picker = `<div class="mb-3 rounded-xl border border-line bg-panel p-3" role="group" aria-label="Choose which charts to show">
+        <div class="flex flex-wrap items-center gap-2 mb-2"><p class="text-sm font-semibold mr-auto">Choose the charts you want on this page</p>
+          <button type="button" data-action="ixAll" data-on="1" class="h-7 px-2.5 rounded-lg ring-1 ring-line text-xs text-slate-300 hover:bg-panel2">Show all</button>
+          <button type="button" data-action="ixAll" data-on="0" class="h-7 px-2.5 rounded-lg ring-1 ring-line text-xs text-slate-300 hover:bg-panel2">Hide all</button>
+          <button type="button" data-action="ixPick" class="h-7 px-2.5 rounded-lg text-xs text-slate-400 hover:bg-panel2">Done</button></div>
+        <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-2">${groups.map(([c, a]) => { const M = M0(c);
+          return `<div><p class="text-[11px] uppercase tracking-wide text-slate-500 mb-1">${flagTag(M)} ${U.esc(M.name)}</p>${a.map(d => `<label class="flex items-center gap-2 py-0.5 text-sm cursor-pointer hover:text-white"><input type="checkbox" data-ixchk="${U.esc(d.s)}" ${hid.has(d.s) ? '' : 'checked'} class="h-4 w-4 accent-emerald-400 cursor-pointer"> ${U.esc(d.n)}</label>`).join('')}</div>`; }).join('')}</div>
+        ${Idx.demo ? '<p class="mt-2 text-[11px] text-amber-300/90">Gold, silver and Bitcoin appear with the live data feed.</p>' : ''}
+      </div>`;
+    const rbtn = (n, l) => `<button type="button" data-action="ixRange" data-n="${Math.min(n, maxT)}" class="h-7 px-2.5 text-xs ${range === Math.min(n, maxT) ? 'bg-panel2 text-slate-100 font-semibold' : 'text-slate-400 hover:bg-panel2'}">${l}</button>`;
     const chipCls = { good: 'ring-emerald-500/40 text-emerald-300', bad: 'ring-rose-500/40 text-rose-300', warn: 'ring-amber-500/40 text-amber-300', ok: 'ring-line text-slate-300' };
     const card = (d, k) => {
       const M = M0(d.m), r = Idx.read(d), up = r.chg >= 0;
       const val = v => v.toLocaleString(M.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       return `<article class="rounded-xl border border-line bg-panel p-3 flex flex-col min-w-0" aria-label="${U.esc(d.n)}">
         <div class="flex items-start gap-2">
-          <div class="min-w-0 flex-1"><p class="text-[11px] text-slate-400 truncate">${flagTag(M)} ${M.name} · close of ${fmt.dateShort(d.dates[r.i])}</p><h3 class="font-semibold text-sm truncate" title="${U.esc(d.n)}">${U.esc(d.n)}</h3></div>
+          <div class="min-w-0 flex-1"><p class="text-[11px] text-slate-400 truncate"><span title="Close of ${fmt.dateShort(d.dates[r.i])}">${flagTag(M)} ${Idx.TAG[d.s] ? '' : U.esc(M.name) + ' · '}${fmt.dateShort(d.dates[r.i])}</span></p><h3 class="font-semibold text-sm truncate" title="${U.esc(d.n)}">${U.esc(d.n)}${Idx.TAG[d.s] ? ` <span class="text-[10.5px] font-normal text-slate-500">${U.esc(Idx.TAG[d.s])}</span>` : ''}</h3></div>
           <div class="text-right shrink-0"><p class="num text-lg font-bold leading-tight">${val(r.c)}</p><p class="num text-xs font-semibold ${up ? 'text-emerald-300' : 'text-rose-300'}">${up ? '▲' : '▼'} ${up ? '+' : '−'}${val(Math.abs(r.chg))} (${fmt.pct(r.pct, 2)})</p></div>
+          <button type="button" data-action="ixHide" data-s="${U.esc(d.s)}" class="shrink-0 h-7 w-7 inline-flex items-center justify-center rounded-md text-slate-500 hover:text-slate-100 hover:bg-panel2" title="Hide this chart (bring it back with “Choose charts”)" aria-label="Hide ${U.esc(d.n)}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M17.94 17.94A10 10 0 0 1 12 20c-7 0-10-8-10-8a18 18 0 0 1 5.06-5.94M9.9 4.24A9 9 0 0 1 12 4c7 0 10 8 10 8a18 18 0 0 1-2.16 3.19M1 1l22 22"/></svg></button>
+          <button type="button" data-action="ixOpen" data-k="${k}" class="shrink-0 h-7 w-7 -mr-1 inline-flex items-center justify-center rounded-md text-slate-400 hover:text-slate-100 hover:bg-panel2" title="Open the big chart" aria-label="Enlarge ${U.esc(d.n)} chart"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
         </div>
-        <div id="ixm${k}" class="mt-1 h-[128px] cursor-pointer overflow-hidden" role="img" aria-label="${U.esc(d.n)} chart" data-action="ixOpen" data-k="${k}"></div>
-        <div id="ixs${k}" class="h-[44px] border-t border-line/60 overflow-hidden"></div>
+        ${view === 'charts' ? `<div id="ixm${k}" class="mt-1 h-[128px] cursor-grab overflow-hidden" role="img" aria-label="${U.esc(d.n)} chart — drag to scroll back in time, click to enlarge"></div>
+        <div id="ixs${k}" class="h-[44px] border-t border-line/60 overflow-hidden"></div>` : ''}
         <div class="mt-1.5 flex flex-wrap gap-1 max-h-[44px] overflow-hidden">${r.chips.map(([t, x]) => `<span class="inline-flex items-center h-5 px-1.5 rounded text-[10.5px] ring-1 whitespace-nowrap ${chipCls[t]}">${U.esc(x)}</span>`).join('')}</div>
         <p class="mt-1 text-[11px] text-slate-400 leading-snug line-clamp-1" title="${U.esc(r.text)}">${U.esc(r.text)}</p>
       </article>`;
@@ -4425,37 +4454,58 @@ const UI = {
     el.innerHTML = `
       <div class="flex flex-wrap items-center gap-x-5 gap-y-1 mb-2">${glance}
         <div class="ml-auto flex items-center gap-2"><span class="text-[11px] text-slate-500 hidden md:inline"><span style="color:#38bdf8">━</span> 50-day <span style="color:#f59e0b">━</span> 200-day <span style="color:#a78bfa">┅</span> Bollinger · lower panel: <span style="color:#c4b5fd">RSI</span> & <span style="color:#fb923c">ADX</span></span>
-          <div class="flex rounded-lg ring-1 ring-line overflow-hidden" role="group" aria-label="Chart period">${rbtn(63, '3M')}${rbtn(126, '6M')}${rbtn(250, '1Y')}${rbtn(760, '3Y')}</div></div>
+          <div class="flex rounded-lg ring-1 ring-line overflow-hidden" role="group" aria-label="Chart period">${rbtn(126, '6M')}${rbtn(250, '1Y')}${rbtn(500, '2Y')}${rbtn(760, '3Y')}</div>
+          <div class="flex rounded-lg ring-1 ring-line overflow-hidden" role="group" aria-label="View">${vbtn('charts', 'Charts')}${vbtn('compact', 'Values only')}</div>
+          <button type="button" data-action="ixPick" aria-expanded="${!!UI._ixPick}" class="h-7 px-2.5 rounded-lg ring-1 ring-line text-xs ${UI._ixPick ? 'bg-panel2 text-slate-100' : 'text-slate-300 hover:bg-panel2'}">☰ Choose charts <span class="text-slate-500">${shown.length}/${list.length}</span></button></div>
+      </div>
+      ${UI._ixPick ? picker : ''}
+      <div class="${view === 'charts' && shown.length ? '' : 'hidden '}mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-line bg-panel/60 px-3 py-1.5">
+        <label for="ixSlider" class="text-xs text-slate-300 shrink-0">Period shown: <b id="ixSliderTxt" class="text-slate-100 num">${UI.ixLen(range)}</b></label>
+        <input id="ixSlider" type="range" min="126" max="${maxT}" step="1" value="${range}" class="flex-1 min-w-[160px] accent-emerald-400 cursor-pointer" aria-label="Chart period in trading days">
+        <span class="text-[11px] text-slate-500">6 months ← → ${UI.ixLen(maxT)}</span>
+        <span class="text-[11px] text-slate-500 w-full lg:w-auto">Tip: on any chart, drag left/right to look back in time · drag the date axis (or pinch) to zoom · double-click the date axis to reset.</span>
       </div>
       ${Idx.err ? `<div class="mb-3 rounded-xl border border-amber-500/30 bg-amber-500/5 px-3 py-2 text-sm text-amber-200">${U.esc(Idx.err)}</div>` : ''}
       ${Idx.demo ? '<p class="mb-2 text-xs text-amber-300/90">Demo data: these are the app’s simulated market indices. Switch the markets to the live feed to see the real S&P 500, TSX and Nifty.</p>' : ''}
-      ${list.length ? `<div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">${list.map(card).join('')}</div>` : (Idx.err ? '' : '<div class="skeleton h-40"></div>')}
-      <p class="mt-2 text-[11px] text-slate-500">Index points from Yahoo Finance, end of day, updated with each market’s data (India 4:39 PM IST, USA & Canada 5 PM ET). Click a chart to enlarge it. Charts: TradingView Lightweight Charts™. Not investment advice.</p>`;
-    requestAnimationFrame(() => { if (tok !== UI._ixTok) return; list.forEach((d, k) => { try { UI._ixObjs.push(...Charts.index($('ixm' + k), $('ixs' + k), d, range, false)); } catch (e) { console.error(e); } }); });
+      ${list.length && !shown.length ? `<div class="rounded-xl border border-dashed border-line px-4 py-6 text-center text-sm text-slate-400">All charts are hidden. <button type="button" data-action="ixAll" data-on="1" class="ml-1 underline text-slate-200 hover:text-white">Show all</button> or use <b class="text-slate-300">☰ Choose charts</b> to pick a few.</div>` : ''}
+      ${shown.length ? `<div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">${shown.map(([d, k]) => card(d, k)).join('')}</div>` : (list.length || Idx.err ? '' : '<div class="skeleton h-40"></div>')}
+      <p class="mt-2 text-[11px] text-slate-500">Index points, gold & silver futures and Bitcoin from Yahoo Finance, end of day, updated with each market’s data (India 4:39 PM IST, USA & Canada 5 PM ET). Click a chart (or ⤢) to enlarge it. Charts: TradingView Lightweight Charts™. Not investment advice.</p>`;
+    if (view === 'charts') requestAnimationFrame(() => { if (tok !== UI._ixTok) return; shown.forEach(([d, k]) => { try { UI._ixObjs.push(...Charts.index($('ixm' + k), $('ixs' + k), d, range, false, () => UI.indexOpen(k))); } catch (e) { console.error(e); } }); });
+    const sl = $('ixSlider');
+    if (sl) {
+      sl.addEventListener('input', () => { const n = +sl.value; $('ixSliderTxt').textContent = UI.ixLen(n); UI._ixObjs.forEach(c => c._show && c._show(n));
+        document.querySelectorAll('[data-action="ixRange"]').forEach(b => { const on = +b.dataset.n === n; b.classList.toggle('bg-panel2', on); b.classList.toggle('text-slate-100', on); b.classList.toggle('font-semibold', on); b.classList.toggle('text-slate-400', !on); }); });
+      sl.addEventListener('change', () => { S().settings.ixRange = +sl.value; Store.persist(); });
+    }
+    el.querySelectorAll('[data-ixchk]').forEach(cb => cb.addEventListener('change', () => UI.ixSet(cb.dataset.ixchk, cb.checked)));
   },
+  /** Show / hide one index chart (remembered on this device). */
+  ixSet(sym, on) { const h = new Set(S().settings.ixHide || []); on ? h.delete(sym) : h.add(sym); S().settings.ixHide = [...h]; Store.persist(); UI.markets(); },
+  /** Trading days → plain length ("6 months", "1.5 years"). */
+  ixLen(n) { const mo = n / 21; return mo < 11.5 ? `${Math.round(mo)} months` : `${(Math.round(n / 252 * 10) / 10).toString().replace(/\.0$/, '')} year${n >= 378 ? 's' : ''}`; },
   indexOpen(k) {
     const d = Idx.list?.[k]; if (!d) return;
     UI._chart = null; UI.lastFocus = document.activeElement;
     (UI._chartObjs || []).forEach(c => { try { c.remove(); } catch { } }); UI._chartObjs = [];
     $('chartModal').classList.remove('hidden'); const bd = $('chartBackdrop'); bd.classList.remove('hidden'); requestAnimationFrame(() => bd.classList.add('open'));
     document.body.style.overflow = 'hidden';
-    const M = MARKETS[d.m], r = Idx.read(d), up = r.chg >= 0, range = UI._ixBig || 250, val = v => Number.isFinite(v) ? v.toLocaleString(M.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
-    let lo = Infinity; for (let j = Math.max(0, r.i - 251); j <= r.i; j++) lo = Math.min(lo, d.l[j] || d.c[j]);
+    const M = Idx.M(d.m), r = Idx.read(d), up = r.chg >= 0, range = UI._ixBig || Math.max(250, Math.min(d.c.length, S().settings.ixRange || 126)), val = v => Number.isFinite(v) ? v.toLocaleString(M.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+    let lo = Infinity; for (let j = Math.max(0, r.i - Idx.yr(d) + 1); j <= r.i; j++) lo = Math.min(lo, d.l[j] || d.c[j]);
     const lvl = (n, v) => `<div class="flex justify-between gap-2 py-1 border-b border-line/50"><span class="text-slate-400">${n}</span><span class="num text-slate-200">${val(v)} <span class="text-[10.5px] ${v > r.c ? 'text-emerald-300/80' : 'text-rose-300/80'}">${Number.isFinite(v) ? fmt.pct(v / r.c - 1, 1) : ''}</span></span></div>`;
     const rbtn = (n, l) => `<button type="button" data-action="ixBigRange" data-k="${k}" data-n="${n}" class="h-8 px-2.5 text-xs ${range === n ? 'bg-panel2 text-slate-100 font-semibold' : 'text-slate-400 hover:bg-panel2'}">${l}</button>`;
     const chipCls = { good: 'ring-emerald-500/40 text-emerald-300', bad: 'ring-rose-500/40 text-rose-300', warn: 'ring-amber-500/40 text-amber-300', ok: 'ring-line text-slate-300' };
-    const tv = { '^GSPC': 'SP:SPX', '^IXIC': 'NASDAQ:IXIC', '^DJI': 'DJ:DJI', '^GSPTSE': 'TSX:TSX', '^TX60': 'TSX:TX60', '^NSEI': 'NSE:NIFTY', '^BSESN': 'BSE:SENSEX', '^NSEBANK': 'NSE:BANKNIFTY' }[d.s];
+    const tv = { '^GSPC': 'SP:SPX', '^IXIC': 'NASDAQ:IXIC', '^DJI': 'DJ:DJI', '^GSPTSE': 'TSX:TSX', '^TX60': 'TSX:TX60', '^NSEI': 'NSE:NIFTY', '^BSESN': 'BSE:SENSEX', '^NSEBANK': 'NSE:BANKNIFTY', 'GC=F': 'COMEX:GC1!', 'SI=F': 'COMEX:SI1!', 'BTC-USD': 'BITSTAMP:BTCUSD' }[d.s];
     $('chartBody').innerHTML = `
       <div class="sticky top-0 z-10 bg-panel/95 backdrop-blur border-b border-line px-3 sm:px-4 py-2.5 flex flex-wrap items-center gap-2">
         <div class="min-w-0 mr-auto"><h2 id="chartTitle" class="font-semibold text-lg leading-tight">${U.esc(d.n)} <span class="text-sm font-normal text-slate-300 num">${val(r.c)}</span> <span class="text-sm num ${up ? 'text-emerald-300' : 'text-rose-300'}">${up ? '▲ +' : '▼ −'}${val(Math.abs(r.chg))} (${fmt.pct(r.pct, 2)})</span></h2>
-          <p class="text-xs text-slate-400">${flagTag(M)} ${M.name} · close of ${fmt.date(d.dates[r.i])}</p></div>
-        <div class="flex rounded-lg ring-1 ring-line overflow-hidden">${rbtn(126, '6M')}${rbtn(250, '1Y')}${rbtn(760, '3Y')}</div>
+          <p class="text-xs text-slate-400">${flagTag(M)} ${U.esc(Idx.TAG[d.s] ? `${d.n} · ${Idx.tag(d)}` : M.name)} · close of ${fmt.date(d.dates[r.i])}${d.s === 'BTC-USD' ? ' (Bitcoin trades 24/7 — price at the time of the data update)' : ''}</p></div>
+        <div class="flex rounded-lg ring-1 ring-line overflow-hidden">${rbtn(126, '6M')}${rbtn(250, '1Y')}${rbtn(500, '2Y')}${rbtn(d.c.length, 'All')}</div>
         ${tv ? `<a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tv)}" target="_blank" rel="noopener" class="h-8 px-2.5 inline-flex items-center rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">TradingView ↗</a>` : ''}
         <button type="button" data-action="chartClose" class="h-9 w-9 inline-flex items-center justify-center rounded-lg hover:bg-panel2" aria-label="Close chart"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
       </div>
       <div class="p-3 sm:p-4 grid lg:grid-cols-[minmax(0,1fr)_320px] gap-4">
         <div class="min-w-0"><div id="ixBigM" class="h-[360px] sm:h-[460px] rounded-lg border border-line bg-ink"></div><div id="ixBigS" class="mt-1 h-[130px] rounded-lg border border-line bg-ink"></div>
-          <p class="mt-1.5 text-[11px] text-slate-500"><span style="color:#38bdf8">━</span> 50-day · <span style="color:#f59e0b">━</span> 200-day · <span style="color:#a78bfa">┅</span> Bollinger Bands · lower panel: <span style="color:#c4b5fd">RSI</span> (70/30) and <span style="color:#fb923c">ADX</span> (above 25 = strong trend)</p></div>
+          <p class="mt-1.5 text-[11px] text-slate-500"><span style="color:#38bdf8">━</span> 50-day · <span style="color:#f59e0b">━</span> 200-day · <span style="color:#a78bfa">┅</span> Bollinger Bands · lower panel: <span style="color:#c4b5fd">RSI</span> (70/30) and <span style="color:#fb923c">ADX</span> (above 25 = strong trend) · scroll the mouse wheel to zoom, drag to move back in time</p></div>
         <aside class="space-y-3">
           <div class="rounded-xl border border-line bg-ink/60 p-3"><p class="text-sm font-semibold">The read</p><p class="mt-1 text-sm text-slate-200">${U.esc(r.text)}</p>
             <div class="mt-2 flex flex-wrap gap-1">${r.chips.map(([t, x]) => `<span class="inline-flex items-center h-6 px-2 rounded text-[11px] ring-1 ${chipCls[t]}">${U.esc(x)}</span>`).join('')}</div></div>
@@ -4937,6 +4987,10 @@ function wire() {
         }
         case 'chartClose': UI.chartClose(); break;
         case 'ixRange': S().settings.ixRange = +act.dataset.n; Store.persist(); UI.markets(); break;
+        case 'ixView': S().settings.ixView = act.dataset.v; Store.persist(); UI.markets(); break;
+        case 'ixPick': UI._ixPick = !UI._ixPick; UI.markets(); break;
+        case 'ixHide': UI.ixSet(act.dataset.s, false); UI.toast('Chart hidden — use “Choose charts” to bring it back.'); break;
+        case 'ixAll': S().settings.ixHide = act.dataset.on === '1' ? [] : (Idx.list || []).map(d => d.s); Store.persist(); UI.markets(); break;
         case 'ixOpen': UI.indexOpen(+act.dataset.k); break;
         case 'ixBigRange': UI._ixBig = +act.dataset.n; UI.indexOpen(+act.dataset.k); break;
         case 'chartRange': UI._chart.range = +act.dataset.n; UI.chartRender(); break;

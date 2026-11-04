@@ -188,7 +188,7 @@
         <button type="button" id="fMine" aria-pressed="false" class="h-8 px-2.5 rounded-lg text-sm ring-1 ring-line text-slate-400">★ Mine</button>
         <label class="ml-2 text-xs text-slate-400">Tech check
           <select id="fTech" class="ml-1 h-8 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">
-            <option value="all">All</option><option value="stage-early">🌱 Early-entry zone</option><option value="buys">Any buy signal (not WAIT)</option><option value="buy">BUY NOW</option><option value="early">BUY EARLY</option><option value="trigger">BUY ABOVE</option><option value="washout">BUY · WASHOUT</option><option value="leaderpb">BUY · LEADER DIP</option><option value="dip">WAIT · EXTENDED</option><option value="wait">WAIT</option><option value="avoid">AVOID</option>
+            <option value="all">All</option><option value="buys">Any tested BUY</option><option value="washout">BUY · WASHOUT</option><option value="leaderpb">BUY · LEADER DIP</option><option value="oversold">BUY · OVERSOLD</option><option value="watch">WATCH</option><option value="wait">WAIT</option><option value="whale">🐋 Big money buying</option><option value="stage-early">🌱 Early-entry zone</option>
           </select>
         </label>
         <label class="ml-2 text-xs text-slate-400">Show
@@ -353,7 +353,7 @@
     StrikeZone ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-04.1 · admin</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-04.2 · admin</p>
   </div>
 </footer>
 
@@ -645,7 +645,7 @@ const Store = (() => {
     filters: { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: 25, mine: false, tech: 'all' },
     mySync: { state: 'idle', msg: '' },
     sbt: null, sbtBusy: false,
-    bestTick: 0, bestProg: null, watchTick: 0, pfTick: 0, acct: 0, feedTick: 0, idxTick: 0, finder: null,
+    bestTick: 0, bestProg: null, watchTick: 0, pfTick: 0, acct: 0, feedTick: 0, idxTick: 0, whaleTick: 0, finder: null,
     sort: 'prob',
     busy: false,
     pipes: {},           // code -> { stages, runs, ms }
@@ -1467,6 +1467,109 @@ const Playbook = {
   names(m) { return this.list(m).map(s => s.name); },
   /** The full test behind the choice: strategy → market → [trades, won, avg/trade, vs holding, vs holding 1st half, 2nd half]. */
   RESULTS: {"donchian":{"US":[10977,0.398,0.0117,-0.0105,-0.0077,-0.0141],"CA":[14751,0.456,0.0173,-0.0032,-0.002,-0.0046],"IN":[8129,0.358,0.0083,-0.0101,-0.0089,-0.0114]},"emasma":{"US":[7253,0.367,0.0166,-0.023,-0.0192,-0.0278],"CA":[8091,0.442,0.0356,-0.0074,0.0043,-0.0219],"IN":[5988,0.351,0.0216,-0.0097,0.0036,-0.0243]},"leader":{"US":[337,0.481,0.0134,0.0064,-0.0003,0.0109],"CA":[376,0.566,0.0325,0.0265,0.0074,0.0352],"IN":[265,0.464,0.0077,0.0014,-0.0066,0.0081]},"ma":{"US":[6959,0.403,0.0201,-0.0214,-0.0145,-0.0301],"CA":[7675,0.493,0.0387,-0.0065,0.0072,-0.0245],"IN":[5806,0.373,0.0206,-0.0115,0.0058,-0.0303]},"pat:ascTriangle":{"US":[8716,0.493,0.0015,-0.0053,-0.0053,-0.0053],"CA":[12832,0.581,0.0068,0.0006,0.0008,0.0004],"IN":[5102,0.436,-0.0012,-0.0069,-0.0054,-0.0086]},"pat:breakout52":{"US":[878,0.506,0.0047,-0.0021,-0.007,0.0004],"CA":[3350,0.599,0.0083,0.002,-0.0007,0.0031],"IN":[1232,0.46,0.0015,-0.0043,-0.0093,-0.0029]},"pat:bullFlag":{"US":[6754,0.49,0.0052,-0.0014,0.0011,-0.004],"CA":[5297,0.478,0.0086,0.0031,0.0034,0.0029],"IN":[7144,0.443,0.0015,-0.004,-0.0012,-0.0077]},"pat:cupHandle":{"US":[3177,0.506,0.0061,-0.0007,-0.0034,0.0008],"CA":[2078,0.526,0.0114,0.0055,0.0031,0.0074],"IN":[2777,0.426,-0.0027,-0.0083,-0.0105,-0.0065]},"pat:engulfing":{"US":[8539,0.489,0.0053,-0.001,0.0018,-0.0028],"CA":[7778,0.502,0.0049,-0.0008,0.0004,-0.0016],"IN":[7172,0.39,-0.0053,-0.0105,-0.015,-0.0078]},"pat:goldenCross":{"US":[1362,0.534,0.0049,-0.0021,0.0002,-0.0031],"CA":[1325,0.528,0.003,-0.0031,-0.0013,-0.0049],"IN":[967,0.411,0.0012,-0.0045,-0.0046,-0.0044]},"pat:maReclaim":{"US":[4485,0.485,0.0005,-0.0062,-0.0079,-0.0052],"CA":[6153,0.517,0.0045,-0.0016,-0.0018,-0.0015],"IN":[4441,0.431,-0.0015,-0.0071,-0.0086,-0.0062]},"pat:macdCross":{"US":[17409,0.497,0.0026,-0.0043,-0.0057,-0.0027],"CA":[24067,0.565,0.0048,-0.0015,-0.001,-0.0019],"IN":[13451,0.443,0.0013,-0.0044,-0.0072,-0.0011]},"pat:resistance":{"US":[1226,0.548,0.0077,0.0007,0.0023,-0.0028],"CA":[3234,0.583,0.0053,-0.001,-0.0004,-0.0027],"IN":[3048,0.455,-0.0014,-0.0071,-0.0082,-0.0053]},"pat:rsiDiv":{"US":[2295,0.522,0.0054,-0.0013,-0.0024,-0.0002],"CA":[1757,0.528,0.0036,-0.0023,-0.0019,-0.0026],"IN":[2028,0.435,0.0016,-0.0039,-0.0147,0.0051]},"pat:squeeze":{"US":[1307,0.515,0.0057,-0.0012,0.0069,-0.0077],"CA":[3402,0.643,0.0063,-0.0002,0.0006,-0.001],"IN":[653,0.413,-0.0036,-0.0094,-0.0102,-0.0088]},"pat:stochRev":{"US":[2352,0.498,0.0036,-0.003,-0.0028,-0.0031],"CA":[4219,0.537,0.0043,-0.0018,-0.0001,-0.0029],"IN":[1822,0.398,-0.0055,-0.0109,-0.0185,-0.0068]},"rsi":{"US":[3998,0.599,0.0218,0.0077,0.0089,0.0062],"CA":[3289,0.654,0.0267,0.0155,0.0175,0.0128],"IN":[3751,0.539,0.0125,0.0009,-0.0008,0.0028]},"scanner":{"US":[5366,0.505,0.0055,-0.0013,-0.0005,-0.0017],"CA":[9470,0.588,0.0086,0.0024,0.0007,0.0035],"IN":[3912,0.437,-0.0015,-0.0072,-0.0058,-0.0086]},"sma1030":{"US":[12678,0.391,0.0139,-0.01,-0.0091,-0.0111],"CA":[14472,0.447,0.0236,-0.0012,0.001,-0.0037],"IN":[10622,0.35,0.0147,-0.0038,0.0039,-0.0121]},"sma50200":{"US":[1102,0.25,-0.0342,-0.1372,-0.1374,-0.137],"CA":[661,0.318,0.0036,-0.0933,-0.0732,-0.1196],"IN":[857,0.182,-0.0871,-0.1585,-0.1535,-0.1628]},"washout":{"US":[3436,0.477,0.0181,0.0113,0.0178,0.0012],"CA":[2550,0.504,0.0256,0.0201,0.0323,-0.0002],"IN":[3172,0.424,0.0123,0.0073,0.0132,-0.0]}}
+};
+
+/** BIG MONEY ("whales"): large trades that regulators make public, from whales.json in the data feed.
+ *  India: NSE bulk deals (a client trading ≥ 0.5% of the company in a day) and block deals (₹10 crore+ single trades).
+ *  USA: SEC Form 4 (insiders' open-market buys and sells) and Schedule 13D / 13G (a holder crossing 5%).
+ *  Canada: there is no free machine-readable source, so a volume footprint from the price data is shown instead.
+ *  This is information next to the verdict — it is not part of the BUY rule (it hasn't been tested yet). */
+const Whale = {
+  data: null, err: null, _busy: null, gen: null, DAYS: 30,
+  live() { const st = S().settings; return Feed.configured(st.feed) && MARKET_CODES.some(c => st.sources[c] === 'live'); },
+  async load(force = false) {
+    if (this._busy) return this._busy;
+    if (this.data && !force) return this.data;
+    if (!this.live()) { this.data = { IN: [], US: [] }; this.err = 'demo'; return this.data; }
+    this._busy = (async () => {
+      try { const j = await Feed.get(S().settings.feed, 'whales.json'); this.data = j; this.gen = j.generated; this.err = null; this._idx = null; }
+      catch (e) { this.data = { IN: [], US: [] }; this.err = /not found/.test(e.message) ? 'nofile' : e.message; }
+      this._busy = null; Store.set({ whaleTick: Date.now() }); return this.data;
+    })();
+    return this._busy;
+  },
+  /** Who is on the other side, in plain words (India deal client names). */
+  kind(who) {
+    const w = (who || '').toUpperCase();
+    if (/HRTI|GRAVITON|JUNOMONETA|QE SECURITIES|NK SECURITIES|MUSIGMA|ALPHAGREP|IRAGE|TOWER RESEARCH|MATHISYS|SILVERLEAF|PACE STOCK|SHARE INDIA|STOCK BROKING|BROKING|SECURITIES (PVT|PRIVATE)|COMMODITIES|FINVEST|DERIVATIVES|ARBITRAGE/.test(w)) return 'trader';
+    if (/MUTUAL FUND|\bMF\b|ASSET MANAGEMENT|\bAMC\b|TRUSTEE/.test(w)) return 'mf';
+    if (/INSURANCE|ASSURANCE|LIFE INS|\bLIC\b/.test(w)) return 'ins';
+    if (/FUND|CAPITAL|INVESTMENTS?\b|PARTNERS|HOLDINGS|ADVISORS|SINGAPORE|MAURITIUS|\bLLC\b|\bLP\b|\bPTE\b|SICAV|\bPLC\b|\bINC\b|BANK|PENSION|SOVEREIGN|GOVERNMENT OF|NORGES|ABU DHABI|VANGUARD|BLACKROCK|GOLDMAN|MORGAN|SOCIETE|BNP|CITIGROUP|JPMORGAN|NOMURA|UBS|HSBC/.test(w)) return 'inst';
+    return 'other';
+  },
+  KIND: { mf: 'Mutual fund', ins: 'Insurer', inst: 'Institution / fund', trader: 'Trading firm', other: 'Large investor', insider: 'Company insider', '13D': 'Activist 5%+ holder', '13G': '5%+ holder' },
+  index() {
+    if (this._idx) return this._idx;
+    const idx = {}; for (const m of ['IN', 'US']) for (const e of this.data?.[m] || []) (idx[m + '|' + e.s] ||= []).push(e);
+    return (this._idx = idx);
+  },
+  events(m, sym, days = this.DAYS) {
+    if (!this.data) return [];
+    const ds = S().mkts[m]?.ds, end = ds ? ds.dates[ds.cursor] : new Date().toISOString().slice(0, 10);
+    const cut = new Date(Date.parse(end) - days * 864e5).toISOString().slice(0, 10);
+    return (this.index()[m + '|' + sym] || []).filter(e => e.d >= cut && e.d <= end);
+  },
+  /** One summary per stock: is disclosed big money net buying or selling over the last 30 days? */
+  summary(m, sym) {
+    if (m === 'CA') return this.footprint(m, sym);
+    const ev = this.events(m, sym); if (!ev.length) return null;
+    const M = MARKETS[m], items = [];
+    let buy = 0, sell = 0;
+    if (m === 'IN') {
+      const by = {}; for (const e of ev) { const k = e.d + '|' + e.who; (by[k] ||= { who: e.who, d: e.d, b: 0, s: 0, bv: 0, sv: 0, t: e.t }); const o = by[k]; if (e.side === 'BUY') { o.b += e.qty; o.bv += e.val || 0; } else { o.s += e.qty; o.sv += e.val || 0; } }
+      for (const o of Object.values(by)) {
+        const k = this.kind(o.who), net = o.b - o.s, gross = o.b + o.s;
+        if (k === 'trader' || Math.abs(net) < .2 * gross) continue;      // same-day in-and-out by trading firms is not "smart money"
+        const side = net > 0 ? 'BUY' : 'SELL', val = side === 'BUY' ? o.bv - o.sv : o.sv - o.bv;
+        if (side === 'BUY') buy += val; else sell += val;
+        items.push({ d: o.d, side, who: o.who, kind: this.KIND[k], val, t: o.t });
+      }
+    } else {
+      for (const e of ev) {
+        if (e.t === 'insider') { if (e.side === 'BUY') buy += e.val || 0; else if (!e.plan) sell += e.val || 0;
+          items.push({ d: e.d, side: e.side, who: e.who, kind: `${this.KIND.insider}${e.role ? ' · ' + e.role : ''}`, val: e.val, t: 'Form 4', plan: e.plan, url: e.url }); }
+        else { items.push({ d: e.d, side: e.side === 'BUY' ? 'BUY' : 'CHG', who: e.who || 'filer not named', kind: this.KIND[e.t], val: null, pct: e.pct, t: `Schedule ${e.t}${e.amend ? ' amendment' : ''}`, url: e.url }); if (e.side === 'BUY') buy += 1; }
+      }
+    }
+    if (!items.length) return null;
+    items.sort((a, b) => b.d.localeCompare(a.d));
+    const named = items.filter(x => x.side === 'BUY'), tone = buy > 0 && buy >= sell * 1.5 ? 'buy' : sell > 0 && sell >= buy * 1.5 ? 'sell' : 'mixed';
+    const money = v => Number.isFinite(v) && v > 0 ? fmt.cap(v, M) : '';
+    const top = (tone === 'sell' ? items.filter(x => x.side === 'SELL') : named)[0] || items[0];
+    const head = `${top.who}${top.kind ? ` (${top.kind})` : ''} ${top.side === 'BUY' ? (top.t?.startsWith('Schedule') ? `reported a ${top.pct ? top.pct + '% ' : ''}stake` : 'bought') : top.side === 'SELL' ? 'sold' : 'changed its stake'}${money(top.val) ? ' ' + money(top.val) : ''} · ${fmt.dateShort(top.d)}`;
+    return { tone, items, head, buyN: items.filter(x => x.side === 'BUY').length, sellN: items.filter(x => x.side === 'SELL').length, src: m === 'IN' ? 'NSE bulk & block deals' : 'SEC Form 4 & Schedule 13D/13G' };
+  },
+  /** Canada: heavy-volume days in the last 10 sessions (no names — a footprint, not a disclosure). */
+  footprint(m, sym) {
+    const ds = S().mkts[m]?.ds; if (!ds) return null; const ti = ds.tickers.findIndex(t => t.sym === sym); if (ti < 0) return null;
+    const tk = ds.tickers[ti], i = ds.cursor, items = [];
+    for (let k = i; k > i - 10 && k - 51 > tk.start; k--) {
+      let a = 0; for (let j = k - 50; j < k; j++) a += tk.v[j]; a /= 50;
+      const rv = tk.v[k] / a, ch = tk.c[k] / tk.c[k - 1] - 1, pos = (tk.c[k] - tk.l[k]) / Math.max(1e-9, tk.h[k] - tk.l[k]);
+      if (rv >= 3 && ch >= .02 && pos >= .6) items.push({ d: ds.dates[k], side: 'BUY', who: `Volume ${rv.toFixed(1)}× normal on a ${fmt.pct(ch, 1)} up day`, kind: 'heavy buying', t: 'volume' });
+      else if (rv >= 3 && ch <= -.02 && pos <= .4) items.push({ d: ds.dates[k], side: 'SELL', who: `Volume ${rv.toFixed(1)}× normal on a ${fmt.pct(ch, 1)} down day`, kind: 'heavy selling', t: 'volume' });
+    }
+    if (!items.length) return null;
+    const b = items.filter(x => x.side === 'BUY').length, sN = items.length - b;
+    return { tone: b > sN ? 'buy' : sN > b ? 'sell' : 'mixed', items, head: `${items[0].who} · ${fmt.dateShort(items[0].d)}`, buyN: b, sellN: sN, src: 'volume footprint (no names)', footprint: true };
+  },
+  chip(m, sym) {
+    const w = this.summary(m, sym); if (!w) return '';
+    const cls = { buy: 'text-emerald-200 ring-emerald-400/50 bg-emerald-500/10', sell: 'text-amber-200 ring-amber-400/50 bg-amber-500/10', mixed: 'text-slate-200 ring-slate-400/40 bg-slate-500/10' }[w.tone];
+    const lbl = w.footprint ? { buy: 'Heavy buying', sell: 'Heavy selling', mixed: 'Heavy volume' }[w.tone] : { buy: 'Big money buying', sell: 'Big money selling', mixed: 'Big money active' }[w.tone];
+    return `<span class="inline-flex items-center gap-1 h-5 px-1.5 rounded text-[10.5px] font-medium ring-1 align-middle whitespace-nowrap ${cls}" title="${U.esc(`${w.head}. ${w.buyN} buy / ${w.sellN} sell in the last ${this.DAYS} days · source: ${w.src}. Information only — not part of the BUY verdict.`)}">🐋 ${lbl}</span>`;
+  },
+  /** Full list for the chart window. */
+  section(m, sym) {
+    const w = this.summary(m, sym), M = MARKETS[m];
+    const srcTxt = m === 'IN' ? 'NSE bulk deals (≥ 0.5% of the company in a day) and block deals (₹10 crore+ trades)' : m === 'US' ? 'SEC Form 4 (insider buys and sells) and Schedule 13D/13G (5%+ stakes)' : 'Canada has no free public feed of large trades, so this shows heavy-volume days from the price data (no names)';
+    const none = this.err === 'nofile' ? 'Not in the data feed yet — it appears after the next data update (with the updated fetch.py).' : this.err === 'demo' ? 'Shown with the live data feed.' : `No ${m === 'CA' ? 'heavy-volume days in the last 10 sessions' : `disclosed big-money trades in the last ${this.DAYS} days`}.`;
+    const row = x => `<li class="py-1 border-b border-line/40 last:border-0"><span class="${x.side === 'BUY' ? 'text-emerald-300' : x.side === 'SELL' ? 'text-amber-300' : 'text-slate-300'} font-semibold">${x.side === 'BUY' ? '▲ Bought' : x.side === 'SELL' ? '▼ Sold' : '◆ Changed'}</span> <span class="text-slate-200">${U.esc(x.who)}</span>${x.kind ? ` <span class="text-slate-500">· ${U.esc(x.kind)}</span>` : ''}${Number.isFinite(x.val) && x.val > 0 ? ` · <span class="num">${fmt.cap(x.val, M)}</span>` : ''}${x.pct ? ` · ${x.pct}% of the company` : ''}${x.plan ? ' <span class="text-slate-500">(pre-planned 10b5-1 sale)</span>' : ''}
+      <span class="block text-[10.5px] text-slate-500">${fmt.date(x.d)} · ${U.esc(x.t === 'volume' ? 'volume footprint' : x.t)}${x.url ? ` · <a class="text-sky-300 underline" href="${x.url}" target="_blank" rel="noopener">filing ↗</a>` : ''}</span></li>`;
+    return `<div class="rounded-xl border border-line bg-ink/60 p-3 text-xs"><p class="font-semibold text-sm mb-1">🐋 Big-money moves <span class="font-normal text-slate-500">(last ${m === 'CA' ? '10 sessions' : this.DAYS + ' days'})</span></p>
+      ${w ? `<ul>${w.items.slice(0, 8).map(row).join('')}</ul>` : `<p class="text-slate-400">${none}</p>`}
+      <p class="mt-1.5 text-[10.5px] text-slate-500">${srcTxt}. Information only — not part of the BUY verdict.</p></div>`;
+  }
 };
 
 const Tech = {
@@ -4051,7 +4154,7 @@ const UI = {
       if (q && !tk.sym.includes(q) && !tk.name.toUpperCase().includes(q)) return false;
       if (f.mine && !MyStocks.has(r.m, tk.sym)) return false;
       if (f.match && !UI.bestOf(r)?.match) return false;
-      if (f.tech && f.tech !== 'all') { const t = Tech.of(r)?.v; if (f.tech === 'stage-early' ? r.cd.stage?.code !== 'early' : f.tech === 'buys' ? !Tech.isBuy(t) : t !== f.tech) return false; }
+      if (f.tech && f.tech !== 'all') { const t = Tech.of(r)?.v; if (f.tech === 'stage-early' ? r.cd.stage?.code !== 'early' : f.tech === 'whale' ? Whale.summary(r.m, r.cd.sym)?.tone !== 'buy' : f.tech === 'buys' ? !Tech.isBuy(t) : t !== f.tech) return false; }
       return true;
     });
     const k = s.sort;
@@ -4180,7 +4283,7 @@ const UI = {
       return;
     }
     if (!rows.length && s.filters.tech !== 'all' && s.results.length) {
-      const lbl = s.filters.tech === 'stage-early' ? '🌱 early-entry zone' : s.filters.tech === 'buys' ? 'any buy signal' : Tech.V[s.filters.tech]?.label || s.filters.tech;
+      const lbl = s.filters.tech === 'stage-early' ? '🌱 early-entry zone' : s.filters.tech === 'whale' ? '🐋 big money buying' : s.filters.tech === 'buys' ? 'any buy signal' : Tech.V[s.filters.tech]?.label || s.filters.tech;
       el.innerHTML = `<div class="rounded-xl border border-dashed border-line bg-panel p-8 text-center"><p class="font-medium text-slate-200">No stocks with “${U.esc(lbl)}” in this scan</p>
         <p class="mt-1 text-sm text-slate-400 max-w-lg mx-auto">${s.filters.tech === 'stage-early' ? 'The early-entry zone is rare by design — about 2 in every 100 setups. Check again after the next scan, or add promising stocks to Strategy watch.' : 'Try another action, or check again after the next scan.'}</p>
         <button type="button" data-action="techFilter" data-v="all" class="mt-4 h-9 px-4 rounded-lg border border-line text-sm hover:bg-panel2">Show all stocks</button></div>`;
@@ -4212,7 +4315,7 @@ const UI = {
           const { cd, sc, M, ds } = r, tk = ds.tickers[cd.ti], p = cd.plan, ev = Engine.event(r);
           return `<tr class="row-click align-top" tabindex="0" data-open="${r.key}" aria-label="${U.esc(cd.sym)}, ${M.name}, probability ${fmt.prob(r.p)}, ${U.esc(ev.text)}">
             <td class="px-3 py-3 text-slate-500 num">${n + 1}</td>
-            <td class="px-3 py-3"><div class="flex items-start gap-2.5">${tierBadge(sc.tier)}<div class="min-w-0"><p class="font-semibold text-slate-100 whitespace-nowrap">${UI.bestOf(r)?.match ? '<span class="inline-block mr-1 px-1 rounded text-[10px] font-bold bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/40 align-middle" title="Today’s signal is this stock’s best-performing strategy">◆ MATCH</span>' : ''}${MyStocks.has(r.m, cd.sym) ? '<span class="text-amber-300" title="My stock">★</span> ' : ''}${U.esc(cd.sym)} ${multi ? `<span class="text-[11px] font-normal text-slate-400">${flagTag(M)} ${M.code}</span>` : ''}</p><p class="text-[11px] text-slate-500 truncate max-w-[170px]">${U.esc(tk.name)}</p><p class="text-[11px] text-slate-500 truncate max-w-[170px]">${U.esc(tk.sector)} · ${fmt.px(cd.price, M)}</p><p class="mt-1">${UI.chartBtn(r.m, cd.sym, '📈 Chart', 'h-6 px-2 rounded-md border border-sky-500/40 text-[11px] text-sky-300 hover:bg-sky-500/10')}</p></div></div></td>
+            <td class="px-3 py-3"><div class="flex items-start gap-2.5">${tierBadge(sc.tier)}<div class="min-w-0"><p class="font-semibold text-slate-100 whitespace-nowrap">${UI.bestOf(r)?.match ? '<span class="inline-block mr-1 px-1 rounded text-[10px] font-bold bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/40 align-middle" title="Today’s signal is this stock’s best-performing strategy">◆ MATCH</span>' : ''}${MyStocks.has(r.m, cd.sym) ? '<span class="text-amber-300" title="My stock">★</span> ' : ''}${U.esc(cd.sym)} ${multi ? `<span class="text-[11px] font-normal text-slate-400">${flagTag(M)} ${M.code}</span>` : ''}</p>${(() => { const c = Whale.chip(r.m, cd.sym); return c ? `<p class="mt-0.5">${c}</p>` : ''; })()}<p class="text-[11px] text-slate-500 truncate max-w-[170px]">${U.esc(tk.name)}</p><p class="text-[11px] text-slate-500 truncate max-w-[170px]">${U.esc(tk.sector)} · ${fmt.px(cd.price, M)}</p><p class="mt-1">${UI.chartBtn(r.m, cd.sym, '📈 Chart', 'h-6 px-2 rounded-md border border-sky-500/40 text-[11px] text-sky-300 hover:bg-sky-500/10')}</p></div></div></td>
             <td class="px-3 py-3 whitespace-nowrap"><p class="num text-lg font-semibold leading-none" style="color:${probColor(r)}">${fmt.prob(r.p)}</p>
               <div class="mt-1.5 w-16 h-1.5 rounded-full bg-slate-800 overflow-hidden" aria-hidden="true"><div class="h-full rounded-full" style="width:${Math.min(100, r.p * 100 / .6)}%;background:${probColor(r)}"></div></div>
               <p class="text-[11px] text-slate-500 mt-1 num">score ${sc.total.toFixed(0)}</p></td>
@@ -4231,7 +4334,7 @@ const UI = {
       const { cd, sc, M, ds } = r, tk = ds.tickers[cd.ti], p = cd.plan, ev = Engine.event(r);
       return `<li><button type="button" data-open="${r.key}" class="w-full text-left rounded-xl border border-line bg-panel p-3 active:bg-panel2">
         <div class="flex items-start gap-2.5">${tierBadge(sc.tier)}
-          <div class="min-w-0 flex-1"><p class="font-semibold">${UI.bestOf(r)?.match ? '<span class="inline-block mr-1 px-1 rounded text-[10px] font-bold bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/40 align-middle">◆ MATCH</span>' : ''}${MyStocks.has(r.m, cd.sym) ? '<span class="text-amber-300" aria-label="My stock">★</span> ' : ''}${U.esc(cd.sym)} <span class="text-xs font-normal text-slate-500">${multi ? flagTag(M) + ' ' : ''}#${n + 1}</span></p><p class="text-[11px] text-slate-500 truncate">${U.esc(tk.name)} · ${fmt.px(cd.price, M)}</p><p class="mt-1">${UI.chartBtn(r.m, cd.sym, '📈 Chart', 'h-6 px-2 rounded-md border border-sky-500/40 text-[11px] text-sky-300')}</p></div>
+          <div class="min-w-0 flex-1"><p class="font-semibold">${UI.bestOf(r)?.match ? '<span class="inline-block mr-1 px-1 rounded text-[10px] font-bold bg-violet-500/20 text-violet-300 ring-1 ring-violet-500/40 align-middle">◆ MATCH</span>' : ''}${MyStocks.has(r.m, cd.sym) ? '<span class="text-amber-300" aria-label="My stock">★</span> ' : ''}${U.esc(cd.sym)} <span class="text-xs font-normal text-slate-500">${multi ? flagTag(M) + ' ' : ''}#${n + 1}</span> ${Whale.chip(r.m, cd.sym)}</p><p class="text-[11px] text-slate-500 truncate">${U.esc(tk.name)} · ${fmt.px(cd.price, M)}</p><p class="mt-1">${UI.chartBtn(r.m, cd.sym, '📈 Chart', 'h-6 px-2 rounded-md border border-sky-500/40 text-[11px] text-sky-300')}</p></div>
           <div class="text-right"><p class="num text-xl font-semibold leading-none" style="color:${probColor(r)}">${fmt.prob(r.p)}</p><p class="text-[10px] text-slate-500 mt-1">probability</p></div>
         </div>
         ${UI.techCell(r, true)}
@@ -4254,6 +4357,7 @@ const UI = {
     const techBar = `<div class="mb-3 rounded-xl border border-line bg-panel px-3 py-2.5 flex flex-wrap items-center gap-2 text-xs">
         <span class="text-slate-400 mr-1">Tech check of these ${all.length} stocks:</span>
         ${Object.keys(Tech.V).map(k => `<button type="button" data-action="techFilter" data-v="${k}" aria-pressed="${s.filters.tech === k}" class="inline-flex items-center gap-1.5 h-7 pl-1 pr-2 rounded-lg ${s.filters.tech === k ? 'ring-2 ring-white/60' : 'ring-1 ring-line'} hover:bg-panel2" title="${Tech.V[k].desc}">${UI.techPill({ v: k })}<span class="num text-slate-200 font-semibold">${tc[k] || 0}</span></button>`).join('')}
+        <button type="button" data-action="techFilter" data-v="whale" aria-pressed="${s.filters.tech === 'whale'}" class="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg ${s.filters.tech === 'whale' ? 'ring-2 ring-white/60' : 'ring-1 ring-emerald-500/40'} text-emerald-200 hover:bg-panel2" title="Stocks where disclosed big money (India: NSE bulk/block deals · USA: SEC insider and 5%+ holder filings · Canada: heavy-volume up days) was net buying in the last 30 days">🐋 Big money buying <span class="num font-semibold">${all.filter(x => Whale.summary(x.m, x.cd.sym)?.tone === 'buy').length}</span></button>
         <button type="button" data-action="techFilter" data-v="stage-early" aria-pressed="${s.filters.tech === 'stage-early'}" class="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg ${s.filters.tech === 'stage-early' ? 'ring-2 ring-white/60' : 'ring-1 ring-lime-500/40'} text-lime-200 hover:bg-panel2" title="Stocks in the early-entry zone: a higher low is holding and price is still within about 3 daily ranges of the low — before the breakout">🌱 Early-entry zone <span class="num font-semibold">${all.filter(x => x.cd.stage?.code === 'early').length}</span></button>
         ${s.filters.tech !== 'all' ? '<button type="button" data-action="techFilter" data-v="all" class="ml-1 underline underline-offset-2 text-slate-300">Show all</button>' : ''}
         <span class="w-full text-[11px] text-slate-500">Each stock is checked on 10 indicators (dots, left to right): trend · trend stage (🌱 early → ◕ late) · strength vs market · market · RSI · Bollinger Bands · MACD · volume · resistance · entry timing. <span style="color:#34d399">●</span> good <span style="color:#94a3b8">●</span> neutral <span style="color:#fbbf24">●</span> caution <span style="color:#fb7185">●</span> bad. Click a badge to filter.</span>
@@ -4519,7 +4623,7 @@ const UI = {
         const M = MARKETS[w.m], st = e.strat, plan = e.plan, hot = e.hot || [], hl = hot.length ? StockBT.hotLabel(hot) : null;
         return `<li class="rounded-xl border ${hot.length ? 'border-yellow-400/70 hot-card' : tone[e.kind]} bg-panel p-3">
           <div class="flex flex-wrap items-start gap-x-3 gap-y-1">
-            <div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(w.sym)} <span class="text-xs font-normal text-slate-400">${flagTag(M)} ${M.name}</span> ${e.tv ? UI.techPill(e.tv) : ''} ${hl ? hl.html : ''}</p>
+            <div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(w.sym)} <span class="text-xs font-normal text-slate-400">${flagTag(M)} ${M.name}</span> ${e.tv ? UI.techPill(e.tv) : ''} ${Whale.chip(w.m, w.sym)} ${hl ? hl.html : ''}</p>
               <p class="text-xs text-slate-300">${U.esc(Watch.label(w.key, e.res))}</p></div>
             <div class="flex items-center gap-1.5 shrink-0">
               ${UI.chartBtn(w.m, w.sym)}
@@ -4725,7 +4829,7 @@ const UI = {
       ${rows.length ? `<div class="overflow-x-auto scroll-thin"><table class="w-full text-sm">
         <thead><tr class="text-left text-xs text-slate-400 border-b border-line"><th class="px-3 py-2 font-medium">Stock</th><th class="px-3 py-2 font-medium">StrikeZone verdict</th><th class="px-3 py-2 font-medium">Success with this strategy</th><th class="px-3 py-2 font-medium text-right">Total return</th><th class="px-3 py-2 font-medium text-right">Avg / trade</th><th class="px-3 py-2"></th></tr></thead>
         <tbody>${shown.map(r => `<tr class="border-b border-line/60 align-top ${r.best ? 'bg-amber-400/[0.05]' : ''}">
-          <td class="px-3 py-2 ${r.best ? 'border-l-2 border-amber-400' : 'border-l-2 border-transparent'}"><p class="font-semibold">${U.esc(r.sym)} ${r.best ? '<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400 text-ink align-middle">★ BEST FIT</span>' : ''}</p>
+          <td class="px-3 py-2 ${r.best ? 'border-l-2 border-amber-400' : 'border-l-2 border-transparent'}"><p class="font-semibold">${U.esc(r.sym)} ${Whale.chip(f.m, r.sym)} ${r.best ? '<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400 text-ink align-middle">★ BEST FIT</span>' : ''}</p>
             <p class="text-[11px] text-slate-400 truncate max-w-[220px]">${U.esc(r.name)}</p>
             <p class="text-[11px] ${r.best ? 'text-amber-200' : 'text-slate-500'}">${r.best ? `Best of all ${r.of} strategies for ${U.esc(r.sym)}` : `Ranks #${r.rank} of ${r.of} · best: ${U.esc(r.bestName || '—')}`}</p></td>
           <td class="px-3 py-2 whitespace-nowrap">${stateCell(r)}</td>
@@ -4778,7 +4882,7 @@ const UI = {
     const card = r => { const M = r.M, p = r.plan;
       return `<li class="rounded-xl border ${r.age === 0 ? 'border-emerald-500/40' : 'border-line'} bg-panel p-3">
         <div class="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
-          <div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(r.sym)} ${(() => { const tv = Tech.ofAny(r.ds, r.ti); return tv ? UI.techPill(tv) : ''; })()} <span class="text-xs font-normal text-slate-400">${multi ? flagTag(M) + ' ' : ''}${U.esc(r.name)} · ${U.esc(r.sector)}</span></p>
+          <div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(r.sym)} ${(() => { const tv = Tech.ofAny(r.ds, r.ti); return tv ? UI.techPill(tv) : ''; })()} ${Whale.chip(r.m, r.sym)} <span class="text-xs font-normal text-slate-400">${multi ? flagTag(M) + ' ' : ''}${U.esc(r.name)} · ${U.esc(r.sector)}</span></p>
             <p class="text-[11px] text-slate-400">${r.kind === 'washout' ? `<span class="font-semibold ${r.day >= 2 ? 'text-emerald-300' : 'text-amber-200'}">Washout day ${r.day}</span> · ` : ''}${when(r)} · ${fmt.date(r.date)}${r.age ? ` · since then ${'<span class="' + tone(r.since) + '">' + fmt.pct(r.since, 1) + '</span>'}` : ''} · now ${fmt.px(r.price, M)}</p></div>
           <div class="flex flex-wrap gap-1.5 sm:shrink-0">
             <button type="button" data-action="watchAdd" data-m="${r.m}" data-sym="${U.esc(r.sym)}" data-key="${r.kind}" class="h-7 px-2.5 rounded-lg border border-violet-500/40 text-xs text-violet-300 hover:bg-violet-500/10">◆ Watch</button>
@@ -4875,6 +4979,7 @@ const UI = {
               <p class="mt-2 text-sm text-slate-100 leading-relaxed"><b>What to do:</b> ${U.esc(t.action)}</p>
               ${UI.scorecard(t)}
             </div>` : '<p class="text-sm text-slate-400">Not enough history for a technical check.</p>'}
+          ${Whale.section(st.m, tk.sym)}
           <div class="rounded-xl border border-line bg-ink/60 p-3 text-xs">
             <p class="font-semibold text-sm mb-1">Key levels</p>
             ${lvl('52-week high', hh, c >= hh * .97 ? 'at or near the high' : '')}${lvl('Resistance (3-month high)', res)}${lvl('20-day average', x.sma20[i])}${lvl('50-day average', x.sma50[i])}${Number.isFinite(x.sma200[i]) ? lvl('200-day average', x.sma200[i]) : ''}${lvl('Support (4-week low)', sup)}${lvl('52-week low', ll)}
@@ -6191,6 +6296,9 @@ Store.on(['busy', 'mkts', 'results', 'alerts', 'settings'], () => UI.header());
 Store.on(['feedTick', 'mkts', 'settings'], () => UI.dataBar());
 Store.on(['idxTick'], () => { UI.markets(); UI.header(); });
 Store.on(['feedTick'], () => { const g = Feed.lastMeta?.generated; if (g && Idx.list && Idx.metaGen && g !== Idx.metaGen) { Idx.metaGen = g; Idx.load(true); } else if (g) Idx.metaGen = g; });
+Store.on(['feedTick'], () => { const g = Feed.lastMeta?.generated; if (!g) return; if (!Whale.data || (Whale.metaGen && g !== Whale.metaGen)) { Whale.metaGen = g; Whale.load(true); } else Whale.metaGen = g; });
+Store.on(['mkts'], () => { if (!Whale.data && Whale.live()) Whale.load(); });
+Store.on(['whaleTick'], () => { UI.results(); UI.finder(); UI.watch(); UI.portfolio(); });
 Store.on(['mkts'], () => { if (Idx.demo || !Idx.list) { if (!Idx.live()) { Idx.demoList(); if (S().tab === 'markets') UI.markets(); } } });
 Store.on(['tab'], () => UI.tabs());
 Store.on(['results', 'settings', 'mkts'], () => UI.stats());

@@ -344,7 +344,7 @@
     StrikeZone ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-03.4 · public</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-03.5 · public</p>
   </div>
 </footer>
 
@@ -1697,17 +1697,46 @@ const Rev = {
  *  app's own simulated market index stands in. */
 const Idx = {
   list: null, gen: null, err: null, demo: false, _busy: null,
-  ORDER: ['^GSPC', '^IXIC', '^DJI', '^GSPTSE', '^TX60', '^NSEI', '^BSESN', '^NSEBANK', 'GC=F', 'SI=F', 'BTC-USD'],
+  ORDER: ['^GSPC', '^IXIC', '^DJI', '^GSPTSE', '^TX60', '^NSEI', '^BSESN', '^NSEBANK', 'GC=F', 'SI=F', 'BTC-USD', 'ETH-USD'],
   /** Gold, silver and Bitcoin are not a stock market: they get their own group label (prices in USD). */
   GROUP: { GL: { code: 'GL', name: 'Gold, silver & crypto', short: 'Global', flag: '🌐', locale: 'en-US' } },
-  TAG: { 'GC=F': 'USD/oz', 'SI=F': 'USD/oz', 'BTC-USD': 'USD' },
+  TAG: { 'GC=F': 'USD/oz', 'SI=F': 'USD/oz', 'BTC-USD': 'USD', 'ETH-USD': 'USD' },
+  CRYPTO: new Set(['BTC-USD', 'ETH-USD']),
   M(m) { return MARKETS[m] || this.GROUP[m] || { name: m, flag: '', locale: 'en-US' }; },
   tag(d) { return this.TAG[d.s] || this.M(d.m).name; },
-  /** Bars in one year: Bitcoin trades every day, everything else ~252 days a year. */
-  yr(d) { return d.s === 'BTC-USD' ? 365 : 252; },
+  /** Bars in one year: crypto trades every day, everything else ~252 days a year. */
+  yr(d) { return this.CRYPTO.has(d.s) ? 365 : 252; },
   /** First bar inside the last n "trading days" of time, measured by date so 7-day markets line up with the rest. */
   fromBar(d, n) { const T = d.c.length, cut = new Date(Date.parse(d.dates[T - 1]) - n * (365 / 252) * 864e5).toISOString().slice(0, 10); let k = T - 1; while (k > 0 && d.dates[k - 1] >= cut) k--; return k; },
   hidden() { return new Set(S().settings.ixHide || []); },
+  /** Plain-English market trend for one stock market, from its main index (S&P 500, S&P/TSX, Nifty 50).
+   *  It describes the backdrop; it is not a buy or sell signal on its own. */
+  mood(c) {
+    const M = MARKETS[c], F = Number.isFinite; let f = null;
+    const lead = (this.list || []).find(d => d.m === c);
+    if (lead) { const r = this.read(lead); f = { name: lead.n, c: r.c, s50: r.s50[r.i], s200: r.s200[r.i], adx: r.adx[r.i], pdi: r.pdi[r.i], mdi: r.mdi[r.i], date: lead.dates[r.i] }; }
+    else { const ds = S().mkts[c]?.ds; if (ds?.index) { const i = ds.cursor, x = ds.index.c; let a = 0; for (let k = i - 49; k <= i; k++) a += x[k];
+      f = { name: M.index, c: x[i], s50: i >= 49 ? a / 50 : NaN, s200: ds.index.sma200[i], date: ds.dates[i] }; } }
+    if (!f || !F(f.s200)) return { c, M, tone: 'ok', label: 'Trend not known yet', short: '…', f };
+    const up = f.c > f.s200, gold = f.s50 > f.s200;
+    const tone = up && gold ? 'good' : !up && !gold ? 'bad' : 'warn';
+    const label = { good: 'Uptrend', warn: 'Trend changing', bad: 'Downtrend' }[tone];
+    const short = { good: 'Up', warn: 'Mixed', bad: 'Down' }[tone];
+    const facts = [`${f.name} is ${fmt.pct(Math.abs(f.c / f.s200 - 1), 1).replace(/^[+−-]/, '')} ${up ? 'above' : 'below'} its 200-day average`,
+      F(f.s50) ? `its 50-day average is ${gold ? 'above' : 'below'} the 200-day (${gold ? '“golden cross”' : '“death cross”'})` : null,
+      F(f.adx) ? `ADX ${f.adx.toFixed(0)}: ${f.adx >= 25 ? `a strong move, pointing ${f.pdi > f.mdi ? 'up' : 'down'}` : f.adx >= 20 ? 'a trend is building' : 'no strong trend right now (choppy)'}` : null].filter(Boolean);
+    const means = {
+      good: 'The market’s long-term trend is up. This is the normal backdrop for buying: most stocks have the wind behind them.',
+      warn: 'The two trend signals disagree — the market is either starting to recover or starting to slide. It is unclear which.',
+      bad: 'The market’s long-term trend is down. Expect bigger swings in both directions.'
+    }[tone];
+    const todo = {
+      good: ['It does not mean every stock will rise — still follow each stock’s own verdict (BUY / WAIT / AVOID).', 'Always set a stop-loss; uptrends can end suddenly.'],
+      warn: ['Be choosy: act only on the strongest verdicts (BUY NOW, BUY EARLY, BUY · WASHOUT).', 'Use smaller amounts than usual and wait for the trend to settle.'],
+      bad: ['Not a signal to sell everything, and not a signal to buy blindly either.', 'Use smaller positions and firm stop-losses.', 'Sharp-dip setups (BUY · WASHOUT) have done better than average in weak markets; avoid chasing stocks that already ran up.']
+    }[tone];
+    return { c, M, tone, label, short, facts, means, todo, f };
+  },
   live() { const st = S().settings; return Feed.configured(st.feed) && MARKET_CODES.some(c => st.sources[c] === 'live'); },
   async load(force = false) {
     if (this._busy) return this._busy;
@@ -3581,14 +3610,16 @@ const UI = {
     $('scanIcon').classList.toggle('animate-spin', s.busy);
     $('btnAdvance').disabled = s.busy || !codes.some(c => { const ds = s.mkts[c]?.ds; return ds && ds.source === 'demo' && ds.cursor < ds.T - 1; });
     const pill = $('regimePill');
-    const reg = loaded.map(c => { const ds = s.mkts[c].ds; return ds.index ? { M: MARKETS[c], up: ds.index.c[ds.cursor] > ds.index.sma200[ds.cursor] } : null; }).filter(Boolean);
+    const reg = loaded.map(c => Idx.mood(c)).filter(r => r.f);
+    const tc = { good: 'text-emerald-300', warn: 'text-amber-300', bad: 'text-rose-300', ok: 'text-slate-400' }, dot = { good: 'bg-emerald-400', warn: 'bg-amber-400', bad: 'bg-rose-400', ok: 'bg-slate-500' };
+    const ring = { good: 'bg-emerald-500/10 ring-emerald-500/30', warn: 'bg-amber-500/10 ring-amber-500/30', bad: 'bg-rose-500/10 ring-rose-500/30', ok: 'ring-line' };
     if (reg.length === 1) {
-      const { M, up } = reg[0];
-      pill.className = `hidden md:inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs ring-1 ${up ? 'bg-emerald-500/10 text-emerald-300 ring-emerald-500/30' : 'bg-rose-500/10 text-rose-300 ring-rose-500/30'}`;
-      pill.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${up ? 'bg-emerald-400' : 'bg-rose-400'}"></span>${up ? 'Risk-on' : 'Risk-off'}: ${M.index} ${up ? 'above' : 'below'} 200-day`;
+      const r = reg[0];
+      pill.className = `hidden md:inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full text-xs ring-1 ${ring[r.tone]} ${tc[r.tone]} hover:brightness-125`;
+      pill.innerHTML = `<button type="button" data-action="moodOpen" class="inline-flex items-center gap-1.5" title="What does this mean? Click to see"><span class="w-1.5 h-1.5 rounded-full ${dot[r.tone]}"></span>${r.M.name} market: ${r.label} <span class="text-slate-400">ⓘ</span></button>`;
     } else if (reg.length > 1) {
-      pill.className = 'hidden md:inline-flex items-center gap-2 h-7 px-2.5 rounded-full text-xs ring-1 ring-line text-slate-300';
-      pill.innerHTML = reg.map(({ M, up }) => `<span title="${M.index} ${up ? 'above' : 'below'} its 200-day MA"><span class="flag">${M.flag}</span> <span class="${up ? 'text-emerald-300' : 'text-rose-300'}">${up ? '▲' : '▼'}</span></span>`).join('');
+      pill.className = 'hidden md:inline-flex items-center gap-2 h-7 px-2.5 rounded-full text-xs ring-1 ring-line text-slate-300 hover:bg-panel2';
+      pill.innerHTML = `<button type="button" data-action="moodOpen" class="inline-flex items-center gap-2" title="Market trend in each country — click to see what it means">${reg.map(r => `<span><span class="flag">${r.M.flag}</span> <span class="${tc[r.tone]}">${r.short}</span></span>`).join('')}<span class="text-slate-400">ⓘ</span></button>`;
     } else pill.innerHTML = '';
     const n = Alerts.unread(), b = $('alertBadge');
     b.textContent = n > 99 ? '99+' : n; b.classList.toggle('hidden', !n);
@@ -4420,8 +4451,9 @@ const UI = {
         for (const tk of ds.tickers) { if (tk.excluded || i - tk.start < 200) continue; let s = 0; for (let k = i - 49; k <= i; k++) s += tk.c[k]; let s2 = 0; for (let k = i - 199; k <= i; k++) s2 += tk.c[k]; n++; if (tk.c[i] > s / 50) a50++; if (tk.c[i] > s2 / 200) a200++; }
         if (n) br = ` · <span title="Share of the market’s stocks trading above their own 50- and 200-day averages (market breadth)">${Math.round(100 * a50 / n)}% of stocks above 50-day, ${Math.round(100 * a200 / n)}% above 200-day</span>`; }
       const col = { good: 'text-emerald-300', warn: 'text-amber-300', bad: 'text-rose-300', ok: 'text-slate-300' };
-      return `<span class="text-xs text-slate-400">${flagTag(M)} <b class="text-slate-200">${M.name}</b>: ${rd ? `<span class="${col[rd.tone]}">${U.esc(rd.trend)}</span>` : 'no index data'}${br}</span>`;
-    }).join('');
+      const md = Idx.mood(c);
+      return `<span class="text-xs text-slate-400">${flagTag(M)} <b class="text-slate-200">${M.name}</b>: ${md.f ? `<span class="${col[md.tone]}">${U.esc(md.label)}</span>` : 'no index data'}${br}</span>`;
+    }).join('') + '<button type="button" data-action="moodOpen" class="text-xs text-sky-300 hover:text-sky-200 underline underline-offset-2">ⓘ What does the market trend mean for me?</button>';
     const vbtn = (v, l) => `<button type="button" data-action="ixView" data-v="${v}" aria-pressed="${view === v}" class="h-7 px-2.5 text-xs ${view === v ? 'bg-panel2 text-slate-100 font-semibold' : 'text-slate-400 hover:bg-panel2'}">${l}</button>`;
     const groups = [...MARKET_CODES, 'GL'].map(c => [c, list.filter(d => d.m === c)]).filter(([, a]) => a.length);
     const picker = `<div class="mb-3 rounded-xl border border-line bg-panel p-3" role="group" aria-label="Choose which charts to show">
@@ -4431,7 +4463,7 @@ const UI = {
           <button type="button" data-action="ixPick" class="h-7 px-2.5 rounded-lg text-xs text-slate-400 hover:bg-panel2">Done</button></div>
         <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-2">${groups.map(([c, a]) => { const M = M0(c);
           return `<div><p class="text-[11px] uppercase tracking-wide text-slate-500 mb-1">${flagTag(M)} ${U.esc(M.name)}</p>${a.map(d => `<label class="flex items-center gap-2 py-0.5 text-sm cursor-pointer hover:text-white"><input type="checkbox" data-ixchk="${U.esc(d.s)}" ${hid.has(d.s) ? '' : 'checked'} class="h-4 w-4 accent-emerald-400 cursor-pointer"> ${U.esc(d.n)}</label>`).join('')}</div>`; }).join('')}</div>
-        ${Idx.demo ? '<p class="mt-2 text-[11px] text-amber-300/90">Gold, silver and Bitcoin appear with the live data feed.</p>' : ''}
+        ${Idx.demo ? '<p class="mt-2 text-[11px] text-amber-300/90">Gold, silver, Bitcoin and Ethereum appear with the live data feed.</p>' : ''}
       </div>`;
     const rbtn = (n, l) => `<button type="button" data-action="ixRange" data-n="${Math.min(n, maxT)}" class="h-7 px-2.5 text-xs ${range === Math.min(n, maxT) ? 'bg-panel2 text-slate-100 font-semibold' : 'text-slate-400 hover:bg-panel2'}">${l}</button>`;
     const chipCls = { good: 'ring-emerald-500/40 text-emerald-300', bad: 'ring-rose-500/40 text-rose-300', warn: 'ring-amber-500/40 text-amber-300', ok: 'ring-line text-slate-300' };
@@ -4469,7 +4501,7 @@ const UI = {
       ${Idx.demo ? '<p class="mb-2 text-xs text-amber-300/90">Demo data: these are the app’s simulated market indices. Switch the markets to the live feed to see the real S&P 500, TSX and Nifty.</p>' : ''}
       ${list.length && !shown.length ? `<div class="rounded-xl border border-dashed border-line px-4 py-6 text-center text-sm text-slate-400">All charts are hidden. <button type="button" data-action="ixAll" data-on="1" class="ml-1 underline text-slate-200 hover:text-white">Show all</button> or use <b class="text-slate-300">☰ Choose charts</b> to pick a few.</div>` : ''}
       ${shown.length ? `<div class="grid sm:grid-cols-2 xl:grid-cols-4 gap-3">${shown.map(([d, k]) => card(d, k)).join('')}</div>` : (list.length || Idx.err ? '' : '<div class="skeleton h-40"></div>')}
-      <p class="mt-2 text-[11px] text-slate-500">Index points, gold & silver futures and Bitcoin from Yahoo Finance, end of day, updated with each market’s data (India 4:39 PM IST, USA & Canada 5 PM ET). Click a chart (or ⤢) to enlarge it. Charts: TradingView Lightweight Charts™. Not investment advice.</p>`;
+      <p class="mt-2 text-[11px] text-slate-500">Index points, gold & silver futures, Bitcoin and Ethereum from Yahoo Finance, end of day, updated with each market’s data (India 4:39 PM IST, USA & Canada 5 PM ET). Click a chart (or ⤢) to enlarge it. Charts: TradingView Lightweight Charts™. Not investment advice.</p>`;
     if (view === 'charts') requestAnimationFrame(() => { if (tok !== UI._ixTok) return; shown.forEach(([d, k]) => { try { UI._ixObjs.push(...Charts.index($('ixm' + k), $('ixs' + k), d, range, false, () => UI.indexOpen(k))); } catch (e) { console.error(e); } }); });
     const sl = $('ixSlider');
     if (sl) {
@@ -4494,11 +4526,11 @@ const UI = {
     const lvl = (n, v) => `<div class="flex justify-between gap-2 py-1 border-b border-line/50"><span class="text-slate-400">${n}</span><span class="num text-slate-200">${val(v)} <span class="text-[10.5px] ${v > r.c ? 'text-emerald-300/80' : 'text-rose-300/80'}">${Number.isFinite(v) ? fmt.pct(v / r.c - 1, 1) : ''}</span></span></div>`;
     const rbtn = (n, l) => `<button type="button" data-action="ixBigRange" data-k="${k}" data-n="${n}" class="h-8 px-2.5 text-xs ${range === n ? 'bg-panel2 text-slate-100 font-semibold' : 'text-slate-400 hover:bg-panel2'}">${l}</button>`;
     const chipCls = { good: 'ring-emerald-500/40 text-emerald-300', bad: 'ring-rose-500/40 text-rose-300', warn: 'ring-amber-500/40 text-amber-300', ok: 'ring-line text-slate-300' };
-    const tv = { '^GSPC': 'SP:SPX', '^IXIC': 'NASDAQ:IXIC', '^DJI': 'DJ:DJI', '^GSPTSE': 'TSX:TSX', '^TX60': 'TSX:TX60', '^NSEI': 'NSE:NIFTY', '^BSESN': 'BSE:SENSEX', '^NSEBANK': 'NSE:BANKNIFTY', 'GC=F': 'COMEX:GC1!', 'SI=F': 'COMEX:SI1!', 'BTC-USD': 'BITSTAMP:BTCUSD' }[d.s];
+    const tv = { '^GSPC': 'SP:SPX', '^IXIC': 'NASDAQ:IXIC', '^DJI': 'DJ:DJI', '^GSPTSE': 'TSX:TSX', '^TX60': 'TSX:TX60', '^NSEI': 'NSE:NIFTY', '^BSESN': 'BSE:SENSEX', '^NSEBANK': 'NSE:BANKNIFTY', 'GC=F': 'COMEX:GC1!', 'SI=F': 'COMEX:SI1!', 'BTC-USD': 'BITSTAMP:BTCUSD', 'ETH-USD': 'BITSTAMP:ETHUSD' }[d.s];
     $('chartBody').innerHTML = `
       <div class="sticky top-0 z-10 bg-panel/95 backdrop-blur border-b border-line px-3 sm:px-4 py-2.5 flex flex-wrap items-center gap-2">
         <div class="min-w-0 mr-auto"><h2 id="chartTitle" class="font-semibold text-lg leading-tight">${U.esc(d.n)} <span class="text-sm font-normal text-slate-300 num">${val(r.c)}</span> <span class="text-sm num ${up ? 'text-emerald-300' : 'text-rose-300'}">${up ? '▲ +' : '▼ −'}${val(Math.abs(r.chg))} (${fmt.pct(r.pct, 2)})</span></h2>
-          <p class="text-xs text-slate-400">${flagTag(M)} ${U.esc(Idx.TAG[d.s] ? `${d.n} · ${Idx.tag(d)}` : M.name)} · close of ${fmt.date(d.dates[r.i])}${d.s === 'BTC-USD' ? ' (Bitcoin trades 24/7 — price at the time of the data update)' : ''}</p></div>
+          <p class="text-xs text-slate-400">${flagTag(M)} ${U.esc(Idx.TAG[d.s] ? `${d.n} · ${Idx.tag(d)}` : M.name)} · close of ${fmt.date(d.dates[r.i])}${Idx.CRYPTO.has(d.s) ? ' (crypto trades 24/7 — price at the time of the data update)' : ''}</p></div>
         <div class="flex rounded-lg ring-1 ring-line overflow-hidden">${rbtn(126, '6M')}${rbtn(250, '1Y')}${rbtn(500, '2Y')}${rbtn(d.c.length, 'All')}</div>
         ${tv ? `<a href="https://www.tradingview.com/chart/?symbol=${encodeURIComponent(tv)}" target="_blank" rel="noopener" class="h-8 px-2.5 inline-flex items-center rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">TradingView ↗</a>` : ''}
         <button type="button" data-action="chartClose" class="h-9 w-9 inline-flex items-center justify-center rounded-lg hover:bg-panel2" aria-label="Close chart"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
@@ -4514,6 +4546,42 @@ const UI = {
         </aside>
       </div>`;
     requestAnimationFrame(() => { try { UI._chartObjs = Charts.index($('ixBigM'), $('ixBigS'), d, range, true); } catch (e) { console.error(e); } });
+  },
+
+  /** "What does the market trend mean?" — one card per market, plain English, plus what our 3-year test found. */
+  moodOpen() {
+    UI._chart = null; UI.lastFocus = document.activeElement;
+    (UI._chartObjs || []).forEach(c => { try { c.remove(); } catch { } }); UI._chartObjs = [];
+    $('chartModal').classList.remove('hidden'); const bd = $('chartBackdrop'); bd.classList.remove('hidden'); requestAnimationFrame(() => bd.classList.add('open'));
+    document.body.style.overflow = 'hidden';
+    const box = { good: 'border-emerald-500/40 bg-emerald-500/5', warn: 'border-amber-500/40 bg-amber-500/5', bad: 'border-rose-500/40 bg-rose-500/5', ok: 'border-line' };
+    const tc = { good: 'text-emerald-300', warn: 'text-amber-300', bad: 'text-rose-300', ok: 'text-slate-300' };
+    const card = r => `<section class="rounded-xl border ${box[r.tone]} p-4">
+        <p class="text-xs text-slate-400">${flagTag(r.M)} ${r.M.name}${r.f?.date ? ` · close of ${fmt.date(r.f.date)}` : ''}</p>
+        <h3 class="mt-0.5 text-lg font-semibold ${tc[r.tone]}">${U.esc(r.label)}</h3>
+        ${r.facts ? `<ul class="mt-2 space-y-1 text-sm text-slate-300">${r.facts.map(x => `<li>• ${U.esc(x)}</li>`).join('')}</ul>
+        <p class="mt-3 text-sm font-semibold text-slate-200">What it means</p><p class="text-sm text-slate-300">${U.esc(r.means)}</p>
+        <p class="mt-3 text-sm font-semibold text-slate-200">What to do with it</p><ul class="mt-1 space-y-1 text-sm text-slate-300">${r.todo.map(x => `<li>→ ${U.esc(x)}</li>`).join('')}</ul>` : '<p class="mt-2 text-sm text-slate-400">Not enough index history yet.</p>'}
+      </section>`;
+    $('chartBody').innerHTML = `
+      <div class="sticky top-0 z-10 bg-panel/95 backdrop-blur border-b border-line px-4 py-3 flex items-center gap-2">
+        <h2 id="chartTitle" class="font-semibold text-lg mr-auto">What does the market trend mean?</h2>
+        <button type="button" data-action="chartClose" class="h-9 w-9 inline-flex items-center justify-center rounded-lg hover:bg-panel2" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="p-4 space-y-4">
+        <p class="text-sm text-slate-300 max-w-3xl">The market trend is the <b>weather</b>, not the destination. It tells you whether the overall market is rising or falling, using two simple checks on the main index: is it above its <b>200-day average</b> (the long-term trend), and is its <b>50-day average above the 200-day</b>? It is <b>not</b> a buy or sell signal by itself — every stock still gets its own verdict.</p>
+        <div class="grid md:grid-cols-3 gap-3">${MARKET_CODES.map(c => card(Idx.mood(c))).join('')}</div>
+        <div class="rounded-xl border border-line bg-ink/60 p-4 text-sm text-slate-300 max-w-4xl">
+          <p class="font-semibold text-slate-200">The three states</p>
+          <ul class="mt-1 space-y-1"><li><b class="text-emerald-300">Uptrend</b> — above the 200-day and 50-day above 200-day. Normal conditions for buying.</li>
+            <li><b class="text-amber-300">Trend changing</b> — the two checks disagree. Be choosy and use smaller amounts.</li>
+            <li><b class="text-rose-300">Downtrend</b> — below the 200-day and 50-day below 200-day. Bigger swings; protect yourself with stops.</li></ul>
+          <p class="mt-3 font-semibold text-slate-200">What our test on the last 3 years of data found (USA, Canada, India)</p>
+          <p class="mt-1">A downtrend did <b>not</b> mean stocks kept falling. On average, stocks actually did better in the month after a downtrend day than after an uptrend day, but the ups and downs were wider. Sharp-dip buys (stocks with RSI below 30) did best in weak markets, for example about +3.6% per trade in the USA versus about +1.1% in uptrends. So the trend is a reason to adjust <i>how much</i> you buy and how tightly you protect it, not a reason to stop thinking. The USA had only one short downtrend in this period (April 2025), so treat that number with care. Past results do not guarantee future results.</p>
+        </div>
+        <p class="text-[11px] text-slate-500">Uses each market’s main index: S&P 500, S&P/TSX Composite and Nifty 50. Not investment advice.</p>
+      </div>`;
+    $('chartModal').querySelector('[data-action="chartClose"]')?.focus();
   },
 
   /* ---------- Portfolio tab ---------- */
@@ -4986,6 +5054,7 @@ function wire() {
           window.scrollTo({ top: 0 }); $('pQty').focus(); UI.toast(`Type how many shares of ${act.dataset.sym} you own, check the price, then press “Add / update”.`, 'info'); break;
         }
         case 'chartClose': UI.chartClose(); break;
+        case 'moodOpen': UI.moodOpen(); break;
         case 'ixRange': S().settings.ixRange = +act.dataset.n; Store.persist(); UI.markets(); break;
         case 'ixView': S().settings.ixView = act.dataset.v; Store.persist(); UI.markets(); break;
         case 'ixPick': UI._ixPick = !UI._ixPick; UI.markets(); break;
@@ -5261,7 +5330,7 @@ function wire() {
  * ===================================================================== */
 Store.on(['busy', 'mkts', 'results', 'alerts', 'settings'], () => UI.header());
 Store.on(['feedTick', 'mkts', 'settings'], () => UI.dataBar());
-Store.on(['idxTick'], () => UI.markets());
+Store.on(['idxTick'], () => { UI.markets(); UI.header(); });
 Store.on(['feedTick'], () => { const g = Feed.lastMeta?.generated; if (g && Idx.list && Idx.metaGen && g !== Idx.metaGen) { Idx.metaGen = g; Idx.load(true); } else if (g) Idx.metaGen = g; });
 Store.on(['mkts'], () => { if (Idx.demo || !Idx.list) { if (!Idx.live()) { Idx.demoList(); if (S().tab === 'markets') UI.markets(); } } });
 Store.on(['tab'], () => UI.tabs());

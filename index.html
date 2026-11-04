@@ -294,7 +294,7 @@
   <section id="tab-watch" role="tabpanel" aria-label="Strategy watch" hidden>
     <div id="wFormCard" class="rounded-xl border border-violet-500/30 bg-panel p-4">
       <h2 class="text-base font-semibold"><span class="text-violet-300" aria-hidden="true">◆</span> Strategy watch</h2>
-      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Pair a stock with a strategy — usually the one that worked best for it in the backtest. After every scan the app checks whether that strategy gives a buy or sell signal today and alerts you. “Auto” always follows whichever strategy currently has the best backtest.</p>
+      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Watch a stock and get alerted when StrikeZone says BUY. Every card shows the one StrikeZone verdict; only the ✓ tested playbook setups can turn it into a BUY. “Auto” follows the whole playbook. If you pick another strategy, its signals are shown as information next to the verdict.</p>
       <form id="wForm" class="mt-4 grid grid-cols-2 md:grid-cols-6 gap-3 items-end" autocomplete="off" novalidate>
         <label class="text-xs text-slate-400">Market
           <select id="wMarket" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select></label>
@@ -313,7 +313,7 @@
 
     <section id="finderCard" class="mt-8 rounded-xl border border-sky-500/30 bg-panel p-4" aria-labelledby="finderH">
       <h2 id="finderH" class="text-base font-semibold"><span class="text-sky-300" aria-hidden="true">⌕</span> Find stocks for a strategy</h2>
-      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Pick a strategy. The app backtests it on every stock in the market, shows how often it succeeded on each one, and lists the stocks where it applies now. <span class="text-amber-300">★ Best fit</span> marks stocks where this strategy beat every other strategy tested on that stock. Add any of them to Strategy watch or your Portfolio.</p>
+      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Pick a strategy. The app backtests it on every stock in the market, shows how often it succeeded on each one, and lists the stocks where it applies now. The action column always shows the one StrikeZone verdict — only the <span class="text-emerald-300">✓ tested playbook</span> setups can make it a BUY; other strategies are shown as chart events. <button type="button" data-action="pbOpen" class="text-sky-300 underline underline-offset-2">How we chose them</button>. <span class="text-amber-300">★ Best fit</span> marks stocks where this strategy beat every other strategy tested on that stock. Add any of them to Strategy watch or your Portfolio.</p>
       <form id="fForm" class="mt-4 grid grid-cols-2 md:grid-cols-6 gap-3 items-end" autocomplete="off" onsubmit="return false">
         <label class="text-xs text-slate-400">Market
           <select id="fdMarket" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select></label>
@@ -321,7 +321,7 @@
           <select id="fdKey" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select></label>
         <label class="text-xs text-slate-400">Show stocks where it…
           <select id="fdWhen" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">
-            <option value="buy">signals BUY now</option><option value="today">signals today (buy or sell)</option><option value="open">is in a trade now</option><option value="active">buys today or is in a trade</option><option value="all">has any track record</option>
+            <option value="buy">StrikeZone says BUY</option><option value="today">the strategy fired (any verdict)</option><option value="open">is in a trade now</option><option value="active">buys today or is in a trade</option><option value="all">has any track record</option>
           </select></label>
         <label class="text-xs text-slate-400">Min. past trades
           <input id="fdMin" type="number" min="1" max="30" step="1" value="3" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 num"></label>
@@ -350,7 +350,7 @@
     StrikeZone ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-03.6 · public</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-04.1 · public</p>
   </div>
 </footer>
 
@@ -1125,7 +1125,7 @@ const StockBT = {
     emasma: { name: '20-day EMA × 50-day SMA crossover', rule: 'Buys at the next session’s open after the 20-day exponential moving average (EMA) closes above the 50-day simple moving average (SMA); sells at the next session’s open after the 20-day EMA closes back below the 50-day SMA.' },
     washout: { name: 'Washout bottom (oversold sell-off)', rule: 'Buys the day after RSI(14) closes below 30 following an 8%+ drop in 5 sessions with a close below the lower Bollinger Band; sells the day after the first close above the 20-day average, or after 15 sessions; stop 1 ATR under the signal-day low.' },
     leader: { name: 'Leader pullback (first dip to the 50-day)', rule: 'Buys the day after a stock that ran 40%+ off its 6-month low (RSI above 75 in the last 20 sessions) closes below its 50-day average for the first time; sells at +10%, a −7% stop, or after 20 sessions.' },
-    rsi: { name: 'Buy the dip (RSI below 30)', rule: 'Buys the day after RSI(14) closes below 30 (oversold); sells the day after RSI closes above 55, or after 20 sessions.' },
+    rsi: { name: 'Oversold dip (RSI below 30)', rule: 'Buys the day after RSI(14) closes below 30 (oversold); sells the day after RSI closes above 55, or after 20 sessions; emergency stop 3.5 ATR under the signal-day low.' },
     donchian: { name: 'Breakout (new 20-day high)', rule: 'Buys the day after a close above the highest price of the previous 20 days; sells the day after a close below the lowest price of the previous 10 days.' }
   },
   run(ds, ti, cfg) {
@@ -1187,7 +1187,7 @@ const StockBT = {
     cross('sma1030', x.sma10, x.sma30);
     cross('sma50200', x.sma50, x.sma200);
     rule('emasma', i => ok(x.ema20[i], x.sma50[i], x.ema20[i - 1], x.sma50[i - 1]) && x.ema20[i] > x.sma50[i] && x.ema20[i - 1] <= x.sma50[i - 1], i => x.ema20[i] < x.sma50[i]);
-    rule('rsi', i => ok(x.rsi[i]) && x.rsi[i] < 30, i => x.rsi[i] > 55, 20);
+    rule('rsi', i => ok(x.rsi[i], x.atr[i]) && x.rsi[i] < 30, i => x.rsi[i] > 55, 20, i => x.l[i] - 3.5 * x.atr[i]);
     rule('washout', i => i - tk.start > 30 && ok(x.bbw[i], x.rsi[i]) && Rev.isWashout(x, i), i => x.c[i] > x.sma20[i], 15, i => x.l[i] - x.atr[i]);
     rule('leader', i => i - tk.start > 130 && ok(x.sma50[i], x.sma50[i - 1]) && Rev.isLeader(x, i), (i, p) => x.h[i] >= p.px * 1.10, 20, i => x.c[i] * .93);
     rule('donchian', i => i - tk.start > 20 && x.c[i] > hi(i, 20), i => x.c[i] < lo(i, 10));
@@ -1206,17 +1206,19 @@ const StockBT = {
     const sigReliable = !!bestSig && bestSig.n >= 3, sigGood = sigReliable && bestSig.total > 0 && bestSig.winRate >= .5;
     const crossNow = {}; for (const k of Object.keys(Cross.DEF)) crossNow[k] = Cross.read(x, k, last, tk.start, ds.dates);
     return { m: ds.m, M, ds, ti, sym: tk.sym, name: tk.name, from, sigFrom, last, hold: cfg.hold, window: cfg.window, rows, best, confident, bh, today, cross: crossNow,
-      bestSig, sigReliable, sigGood, match: sigGood && !!today[bestSig.key]?.buy };
+      bestSig, sigReliable, sigGood, match: sigGood && Playbook.tested(ds.m, bestSig.key) && !!today[bestSig.key]?.buy };
   },
   /** High-probability strategy matches today: strategies with a strong record on this stock (≥3 trades, ≥60% won, profitable overall) that signal BUY or SELL on the latest session. */
   HOT: { minTrades: 3, minWin: .6 },
   hot(res) {
     if (!res) return [];
-    return res.rows.filter(r => r.key !== 'scanner' && r.n >= this.HOT.minTrades && r.winRate >= this.HOT.minWin && r.total > 0)
-      .map(r => { const t = res.today[r.key] || {}; return t.sellNext ? { r, side: 'sell' } : t.buy && !t.inTrade ? { r, side: 'buy', plan: t.plan } : null; })
+    const tv = Tech.ofAny(res.ds, res.ti), vb = tv && Tech.isBuy(tv) ? Object.values(Playbook.SETUPS).find(z => z.v === tv.v)?.strat : null;
+    return res.rows.filter(r => Playbook.tested(res.m, r.key) && r.n >= this.HOT.minTrades && r.winRate >= this.HOT.minWin && r.total > 0)
+      .filter(r => { const t = res.today[r.key] || {}; return t.sellNext || r.key === vb; })
+      .map(r => { const t = res.today[r.key] || {}; return t.sellNext ? { r, side: 'sell' } : r.key === vb ? { r, side: 'buy', plan: t.plan } : null; })
       .filter(Boolean).sort((a, b) => b.r.winRate - a.r.winRate || b.r.total - a.r.total);
   },
-  hotLabel(hot) { const side = hot.some(h => h.side === 'buy') ? 'buy' : 'sell'; return { side, html: `<span class="hot hot-${side}" title="A strategy with a strong backtest record on this stock signals ${side.toUpperCase()} today"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>MATCH · ${side.toUpperCase()}</span>` }; },
+  hotLabel(hot) { const side = hot.some(h => h.side === 'buy') ? 'buy' : 'sell'; return { side, html: `<span class="hot hot-${side}" title="${side === 'buy' ? 'StrikeZone says BUY today on a tested setup that has a strong record on this stock' : 'A tested setup that has a strong record on this stock says exit today'}"><svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M13 2 3 14h7l-1 8 10-12h-7z"/></svg>MATCH · ${side.toUpperCase()}</span>` }; },
   hotText(hot, M) {
     return hot.map(h => `${h.r.name} → ${h.side.toUpperCase()} (${fmt.prob(h.r.winRate)} of ${h.r.n} trades won, ${fmt.pct(h.r.total, 0)} total)${h.side === 'buy' && h.plan ? ` · entry ${fmt.px(h.plan.entryLow, M)}–${fmt.n2(h.plan.entryHigh, M)}, stop ${fmt.px(h.plan.stop, M)}` : ''}`).join(' · ');
   },
@@ -1253,12 +1255,19 @@ const Watch = {
   state: {},   // id -> evaluation for display
   list: () => Account.locked() ? [] : S().settings.stratWatch,
   label(key, res) {
-    if (key === 'auto') return res?.best ? `Auto → ${res.best.name}` : 'Auto (best strategy)';
+    if (key === 'auto') return 'StrikeZone playbook (one verdict)';
     return res?.rows.find(r => r.key === key)?.name || StockBT.CLASSIC[key]?.name || PATTERNS[key.replace('pat:', '')]?.label || (key === 'scanner' ? 'Scanner shortlist (tier A or B)' : key);
   },
   options() {
-    return [['auto', 'Auto — whichever worked best (re-checked daily)'], ...Object.entries(PATTERNS).map(([k, p]) => ['pat:' + k, `${p.label} (${p.group})`]),
-      ['scanner', 'Scanner shortlist (tier A or B)'], ...Object.entries(StockBT.CLASSIC).map(([k, c]) => [k, c.name])];
+    const pb = new Set(Object.values(Playbook.SETUPS).map(x => x.strat));
+    return [['auto', 'Auto — the StrikeZone playbook (one verdict)', 'pb'],
+      ...Object.entries(StockBT.CLASSIC).filter(([k]) => pb.has(k)).map(([k, c]) => [k, `✓ ${c.name}`, 'pb']),
+      ...Object.entries(StockBT.CLASSIC).filter(([k]) => !pb.has(k)).map(([k, c]) => [k, c.name, 'info']),
+      ['scanner', 'Scanner shortlist (tier A or B)', 'info'], ...Object.entries(PATTERNS).map(([k, p]) => ['pat:' + k, `${p.label} (${p.group})`, 'info'])];
+  },
+  optionsHtml(noAuto = false) {
+    const o = this.options().filter(([k]) => !(noAuto && k === 'auto')), g = (id, lbl) => `<optgroup label="${lbl}">${o.filter(z => z[2] === id).map(([k, l]) => `<option value="${k}">${U.esc(l)}</option>`).join('')}</optgroup>`;
+    return g('pb', '✓ Tested playbook — these can say BUY') + g('info', 'Other strategies — information only (did not beat holding in our test)');
   },
   add(m, sym, key, hold) {
     if (Account.locked()) throw new Error('Sign in (top right) to use Strategy watch.');
@@ -1281,20 +1290,25 @@ const Watch = {
       if (ti < 0) { this.state[w.id] = { kind: 'pending', text: ds.source === 'live' ? 'Waiting for data — it downloads on the next data update.' : `Not in ${M.name} ${ds.source} data.` }; continue; }
       const res = StockBT.cached(ds, ti, w.hold);
       if (!res) { this.state[w.id] = { kind: 'bad', text: 'Not enough price history to backtest yet.' }; continue; }
-      const key = w.key === 'auto' ? res.best?.key : w.key;
-      const strat = res.rows.find(r => r.key === key), t = key ? res.today[key] : null, date = ds.dates[ds.cursor];
+      const tv = Tech.ofAny(ds, ti), date = ds.dates[ds.cursor];
+      const pbK = w.key === 'auto' ? (tv && Tech.isBuy(tv) ? Object.values(Playbook.SETUPS).find(z => z.v === tv.v)?.strat : null) : w.key;
+      const key = pbK || (w.key === 'auto' ? null : w.key), testedKey = !!key && Playbook.tested(w.m, key);
+      const strat = key ? res.rows.find(r => r.key === key) : null, t = key ? res.today[key] : null;
       let ev;
-      if (!key) ev = { kind: 'none', text: 'No strategy completed a trade on this stock yet, so there is nothing to follow.' };
+      if (tv && Tech.isBuy(tv)) ev = { kind: 'buy', text: `${Tech.V[tv.v].label} — ${tv.action}`, plan: null, nextOpen: true, event: Tech.V[tv.v].label };
+      else if (!key) ev = { kind: 'none', text: tv ? `${Tech.V[tv.v].label}: ${tv.action}` : 'No tested setup right now.' };
+      else if (!testedKey && (t?.buy || t?.sellNext || t?.sold)) ev = { kind: 'none', text: `${t?.buy ? 'Buy' : 'Sell'} signal from ${Watch.label(key, res)} today — information only: this strategy did not beat simply holding in our ${MARKETS[w.m].name} test. StrikeZone verdict: ${tv ? Tech.V[tv.v].label + ' — ' + tv.short : 'WAIT'}.` };
+      else if (t?.buy && !t.inTrade) ev = { kind: 'none', text: `${Watch.label(key, res)} fired today, but StrikeZone says ${tv ? Tech.V[tv.v].label + ' — ' + tv.short : 'WAIT'}.` };
       else if (t?.buy && !t.inTrade) ev = { kind: 'buy', text: `Buy signal today (${fmt.date(date)})`, plan: t.plan, nextOpen: t.nextOpen, event: t.event };
       else if (t?.sellNext) ev = { kind: 'sell', text: `Sell signal today — the strategy exits at the next open (${fmt.pct(ds.tickers[ti].c[ds.cursor] / strat.openTrade?.px - 1, 1)} so far).` };
       else if (t?.sold) ev = { kind: 'sold', text: `Trade closed today: ${{ target: 'target hit', stopped: 'stopped out', time: 'time limit', signal: 'sell signal' }[t.sold.how] || t.sold.how}, ${fmt.pct(t.sold.ret, 1)}.` };
-      else if (strat?.openTrade) ev = { kind: 'holding', text: `In a trade since ${fmt.date(ds.dates[strat.openTrade.entry])} at ${fmt.px(strat.openTrade.px, M)} — ${fmt.pct(strat.openTrade.ret, 1)} so far.` };
+      else if (strat?.openTrade) ev = { kind: testedKey ? 'holding' : 'none', text: `${testedKey ? '' : `${Watch.label(key, res)} (information only — not a tested setup): `}In a trade since ${fmt.date(ds.dates[strat.openTrade.entry])} at ${fmt.px(strat.openTrade.px, M)} — ${fmt.pct(strat.openTrade.ret, 1)} so far.${testedKey ? '' : ` StrikeZone verdict: ${tv ? Tech.V[tv.v].label : 'WAIT'}.`}` };
       else {
         const lastT = strat?.trades.length ? strat.trades[strat.trades.length - 1] : null;
         ev = { kind: 'none', text: `No signal today${lastT ? ` · last buy ${fmt.date(ds.dates[lastT.entry])}` : ''}.` };
       }
       const hot = StockBT.hot(res);
-      this.state[w.id] = { ...ev, res, key, strat, date, hot };
+      this.state[w.id] = { ...ev, res, key, strat, date, hot, tv };
       const htag = `hot|${w.m}|${w.sym}|${date}`;
       if (hot.length && !st.stratAlerted[htag]) { st.stratAlerted[htag] = 1; if (alert && st.alerts.watch) fired.push([w, { kind: 'hot', hot }, hot[0].r, M]); }
       const tag = `${w.id}|${date}|${ev.kind}`;
@@ -1396,17 +1410,25 @@ const Finder = {
   /** Crossover strategies: BUY / SELL = the lines crossed within the chosen window (and, with "clear only", are clearly apart). */
   win() { return Math.max(1, +($('fdWin')?.value) || 3); },
   clearOnly() { return $('fdClear') ? $('fdClear').checked : true; },
-  stateOf(r) {
-    if (!r.cx || !Cross.is(r.cx.key)) return r.state;
-    if (r.cx.ago < this.win()) return r.cx.dir === 'up' ? 'buy' : 'sell';
-    return r.open ? 'open' : 'none';
+  /** The strategy's own event (fact) — what happened on the chart. */
+  eventOf(r) {
+    if (r.cx && Cross.is(r.cx.key)) return r.cx.ago < this.win() ? (r.cx.dir === 'up' ? 'up' : 'down') : null;
+    return r.state === 'buy' ? 'up' : r.state === 'sell' ? 'down' : null;
   },
-  hiddenFresh(r) { return this.clearOnly() && r.cx && Cross.is(r.cx.key) && ['buy', 'sell'].includes(this.stateOf(r)) && r.cx.clarity !== 'clear'; },
+  /** The ONE action shown: BUY only when the StrikeZone verdict (tested playbook) is a buy. */
+  verdict(r) { const f = this.st(), ds = S().mkts[f.m]?.ds; if (!ds) return null; return Tech.ofAny(ds, r.ti); },
+  stateOf(r) {
+    const ev = this.eventOf(r);
+    if (ev) { const tv = this.verdict(r); if (tv && Tech.isBuy(tv)) return 'buy'; return ev === 'up' ? 'event' : 'sell'; }
+    if (r.state === 'open') { const tv = this.verdict(r); return tv && Tech.isBuy(tv) ? 'buy' : 'open'; }
+    return r.state === 'buy' ? 'event' : r.state;
+  },
+  hiddenFresh(r) { return this.clearOnly() && r.cx && Cross.is(r.cx.key) && !!this.eventOf(r) && r.cx.clarity !== 'clear'; },
   /** Rows after the "show stocks where it…" and minimum-trades filters, sorted. */
   view() {
     const f = this.st(), when = $('fdWhen')?.value || 'buy', min = Math.max(1, +($('fdMin')?.value) || 1), sort = f.sort || 'win';
     const rowsIn = (f.rows || []).map(r => ({ ...r, state: this.stateOf(r) })).filter(r => !this.hiddenFresh(r));
-    const ok = r => ({ buy: r.state === 'buy', today: r.state === 'buy' || r.state === 'sell', open: r.state === 'open' || r.state === 'sell', active: r.state === 'buy' || r.state === 'open', all: true })[when];
+    const ok = r => ({ buy: r.state === 'buy', today: ['buy', 'sell', 'event'].includes(r.state), open: r.state === 'open' || r.state === 'sell', active: r.state === 'buy' || r.state === 'open', all: true })[when];
     const by = { win: (a, b) => b.winRate - a.winRate || b.n - a.n || b.total - a.total, total: (a, b) => b.total - a.total, trades: (a, b) => b.n - a.n || b.winRate - a.winRate, best: (a, b) => b.best - a.best || b.winRate - a.winRate || b.total - a.total };
     return rowsIn.filter(r => r.n >= min && ok(r)).sort(by[sort] || by.win);
   }
@@ -1415,18 +1437,46 @@ const Finder = {
 /** Technical check: reads a shortlisted stock the way a chart analyst would (trend, strength vs the market, RSI, Bollinger
  *  Bands, MACD, volume, overhead resistance, entry timing) and turns it into one action: BUY NOW, BUY ABOVE (wait for the
  *  trigger), BUY ON DIP (stretched), WAIT (mixed) or AVOID — with a 0–100 technical score and the reasons. */
+/** THE PLAYBOOK — the only setups allowed to produce a BUY.
+ *  All 21 strategies in this app were replayed on 3 years of daily data for every stock in each market (Nov 2023 –
+ *  Nov 2026). Each trade was compared with simply holding the same stock for the same number of days. A setup is in
+ *  the playbook for a market only if it beat holding overall AND in both halves of the period. Result: buying weakness
+ *  in the right way worked; chasing strength did not. Every crossover, breakout, chart pattern, the momentum shortlist
+ *  and the "BUY NOW / BUY EARLY / BUY ABOVE" calls trailed simply holding the stock, so they no longer give BUY signals —
+ *  they are shown as information only.
+ *  Numbers: trades · % won · average per trade · average vs holding the stock for the same days. */
+const Playbook = {
+  SETUPS: {
+    washout:  { v: 'washout',  strat: 'washout', name: 'Washout bottom', icon: '⤒', rule: 'RSI below 30, down 8%+ in 5 sessions, close below the lower Bollinger Band. Exit on the first close above the 20-day average or after 15 sessions; stop 1 ATR under the signal-day low.',
+      stats: { US: [3436, .477, .018, .011, 1], CA: [2550, .504, .026, .020, 1], IN: [3172, .424, .012, .007, 1] } },
+    leader:   { v: 'leaderpb', strat: 'leader', name: 'Leader pullback', icon: '↘↗', rule: 'A stock up 40%+ from its 6-month low (RSI above 75 in the last 20 sessions) closes below its 50-day average for the first time. Exit at +10%, a −7% stop, or after 20 sessions.',
+      stats: { US: [337, .481, .013, .006, 1], CA: [376, .567, .033, .027, 1], IN: [265, .464, .008, .001, 0] } },
+    oversold: { v: 'oversold', strat: 'rsi', name: 'Oversold dip', icon: '↧', rule: 'RSI(14) closes below 30. Exit when RSI closes above 55 or after 20 sessions; emergency stop 3.5 ATR under the signal-day low.',
+      stats: { US: [3998, .599, .022, .008, 1], CA: [3289, .654, .027, .016, 1], IN: [3751, .539, .013, .001, 0] } }
+  },
+  on(m, k) { return !!this.SETUPS[k]?.stats[m]?.[4]; },
+  list(m) { return Object.entries(this.SETUPS).filter(([k]) => this.on(m, k)).map(([k, s]) => ({ k, ...s })); },
+  byStrat(key) { return Object.entries(this.SETUPS).find(([, s]) => s.strat === key)?.[0] || null; },
+  /** Is this backtest strategy part of the playbook in this market? */
+  tested(m, stratKey) { const k = this.byStrat(stratKey); return !!k && this.on(m, k); },
+  stat(m, k) { const a = this.SETUPS[k]?.stats[m]; return a ? { n: a[0], win: a[1], avg: a[2], ex: a[3], on: !!a[4] } : null; },
+  statTxt(m, k) { const t = this.stat(m, k); return t ? `${fmt.num(t.n)} past trades in ${MARKETS[m].name}, ${fmt.prob(t.win)} won, ${fmt.pct(t.avg, 1)} per trade on average (${fmt.pct(t.ex, 1)} better than holding)` : ''; },
+  names(m) { return this.list(m).map(s => s.name); },
+  /** The full test behind the choice: strategy → market → [trades, won, avg/trade, vs holding, vs holding 1st half, 2nd half]. */
+  RESULTS: {"donchian":{"US":[10977,0.398,0.0117,-0.0105,-0.0077,-0.0141],"CA":[14751,0.456,0.0173,-0.0032,-0.002,-0.0046],"IN":[8129,0.358,0.0083,-0.0101,-0.0089,-0.0114]},"emasma":{"US":[7253,0.367,0.0166,-0.023,-0.0192,-0.0278],"CA":[8091,0.442,0.0356,-0.0074,0.0043,-0.0219],"IN":[5988,0.351,0.0216,-0.0097,0.0036,-0.0243]},"leader":{"US":[337,0.481,0.0134,0.0064,-0.0003,0.0109],"CA":[376,0.566,0.0325,0.0265,0.0074,0.0352],"IN":[265,0.464,0.0077,0.0014,-0.0066,0.0081]},"ma":{"US":[6959,0.403,0.0201,-0.0214,-0.0145,-0.0301],"CA":[7675,0.493,0.0387,-0.0065,0.0072,-0.0245],"IN":[5806,0.373,0.0206,-0.0115,0.0058,-0.0303]},"pat:ascTriangle":{"US":[8716,0.493,0.0015,-0.0053,-0.0053,-0.0053],"CA":[12832,0.581,0.0068,0.0006,0.0008,0.0004],"IN":[5102,0.436,-0.0012,-0.0069,-0.0054,-0.0086]},"pat:breakout52":{"US":[878,0.506,0.0047,-0.0021,-0.007,0.0004],"CA":[3350,0.599,0.0083,0.002,-0.0007,0.0031],"IN":[1232,0.46,0.0015,-0.0043,-0.0093,-0.0029]},"pat:bullFlag":{"US":[6754,0.49,0.0052,-0.0014,0.0011,-0.004],"CA":[5297,0.478,0.0086,0.0031,0.0034,0.0029],"IN":[7144,0.443,0.0015,-0.004,-0.0012,-0.0077]},"pat:cupHandle":{"US":[3177,0.506,0.0061,-0.0007,-0.0034,0.0008],"CA":[2078,0.526,0.0114,0.0055,0.0031,0.0074],"IN":[2777,0.426,-0.0027,-0.0083,-0.0105,-0.0065]},"pat:engulfing":{"US":[8539,0.489,0.0053,-0.001,0.0018,-0.0028],"CA":[7778,0.502,0.0049,-0.0008,0.0004,-0.0016],"IN":[7172,0.39,-0.0053,-0.0105,-0.015,-0.0078]},"pat:goldenCross":{"US":[1362,0.534,0.0049,-0.0021,0.0002,-0.0031],"CA":[1325,0.528,0.003,-0.0031,-0.0013,-0.0049],"IN":[967,0.411,0.0012,-0.0045,-0.0046,-0.0044]},"pat:maReclaim":{"US":[4485,0.485,0.0005,-0.0062,-0.0079,-0.0052],"CA":[6153,0.517,0.0045,-0.0016,-0.0018,-0.0015],"IN":[4441,0.431,-0.0015,-0.0071,-0.0086,-0.0062]},"pat:macdCross":{"US":[17409,0.497,0.0026,-0.0043,-0.0057,-0.0027],"CA":[24067,0.565,0.0048,-0.0015,-0.001,-0.0019],"IN":[13451,0.443,0.0013,-0.0044,-0.0072,-0.0011]},"pat:resistance":{"US":[1226,0.548,0.0077,0.0007,0.0023,-0.0028],"CA":[3234,0.583,0.0053,-0.001,-0.0004,-0.0027],"IN":[3048,0.455,-0.0014,-0.0071,-0.0082,-0.0053]},"pat:rsiDiv":{"US":[2295,0.522,0.0054,-0.0013,-0.0024,-0.0002],"CA":[1757,0.528,0.0036,-0.0023,-0.0019,-0.0026],"IN":[2028,0.435,0.0016,-0.0039,-0.0147,0.0051]},"pat:squeeze":{"US":[1307,0.515,0.0057,-0.0012,0.0069,-0.0077],"CA":[3402,0.643,0.0063,-0.0002,0.0006,-0.001],"IN":[653,0.413,-0.0036,-0.0094,-0.0102,-0.0088]},"pat:stochRev":{"US":[2352,0.498,0.0036,-0.003,-0.0028,-0.0031],"CA":[4219,0.537,0.0043,-0.0018,-0.0001,-0.0029],"IN":[1822,0.398,-0.0055,-0.0109,-0.0185,-0.0068]},"rsi":{"US":[3998,0.599,0.0218,0.0077,0.0089,0.0062],"CA":[3289,0.654,0.0267,0.0155,0.0175,0.0128],"IN":[3751,0.539,0.0125,0.0009,-0.0008,0.0028]},"scanner":{"US":[5366,0.505,0.0055,-0.0013,-0.0005,-0.0017],"CA":[9470,0.588,0.0086,0.0024,0.0007,0.0035],"IN":[3912,0.437,-0.0015,-0.0072,-0.0058,-0.0086]},"sma1030":{"US":[12678,0.391,0.0139,-0.01,-0.0091,-0.0111],"CA":[14472,0.447,0.0236,-0.0012,0.001,-0.0037],"IN":[10622,0.35,0.0147,-0.0038,0.0039,-0.0121]},"sma50200":{"US":[1102,0.25,-0.0342,-0.1372,-0.1374,-0.137],"CA":[661,0.318,0.0036,-0.0933,-0.0732,-0.1196],"IN":[857,0.182,-0.0871,-0.1585,-0.1535,-0.1628]},"washout":{"US":[3436,0.477,0.0181,0.0113,0.0178,0.0012],"CA":[2550,0.504,0.0256,0.0201,0.0323,-0.0002],"IN":[3172,0.424,0.0123,0.0073,0.0132,-0.0]}}
+};
+
 const Tech = {
   _c: new Map(),
   V: {
-    buy:      { label: 'BUY NOW',          cls: 'bg-emerald-500 text-ink',                                    dot: '#34d399', order: 0, desc: 'Strong setup and a good entry right now' },
-    washout:  { label: 'BUY · WASHOUT',    cls: 'bg-teal-400 text-ink',                                       dot: '#2dd4bf', order: 1, desc: 'Panic sell-off into deep oversold — the tested bounce setup' },
-    leaderpb: { label: 'BUY · LEADER DIP', cls: 'bg-teal-500/20 text-teal-100 ring-1 ring-teal-400/70',       dot: '#5eead4', order: 2, desc: 'A strong stock’s first dip to its 50-day — a tested setup' },
-    early:    { label: 'BUY EARLY',        cls: 'bg-lime-400 text-ink',                                       dot: '#a3e635', order: 3, desc: 'Start of a possible new trend — higher low holding, entry close to the low, tight stop' },
-    trigger:  { label: 'BUY ABOVE',        cls: 'bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-400/70', dot: '#6ee7b7', order: 4, desc: 'Strong setup — buy only if it trades above the trigger price' },
-    dip:      { label: 'WAIT · EXTENDED',  cls: 'bg-sky-500/20 text-sky-100 ring-1 ring-sky-400/60',          dot: '#38bdf8', order: 5, desc: 'Strong trend but already run up — don’t buy here; wait for a pullback to the price shown' },
-    wait:     { label: 'WAIT',             cls: 'bg-amber-500/20 text-amber-100 ring-1 ring-amber-400/60',   dot: '#fbbf24', order: 6, desc: 'Mixed signals — not yet' },
-    avoid:    { label: 'AVOID',            cls: 'bg-rose-500/25 text-rose-100 ring-1 ring-rose-400/60',      dot: '#fb7185', order: 7, desc: 'Weak technicals — skip (sell if you own it)' }
+    washout:  { label: 'BUY · WASHOUT',    cls: 'bg-teal-400 text-ink',                                       dot: '#2dd4bf', order: 0, desc: 'Panic sell-off into deep oversold — a tested setup' },
+    leaderpb: { label: 'BUY · LEADER DIP', cls: 'bg-emerald-400 text-ink',                                    dot: '#34d399', order: 1, desc: 'A strong stock’s first dip below its 50-day — a tested setup' },
+    oversold: { label: 'BUY · OVERSOLD',   cls: 'bg-cyan-400 text-ink',                                       dot: '#22d3ee', order: 2, desc: 'RSI below 30 — the tested oversold-dip setup' },
+    watch:    { label: 'WATCH',            cls: 'bg-sky-500/20 text-sky-100 ring-1 ring-sky-400/60',          dot: '#38bdf8', order: 3, desc: 'Strong stock, but no tested entry yet — wait for a dip setup' },
+    wait:     { label: 'WAIT',             cls: 'bg-slate-500/20 text-slate-200 ring-1 ring-slate-400/50',    dot: '#94a3b8', order: 4, desc: 'No tested setup right now' }
   },
+  BUYS: ['washout', 'leaderpb', 'oversold'],
+  isBuy(v) { return this.BUYS.includes(v?.v ?? v); },
   TONE: { good: '#34d399', ok: '#94a3b8', warn: '#fbbf24', bad: '#fb7185' },
   of(r) {
     const k = `${r.key}|${r.ds.stamp || ''}|${r.ds.cursor}|${r.cd.i}`;
@@ -1557,43 +1607,48 @@ const Tech = {
     if (tone('mkt') === 'bad' && rsT[2] < 2) needs.push('a healthier market');
     if (tone('macd') === 'bad') needs.push('MACD momentum');
     const earlyOk = sg?.code === 'early' && score >= 50 && bad.length <= 2 && tone('vol') !== 'bad' && tone('macd') !== 'bad' && !(tone('mkt') === 'bad' && tone('rs') === 'bad');
-    if (earlyOk) v = 'early';
-    else if (score < 45 || bad.length >= 3 || (trend[2] <= -1.5 && rsT[2] < 0)) v = 'avoid';
-    else if (score >= (early ? 62 : 68) && !needs.length) v = stretched.length ? 'dip' : p.state === 'pending' ? 'trigger' : p.rr >= 1.5 ? 'buy' : 'wait';
-    else v = 'wait';
-    // The two setups that tested well on this app's data take priority over the general tally
-    let washI = -1; for (let k = 0; k <= 2; k++) if (i - k - 6 > tk.start && Rev.isWashout(x, i - k)) { washI = i - k; break; }
-    const washStop = washI >= 0 ? x.l[washI] - x.atr[washI] : NaN, washLive = washI >= 0 && x.l[i] > washStop && !(washI < i && x.c[i] > s20);
-    const leaderNow = Rev.isLeader(x, i);
-    if (washLive) v = 'washout'; else if (leaderNow && trend[2] >= 0) v = 'leaderpb';
-    if (earnSoon && ['buy', 'washout', 'leaderpb', 'early', 'trigger'].includes(v)) v = 'wait';
+    const strong = earlyOk || (score >= (early ? 62 : 68) && !needs.length), weak = score < 45 || bad.length >= 3 || (trend[2] <= -1.5 && rsT[2] < 0);
+    // ONE verdict. Only the tested playbook setups (see Playbook) can make it a BUY; the technical tally above only
+    // decides between WATCH (strong stock, wait for a tested dip) and WAIT.
+    v = strong ? 'watch' : 'wait';
+    const mkt = ds.m;
+    const W = Rev.live(x, i, 'washout', tk.start), L = Rev.live(x, i, 'leader', tk.start), O = Rev.live(x, i, 'oversold', tk.start);
+    const washI = W ? W.j : -1, washStop = W ? W.t.stop : NaN, washLive = !!W, leaderNow = !!L, leaderI = L ? L.j : -1;
+    const osI = O ? O.j : -1, osStop = O ? O.t.stop : NaN, osLive = !!O;
+    if (washLive && Playbook.on(mkt, 'washout')) v = 'washout';
+    else if (leaderNow && Playbook.on(mkt, 'leader')) v = 'leaderpb';
+    else if (osLive && Playbook.on(mkt, 'oversold')) v = 'oversold';
+    const untested = !Tech.isBuy(v) && (washLive ? 'washout' : leaderNow ? 'leader' : osLive ? 'oversold' : null);
+    if (earnSoon && Tech.isBuy(v)) v = 'wait';
     // Pullback level for "buy on dip": the top of the entry zone or the 20-day average, whichever is higher but still below the price
     let dip = Math.max(p.entryHigh, s20); if (!(dip < c)) dip = c - (F(atr) ? atr : c * .03);
     const say = k => ({ stage: `${k.value.toLowerCase()} stage`, rs: `${k.value} vs market`, mkt: `market ${k.value.toLowerCase()}`, rsi: `RSI ${k.value.replace(' · ', ' ').toLowerCase()}`, macd: `MACD ${k.value.toLowerCase()}`, bb: `Bollinger: ${k.value.toLowerCase()}`, res: k.value, entry: `entry: ${k.value.toLowerCase()}` })[k.key] || k.value;
     const top2 = arr => arr.slice().sort((a, b) => Math.abs(b.pts) - Math.abs(a.pts)).slice(0, 2).map(say);
     const plus = top2(good), minus = top2(checks.filter(k => k.tone === 'bad' || k.tone === 'warn'));
     const eStop = sg && F(sg.hl) ? Math.min(sg.hl * .99, sg.hl - .3 * (F(atr) ? atr : 0)) : NaN;
+    const MN = MARKETS[mkt].name, pbNames = Playbook.names(mkt).join(', ').replace(/, ([^,]*)$/, ' or $1');
+    const tested = k => ` Tested: ${Playbook.statTxt(mkt, k)}.`;
     const action = {
-      washout: `Washout bottom${washI < i ? ` (started ${i - washI} session${i - washI === 1 ? '' : 's'} ago)` : ''}: buy near ${px(c)}, stop ${px(washStop)} (${pc(washStop / c - 1, 1)}), sell on the first close above the 20-day average (${px(s20)}, ${pc(s20 / c - 1, 0)} above) or after 15 sessions. A tested setup: it beat buying on a random day in all three markets.`,
-      leaderpb: `Leader pullback: first close below the 50-day after a big run. Buy near ${px(c)}, stop ${px(c * .93)} (−7%), target ${px(c * 1.1)} (+10%), or sell after 20 sessions.`,
+      oversold: `Oversold dip: RSI ${F(x.rsi[osI]) ? x.rsi[osI].toFixed(0) : '—'} on ${fmt.date(ds.dates[osI])}. Buy near ${px(c)}, emergency stop ${px(osStop)} (${pc(osStop / c - 1, 1)}); sell when RSI closes above 55 or after 20 sessions.${tested('oversold')}`,
+      watch: `Strong stock, but no tested entry right now. In our 3-year test, buying strength (breakouts, crossovers, new highs) did worse than simply holding, so StrikeZone waits for a tested dip: ${pbNames}.${stretched.length ? ` It is also stretched (${stretched.join(', ')}).` : ''}`,
+      washout: `Washout bottom${washI < i ? ` (started ${i - washI} session${i - washI === 1 ? '' : 's'} ago)` : ''}: buy near ${px(c)}, stop ${px(washStop)} (${pc(washStop / c - 1, 1)}), sell on the first close above the 20-day average (${px(s20)}, ${pc(s20 / c - 1, 0)} above) or after 15 sessions. ${tested('washout')}`,
+      leaderpb: `Leader pullback: first close below the 50-day after a big run${leaderI < i ? ` (${i - leaderI} session${i - leaderI === 1 ? '' : 's'} ago)` : ''}. Buy near ${px(c)}, stop ${px(L ? L.t.stop : c * .93)}, target ${px(L ? L.t.tgt : c * 1.1)}, or sell after 20 sessions.${tested('leader')}`,
       early: `Early entry near ${px(c)}: the higher low at ${sg ? px(sg.hl) : '—'} is holding. Stop just below it at ${px(eStop)} (${pc(eStop / c - 1, 1)}). Add to the position if it closes above ${sg ? px(sg.trig) : '—'} (the breakout).`,
       buy: `Buy in the entry zone ${px(p.entryLow)}–${fmt.n2(p.entryHigh, M)} · stop ${px(p.stop)} · target ${px(p.target)}.`,
       trigger: `Set a buy-stop just above ${px(p.entryLow)}. Only buy if it trades there — then stop ${px(p.stop)}, target ${px(p.target)}.`,
       dip: `Don’t buy here. The trend is strong, but the stock has already run up (${stretched.join(', ')}). Buying extended stocks means a wider stop and more risk. Wait for a pullback toward ${px(dip)}, or a tight sideways pause, before buying.`,
-      wait: earnSoon ? `Earnings in ${cd.earnIn} session${cd.earnIn === 1 ? '' : 's'} — let the report pass, then re-check.` : needs.length ? `Not yet — it still needs ${needs.join(', ').replace(/, ([^,]*)$/, ' and $1')}. Re-check after the next scan.` : `Signals are mixed (technical score ${score}). Re-check after the next scan${p.state === 'pending' ? `, or buy only on a close above ${px(p.entryLow)}` : ''}.`,
-      avoid: 'Skip this one for now — and if you own it, consider selling or tightening your stop.'
+      wait: earnSoon ? `Earnings in ${cd.earnIn} session${cd.earnIn === 1 ? '' : 's'} — let the report pass, then re-check.`
+        : untested ? `${Playbook.SETUPS[untested].name} pattern today — but in ${MN} it did not beat simply holding the stock in our 3-year test, so it is not a buy here. StrikeZone buys in ${MN} only on: ${pbNames}.`
+        : `No tested setup right now${weak ? ` — and the chart is weak (${minus.join(', ') || 'falling trend'})` : ''}. StrikeZone says BUY only on the setups that beat holding in ${MN}: ${pbNames}.`
     }[v];
     const short = {
       washout: `Washout: RSI ${F(rsi) ? rsi.toFixed(0) : '—'}, ${pc(c / x.c[i - 5] - 1, 0)} in 5d · stop ${px(washStop)}`,
       leaderpb: `First dip to the 50-day after a big run`,
-      early: `Higher low held · stop ${px(eStop)} (${pc(eStop / c - 1, 0)})`,
-      buy: plus.join(' · ') || 'Technicals line up',
-      trigger: `Strong setup · trigger ${px(p.entryLow)}`,
-      dip: `Already run up (${stretched[0]}) — wait for ~${px(dip)}`,
-      wait: earnSoon ? `Earnings in ${cd.earnIn}d` : needs.length ? `Needs ${needs[0]}` : minus[0] ? `Weak: ${minus[0]}` : 'Mixed signals',
-      avoid: minus.join(' · ') || 'Weak technicals'
+      oversold: `RSI ${F(x.rsi[osI]) ? x.rsi[osI].toFixed(0) : '—'} oversold · stop ${px(osStop)}`,
+      watch: stretched.length ? `Strong but stretched — wait for a dip` : `Strong — wait for a tested dip`,
+      wait: earnSoon ? `Earnings in ${cd.earnIn}d` : untested ? `${Playbook.SETUPS[untested].name}: not tested-positive in ${MN}` : weak && minus[0] ? `No setup · weak: ${minus[0]}` : 'No tested setup now'
     }[v];
-    const agree = v === 'avoid' ? bad.length : v === 'early' ? good.length + 1 : good.length, conf = Math.abs(score - 50) >= 25 && agree >= 5 ? 'High' : Math.abs(score - 50) >= 12 ? 'Medium' : 'Low';
+    const agree = Tech.isBuy(v) ? good.length + 2 : good.length, conf = Math.abs(score - 50) >= 25 && agree >= 5 ? 'High' : Math.abs(score - 50) >= 12 ? 'Medium' : 'Low';
     // ---- One-line trend status a trader would say out loud
     const near52 = F(x.hh252[i]) && c >= x.hh252[i] * .95, below20 = c < s20;
     const ts = washLive ? ['bottom', 'Bottoming — washout', 'Sharp sell-off into deep oversold. These have tended to bounce toward the 20-day average.']
@@ -1605,7 +1660,7 @@ const Tech = {
       : trend[2] >= 1 ? ['up', 'Established uptrend', 'Higher highs and higher lows above rising averages.']
       : ['side', 'Sideways — no clear trend', 'Price is chopping around its averages. Wait for a direction.'];
     const tally = { pos: checks.filter(k => k.tone === 'good').length, neu: checks.filter(k => k.tone === 'ok').length, neg: checks.filter(k => k.tone === 'warn' || k.tone === 'bad').length };
-    return { v, score, conf, checks, action, short, plus, minus, stretched, dip, earnSoon, rs63, r63, m63, pb, rsi, squeeze, stage: sg, trendStat: { code: ts[0], label: ts[1], text: ts[2] }, tally, washI, leaderNow };
+    return { v, score, conf, checks, action, short, plus, minus, stretched, dip, earnSoon, rs63, r63, m63, pb, rsi, squeeze, stage: sg, trendStat: { code: ts[0], label: ts[1], text: ts[2] }, tally, washI, leaderNow, leaderI, leaderStop: L?.t.stop, leaderTgt: L?.t.tgt, osI, osStop, untested };
   },
   TS: { bottom: ['⤒', 'text-teal-200 bg-teal-500/15 ring-teal-400/50'], shaping: ['🌱', 'text-lime-100 bg-lime-500/15 ring-lime-400/50'], fresh: ['◒', 'text-emerald-200 bg-emerald-500/10 ring-emerald-400/40'],
     down: ['▼', 'text-rose-200 bg-rose-500/15 ring-rose-400/50'], extended: ['⚠', 'text-amber-100 bg-amber-500/15 ring-amber-400/50'], weakening: ['↘', 'text-orange-200 bg-orange-500/15 ring-orange-400/50'],
@@ -1625,7 +1680,7 @@ const Tech = {
       cd = { ti, i, sym: tk.sym, price: c, pats: [], plan: { entryLow: c, entryHigh: c * 1.02, stop, target, rr: (target - c) / risk, riskPct: risk / c, upside: target / c - 1, state: 'inzone' }, earnIn: nextE !== undefined ? nextE - i : null, stage: TrendStage.at(x, i, x.idxc) };
     }
     let t = null; try { t = this.assess(ds, ti, cd); } catch (e) { console.warn('tech any', e); }
-    if (this._a.size > 500) this._a.clear();
+    if (this._a.size > 4000) this._a.clear();
     this._a.set(k, t); return t;
   }
 };
@@ -1645,24 +1700,33 @@ const Rev = {
   _c: new Map(),
   SETUPS: {
     washout: { label: 'Washout bottom', short: 'Washout', icon: '⤒', desc: 'A sharp sell-off into deeply oversold territory — the kind of panic that usually snaps back toward the 20-day average.' },
-    leader:  { label: 'Leader pullback', short: 'Leader pullback', icon: '↘↗', desc: 'A strong stock (big run, very overbought) pulling back to its 50-day average for the first time — dips in leaders have tended to be bought.' }
+    leader:  { label: 'Leader pullback', short: 'Leader pullback', icon: '↘↗', desc: 'A strong stock (big run, very overbought) pulling back to its 50-day average for the first time — dips in leaders have tended to be bought.' },
+    oversold: { label: 'Oversold dip', short: 'Oversold dip', icon: '↧', desc: 'RSI(14) below 30 — the stock has been sold hard. Oversold stocks have tended to bounce over the next few weeks.' }
+  },
+  isOversold(x, i) { return x.rsi[i] < 30; },
+  /** Is a setup that fired in the last 3 sessions still live (not stopped out, not at its exit)? The same rule the
+   *  scanner lists and the verdict use, so the two can never disagree. */
+  live(x, i, kind, start) {
+    const test = { washout: j => this.isWashout(x, j), leader: j => j - start > 130 && this.isLeader(x, j), oversold: j => this.isOversold(x, j) }[kind];
+    for (let k = 0; k <= 2; k++) { const j = i - k; if (j - 20 > start && test(j)) { const t = this.sim(x, j, kind, i); if (t.open) return { j, t }; } }
+    return null;
   },
   /** One pass over every stock in a market: today's setups, recent ones still running, and this market's track record. */
   analyse(ds, onProgress) {
     const key = `${ds.key}|${ds.stamp || ''}|${ds.cursor}`;
     if (this._c.has(key)) return Promise.resolve(this._c.get(key));
     return (async () => {
-      const last = ds.cursor, M = ds.M, rec = { washout: [], leader: [] }, base = { washout: [], leader: [] }, now = [];
+      const last = ds.cursor, M = ds.M, rec = { washout: [], leader: [], oversold: [] }, base = { washout: [], leader: [], oversold: [] }, now = [];
       let t0 = performance.now();
       for (let ti = 0; ti < ds.tickers.length; ti++) {
         const tk = ds.tickers[ti]; if (tk.excluded) continue;
         const x = Ind.compute(tk, M), s = x.start, c = x.c;
         const from = Math.max(s + 210, last - 760);
         for (let i = from; i <= last; i++) {
-          const w = this.isWashout(x, i), lp = !w && this.isLeader(x, i);
-          if (i < last - 20 && (i - from) % 7 === 0) { base.washout.push(this.sim(x, i, 'washout', last)); base.leader.push(this.sim(x, i, 'leader', last)); }
-          if (!w && !lp) continue;
-          const kind = w ? 'washout' : 'leader', t = this.sim(x, i, kind, last), day = w ? this.wDay(x, i) : 1;
+          const w = this.isWashout(x, i), lp = !w && this.isLeader(x, i), os = !w && !lp && this.isOversold(x, i);
+          if (i < last - 20 && (i - from) % 7 === 0) { base.washout.push(this.sim(x, i, 'washout', last)); base.leader.push(this.sim(x, i, 'leader', last)); base.oversold.push(this.sim(x, i, 'oversold', last)); }
+          if (!w && !lp && !os) continue;
+          const kind = w ? 'washout' : lp ? 'leader' : 'oversold', t = this.sim(x, i, kind, last), day = w ? this.wDay(x, i) : 1;
           if (!t.open) rec[kind].push({ ret: t.ret, i, day });
           if (i >= last - 2 && t.open) { const d = this.describe(ds, ti, x, i, kind, t); d.day = day; const k = now.findIndex(z => z.ti === ti && z.kind === kind); if (k >= 0) now.splice(k, 1); now.push(d); }
         }
@@ -1705,6 +1769,14 @@ const Rev = {
       }
       return i + 15 <= last ? { ret: x.c[i + 15] / e - 1, how: 'time', exit: i + 15, stop } : { open: true, ret: x.c[last] / e - 1, stop };
     }
+    if (kind === 'oversold') {
+      const stop = x.l[i] - 3.5 * x.atr[i];
+      for (let j = i + 1; j <= Math.min(last, i + 20); j++) {
+        if (x.l[j] <= stop) return { ret: Math.min(x.o[j], stop) / e - 1, how: 'stopped', exit: j, stop };
+        if (x.rsi[j] > 55) return { ret: x.c[j] / e - 1, how: 'target', exit: j, stop };
+      }
+      return i + 20 <= last ? { ret: x.c[i + 20] / e - 1, how: 'time', exit: i + 20, stop } : { open: true, ret: x.c[last] / e - 1, stop };
+    }
     const stop = e * .93, tgt = e * 1.10;
     for (let j = i + 1; j <= Math.min(last, i + 20); j++) {
       if (x.l[j] <= stop) return { ret: -.07, how: 'stopped', exit: j, stop, tgt };
@@ -1729,6 +1801,12 @@ const Rev = {
       if (s200up) conf.push('200-day still rising');
       if (!s200up && c[i] < x.sma200[i]) risk.push('long-term downtrend (below a falling 200-day)');
       if (dd <= -.4) risk.push(`down ${fmt.pct(-dd, 0, false)} from its 6-month high`);
+    } else if (kind === 'oversold') {
+      if (x.rsi[i] < 25) conf.push(`RSI ${x.rsi[i].toFixed(0)} — extreme`);
+      if (lo5 <= lo20 && r5 > r20 + 3) conf.push('bullish RSI divergence');
+      if (s200up) conf.push('200-day still rising');
+      if (!s200up && c[i] < x.sma200[i]) risk.push('long-term downtrend (below a falling 200-day)');
+      if (dd <= -.4) risk.push(`down ${fmt.pct(-dd, 0, false)} from its 6-month high`);
     } else {
       if (s200up) conf.push('200-day rising');
       if (x.rsi[i] < 45) conf.push(`RSI cooled to ${x.rsi[i].toFixed(0)}`);
@@ -1737,10 +1815,12 @@ const Rev = {
     }
     const ne = tk.earnIdx?.find(k => k > last); if (ne !== undefined && ne - last <= 5) risk.push(`earnings in ${ne - last} session${ne - last === 1 ? '' : 's'}`);
     const age = last - i;
-    const what = kind === 'washout'
+    const what = kind === 'oversold' ? `RSI(14) fell to ${x.rsi[i].toFixed(0)} — oversold (${fmt.pct(drop5, 0)} in 5 sessions, ${fmt.pct(dd, 0)} from its 6-month high)`
+      : kind === 'washout'
       ? `Fell ${fmt.pct(-drop5, 0, false)} in 5 sessions to RSI ${x.rsi[i].toFixed(0)}, closing below the lower Bollinger Band (${px(this.bbl(x, i))})`
       : `After a ${fmt.pct((c[i] / Math.min(...Array.from({ length: 127 }, (_, k) => x.l[Math.max(x.start, i - k)])) - 1), 0)} run (RSI peaked above 75), it closed below its 50-day average (${px(x.sma50[i])}) for the first time`;
-    const plan = kind === 'washout'
+    const plan = kind === 'oversold' ? { entry: c[i], stop: t.stop, target: x.sma20[last], exitTxt: `Sell when RSI(14) closes above 55 (now ${x.rsi[last].toFixed(0)}) — usually around the 20-day average — or after 20 sessions. Emergency stop ${px(t.stop)} (3.5× the daily range under the signal-day low).` }
+      : kind === 'washout'
       ? { entry: c[i], stop: t.stop, exitTxt: `Sell on the first close above the 20-day average (now ${px(x.sma20[last])}, ${fmt.pct(x.sma20[last] / c[last] - 1, 0)} above the current price), or after 15 sessions.`, target: x.sma20[last] }
       : { entry: c[i], stop: t.stop, target: t.tgt, exitTxt: `Target ${px(t.tgt)} (+10%), stop ${px(t.stop)} (−7%), or sell after 20 sessions.` };
     return { m: ds.m, M, ds, ti, i, sym: tk.sym, name: tk.name, sector: tk.sector, kind, age, what, conf, risk, plan, rsi: x.rsi[i], price: c[last], since: c[last] / c[i] - 1, date: ds.dates[i] };
@@ -1880,32 +1960,21 @@ const Portfolio = {
     const cross = (f, s) => !fin(f[i], s[i], f[i - 1], s[i - 1]) ? null
       : f[i] > s[i] && f[i - 1] <= s[i - 1] ? 'up' : f[i] < s[i] && f[i - 1] >= s[i - 1] ? 'down' : f[i] > s[i] ? 'above' : 'below';
 
-    // 1. Strategies, backtested on this stock
-    const res = StockBT.cached(ds, ti), best = res?.bestSig || null;
-    if (!res) add('info', 0, 'Strategies', 'Not enough price history to backtest strategies on this stock yet.');
-    else {
-      if (best) {
-        const t = res.today[best.key] || {}, trust = best.n >= 3 && best.total > 0;
-        const tag = `${best.name} — the best strategy for ${h.sym} in the backtest (${best.n} trade${best.n === 1 ? '' : 's'}, ${fmt.prob(best.winRate)} won, ${fmt.pct(best.total, 1)} total)`;
-        if (t.sellNext) add('sell', trust ? 3 : 2, 'Strategies', `Sell signal today from ${tag}. It exits at the next open.`);
-        else if (t.sold) add('sell', trust ? 2 : 1, 'Strategies', `${best.name} closed its trade today (${{ target: 'target hit', stopped: 'stopped out', time: 'time limit', signal: 'sell signal' }[t.sold.how] || t.sold.how}, ${fmt.pct(t.sold.ret, 1)}) and is now out of the stock.`);
-        else if (t.buy && !t.inTrade) add('buy', trust ? 3 : 2, 'Strategies', `Buy signal today from ${tag}.`);
-        else if (best.openTrade) add('good', 1, 'Strategies', `${best.name} (best strategy for this stock) is still in a trade — bought ${fmt.date(ds.dates[best.openTrade.entry])}, ${fmt.pct(best.openTrade.ret, 1)} so far.`);
-        else add('info', 0, 'Strategies', `${best.name} (best strategy for this stock) has no position at the moment — it is waiting for its next buy signal.`);
-      } else add('info', 0, 'Strategies', 'No strategy completed a trade on this stock yet.');
-      const others = res.rows.filter(r => r.key !== 'scanner' && r.key !== best?.key);
-      const sells = others.filter(r => res.today[r.key]?.sellNext).map(r => r.name);
-      const buys = others.filter(r => res.today[r.key]?.buy && !res.today[r.key]?.inTrade).map(r => r.name);
-      if (sells.length) add('sell', 1, 'Strategies', `Also signalling SELL today: ${sells.join(', ')}.`);
-      if (buys.length) add('buy', 1, 'Strategies', `Also signalling BUY today: ${buys.join(', ')}.`);
+    // 1. The StrikeZone verdict (tested playbook only) and the exit rules of the tested setups
+    const res = StockBT.cached(ds, ti), best = res?.bestSig || null, tv = Tech.ofAny(ds, ti);
+    if (tv) add(Tech.isBuy(tv) ? 'buy' : 'info', Tech.isBuy(tv) ? 3 : 0, 'StrikeZone verdict', `${Tech.V[tv.v].label}: ${tv.action}`);
+    if (res) for (const r of res.rows.filter(r => Playbook.tested(h.m, r.key))) {
+      const t = res.today[r.key] || {};
+      if (t.sellNext && r.openTrade && (!h.date || ds.dates[r.openTrade.entry] >= h.date)) add('sell', 3, 'StrikeZone verdict', `${r.name}: its exit rule triggered today (it bought ${fmt.date(ds.dates[r.openTrade.entry])}). If you bought on this setup, sell at the next open.`);
+      else if (t.sold && (!h.date || ds.dates[t.sold.entry] >= h.date)) add('warn', 1, 'StrikeZone verdict', `${r.name} closed its trade today (${{ target: 'target hit', stopped: 'stopped out', time: 'time limit', signal: 'exit signal' }[t.sold.how] || t.sold.how}, ${fmt.pct(t.sold.ret, 1)}). If you bought on this setup, its plan says you are out.`);
     }
 
     // 2. Trend: moving averages, momentum
     const gc = cross(x.sma50, x.sma200), p50 = cross(c, x.sma50);
-    if (gc === 'down') add('sell', 2, 'Trend', 'Death cross today: the 50-day average fell below the 200-day average.');
-    else if (gc === 'up') add('buy', 2, 'Trend', 'Golden cross today: the 50-day average rose above the 200-day average.');
-    if (p50 === 'down') add('sell', 2, 'Trend', `Closed below its 50-day average (${fmt.px(x.sma50[i], M)}) today.`);
-    else if (p50 === 'up') add('buy', 1, 'Trend', `Closed back above its 50-day average (${fmt.px(x.sma50[i], M)}) today.`);
+    if (gc === 'down') add('warn', 1, 'Trend', 'Death cross today: the 50-day average fell below the 200-day average.');
+    else if (gc === 'up') add('good', 0, 'Trend', 'Golden cross today: the 50-day average rose above the 200-day average.');
+    if (p50 === 'down') add('warn', 1, 'Trend', `Closed below its 50-day average (${fmt.px(x.sma50[i], M)}) today.`);
+    else if (p50 === 'up') add('good', 0, 'Trend', `Closed back above its 50-day average (${fmt.px(x.sma50[i], M)}) today.`);
     if (fin(x.sma200[i])) {
       if (px < x.sma200[i]) add('warn', 1, 'Trend', `Price is below its 200-day average (${fmt.px(x.sma200[i], M)}) — the long-term trend is down.`);
       else add('good', 0, 'Trend', `Price is above its 200-day average (${fmt.px(x.sma200[i], M)}) — the long-term trend is up.`);
@@ -1917,7 +1986,7 @@ const Portfolio = {
     else if (ma.length >= 3 && down === 0) add('good', 0, 'Trend', `All ${ma.length} moving-average pairs point up (fast average above slow).`);
     const rsi = x.rsi[i];
     if (rsi > 70) add('warn', 1, 'Trend', `RSI ${rsi.toFixed(0)} — overbought; a pullback is more likely. Consider taking some profit or tightening your stop.`);
-    else if (rsi < 30) add('buy', 1, 'Trend', `RSI ${rsi.toFixed(0)} — oversold; bounces often start from here.`);
+    else if (rsi < 30) add('good', 0, 'Trend', `RSI ${rsi.toFixed(0)} — oversold; bounces often start from here.`);
     if (fin(x.hh252[i]) && px > x.hh252[i]) add('good', 1, 'Trend', 'Closed at a new 52-week high.');
 
     // 3. Your position: trailing stop, loss and gain
@@ -1955,8 +2024,11 @@ const Portfolio = {
     // Verdict
     const sum = side => sig.filter(s => s.side === side).reduce((a, s) => a + s.w, 0);
     const sS = sum('sell'), sB = sum('buy'), sW = sum('warn');
-    const v = sS >= 3 && sS > sB ? 'sell' : sB >= 3 && sS < 2 && sB > sW ? 'buy' : sS >= 1 || sW >= 3 ? 'review' : 'hold';
-    const lead = sig.filter(s => s.side === { sell: 'sell', buy: 'buy', review: sS ? 'sell' : 'warn', hold: 'good' }[v]).sort((a, b) => b.w - a.w)[0];
+    // One rule set, in this order: 1) protect capital (stop / loss limit / a tested setup's exit) → SELL; 2) the StrikeZone
+    // verdict is a tested BUY and you are not losing → BUY MORE; 3) warnings pile up or earnings are close → REVIEW; else HOLD.
+    const earnClose = nextE !== undefined && nextE - i <= 3;
+    const v = sS >= 3 ? 'sell' : tv && Tech.isBuy(tv) && !(plPct <= -.08) ? 'buy' : sW >= 3 || earnClose || sS > 0 ? 'review' : 'hold';
+    const lead = v === 'review' && earnClose && sW < 3 ? sig.find(s => s.group === 'Events' && /Earnings/.test(s.text)) : sig.filter(s => s.side === { sell: 'sell', buy: 'buy', review: sS ? 'sell' : 'warn', hold: 'good' }[v]).sort((a, b) => b.w - a.w)[0];
     const text = lead ? lead.text : v === 'hold' ? 'No sell or buy signals today.' : '';
     return { v, text, tk, ti, M, date, px, day, value, cost, pl, plPct, stop, rsi, ma, best, res, sig, f, fs, score: { sell: sS, buy: sB, warn: sW } };
   },
@@ -3524,9 +3596,8 @@ const Charts = {
     if (t) {
       const c = tk.c[i];
       if (t.v === 'washout') { pl(c - 0, '#2dd4bf', 'Entry'); pl(tk.l[t.washI] - x.atr[t.washI], '#f87171', 'Stop'); pl(x.sma20[i], '#38bdf8', 'Exit (20-day)'); }
-      else if (t.v === 'leaderpb') { pl(c, '#5eead4', 'Entry'); pl(c * .93, '#f87171', 'Stop'); pl(c * 1.1, '#38bdf8', 'Target'); }
-      else if (t.v === 'dip') pl(t.dip, '#38bdf8', 'Pullback buy zone');
-      else if (t.v === 'early' && t.stage) { pl(t.stage.hl, '#a3e635', 'Higher low'); pl(t.stage.trig, '#34d399', 'Breakout'); }
+      else if (t.v === 'leaderpb') { pl(c, '#34d399', 'Entry'); pl(t.leaderStop ?? c * .93, '#f87171', 'Stop'); pl(t.leaderTgt ?? c * 1.1, '#38bdf8', 'Target'); }
+      else if (t.v === 'oversold') { pl(c, '#22d3ee', 'Entry'); pl(t.osStop, '#f87171', 'Emergency stop'); }
       else if (t.v === 'trigger' || t.v === 'buy') { const r = S().results.find(z => z.m === ds.m && z.cd.ti === ti); const p = r?.cd.plan; if (p) { pl(p.entryLow, '#34d399', t.v === 'trigger' ? 'Trigger' : 'Entry'); pl(p.stop, '#f87171', 'Stop'); pl(p.target, '#38bdf8', 'Target'); } }
     }
     chart.timeScale().fitContent();
@@ -3771,7 +3842,7 @@ const UI = {
       if (q && !tk.sym.includes(q) && !tk.name.toUpperCase().includes(q)) return false;
       if (f.mine && !MyStocks.has(r.m, tk.sym)) return false;
       if (f.match && !UI.bestOf(r)?.match) return false;
-      if (f.tech && f.tech !== 'all') { const t = Tech.of(r)?.v; if (f.tech === 'stage-early' ? r.cd.stage?.code !== 'early' : f.tech === 'buys' ? !['buy', 'washout', 'leaderpb', 'early', 'trigger'].includes(t) : t !== f.tech) return false; }
+      if (f.tech && f.tech !== 'all') { const t = Tech.of(r)?.v; if (f.tech === 'stage-early' ? r.cd.stage?.code !== 'early' : f.tech === 'buys' ? !Tech.isBuy(t) : t !== f.tech) return false; }
       return true;
     });
     const k = s.sort;
@@ -3792,7 +3863,7 @@ const UI = {
     const x = b.bestSig, fires = !!b.today[x.key]?.buy;
     const stats = `${x.n} trade${x.n === 1 ? '' : 's'} · ${fmt.prob(x.winRate)} won · ${fmt.pct(x.total, 0)}`;
     if (b.match) return `<p class="mt-1.5 text-[11px] leading-snug"><span class="text-violet-300 font-medium">◆ ${x.key === 'pat:' + r.cd.pats[0].key ? 'Today’s event is' : 'Today’s signals include'} this stock’s best-performing signal:</span> <span class="text-slate-200">${U.esc(x.name)}</span> <span class="text-slate-500">(${stats} in backtest)</span></p>`;
-    return `<p class="mt-1.5 text-[11px] leading-snug text-slate-500">Best signal: <span class="text-slate-300">${U.esc(x.name)}</span> (${stats})${!b.sigReliable ? ' — too few trades to trust' : x.total <= 0 ? ' — none was profitable' : x.winRate < .5 ? ' — won less than half its trades' : fires ? ' — fires today' : compact ? '' : ' — not today’s signal'}</p>`;
+    return `<p class="mt-1.5 text-[11px] leading-snug text-slate-500">Best signal: <span class="text-slate-300">${U.esc(x.name)}</span> (${stats})${!b.sigReliable ? ' — too few trades to trust' : x.total <= 0 ? ' — none was profitable' : x.winRate < .5 ? ' — won less than half its trades' : fires ? (Playbook.tested(r.m, x.key) ? ' — fires today' : ' — fired today (information only: not a tested setup)') : compact ? '' : ' — not today’s signal'}</p>`;
   },
 
   catalystCell(r) {
@@ -3966,7 +4037,7 @@ const UI = {
     }).join('')}</ul>`;
     const nMatch = s.results.filter(x => UI.bestOf(x)?.match).length, prog = s.bestProg;
     const banner = `<div class="mb-3 rounded-xl border ${nMatch ? 'border-violet-500/40 bg-violet-500/[0.06]' : 'border-line bg-panel'} px-3 py-2.5 text-sm flex flex-wrap items-center gap-x-3 gap-y-1">
-        ${nMatch ? `<span><span class="text-violet-300 font-semibold">◆ ${nMatch} stock${nMatch === 1 ? '' : 's'}</span> fired ${nMatch === 1 ? 'its' : 'their'} own best-performing signal today — shown at the top.</span> <span class="text-[11px] text-slate-500 w-full">Match = today’s signal is the one that did best in that stock’s own backtest, with at least 3 trades, a profit overall and at least half its trades won.</span>` : `<span class="text-slate-400">◆ No shortlisted stock fired its own best-performing signal today${prog ? ' (still checking)' : ''}.</span>`}
+        ${nMatch ? `<span><span class="text-violet-300 font-semibold">◆ ${nMatch} stock${nMatch === 1 ? '' : 's'}</span> fired a tested playbook setup that is also ${nMatch === 1 ? 'its' : 'their'} best-performing signal — shown at the top.</span> <span class="text-[11px] text-slate-500 w-full">Match = today’s signal is the one that did best in that stock’s own backtest, with at least 3 trades, a profit overall and at least half its trades won.</span>` : `<span class="text-slate-400">◆ No shortlisted stock fired its own best-performing signal today${prog ? ' (still checking)' : ''}.</span>`}
         ${prog ? `<span class="text-xs text-slate-500"><span class="inline-block w-2 h-2 rounded-full bg-violet-400 animate-pulse mr-1"></span>Backtesting each stock: ${prog.done}/${prog.total}</span>` : ''}
         ${nMatch ? `<button type="button" data-action="toggleMatch" class="ml-auto text-xs underline underline-offset-2 text-violet-200">${s.filters.match ? 'Show all stocks' : 'Show only matches'}</button>` : ''}
       </div>`;
@@ -4167,7 +4238,7 @@ const UI = {
     if (!sel.options.length) {
       sel.innerHTML = MARKET_CODES.map(c => `<option value="${c}">${MARKETS[c].flag} ${MARKETS[c].name}</option>`).join('');
       sel.value = view()[0];
-      $('wKey').innerHTML = Watch.options().map(([k, l]) => `<option value="${k}">${U.esc(l)}</option>`).join('');
+      $('wKey').innerHTML = Watch.optionsHtml();
     }
     const m = sel.value, ds = S().mkts[m]?.ds, mine = MyStocks.set(m), k = ds ? `${ds.key}|${ds.stamp || ds.cursor}` : '';
     if ($('wList').dataset.k !== k) {
@@ -4201,7 +4272,7 @@ const UI = {
         const M = MARKETS[w.m], st = e.strat, plan = e.plan, hot = e.hot || [], hl = hot.length ? StockBT.hotLabel(hot) : null;
         return `<li class="rounded-xl border ${hot.length ? 'border-yellow-400/70 hot-card' : tone[e.kind]} bg-panel p-3">
           <div class="flex flex-wrap items-start gap-x-3 gap-y-1">
-            <div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(w.sym)} <span class="text-xs font-normal text-slate-400">${flagTag(M)} ${M.name}</span> ${hl ? hl.html : ''}</p>
+            <div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(w.sym)} <span class="text-xs font-normal text-slate-400">${flagTag(M)} ${M.name}</span> ${e.tv ? UI.techPill(e.tv) : ''} ${hl ? hl.html : ''}</p>
               <p class="text-xs text-slate-300">${U.esc(Watch.label(w.key, e.res))}</p></div>
             <div class="flex items-center gap-1.5 shrink-0">
               ${UI.chartBtn(w.m, w.sym)}
@@ -4211,7 +4282,7 @@ const UI = {
           </div>
           ${hot.length ? `<p class="mt-2 text-sm text-yellow-200"><b>⚡ High-probability strategy match today:</b> ${U.esc(StockBT.hotText(hot, M))}.</p>` : ''}
           <p class="mt-2 text-sm ${txt[e.kind]}">${e.kind === 'buy' ? '▲ ' : e.kind === 'sell' ? '▼ ' : ''}${U.esc(e.text)}</p>
-          ${e.kind === 'buy' && plan ? `<p class="mt-1 text-xs text-slate-300 num">Entry ${fmt.px(plan.entryLow, M)}–${fmt.n2(plan.entryHigh, M)} · stop ${fmt.px(plan.stop, M)} · target ${fmt.px(plan.target, M)} <span class="text-slate-500">(${fmt.pct(plan.upside, 0)}, ${w.hold}-day limit)</span></p>` : e.kind === 'buy' ? `<p class="mt-1 text-xs text-slate-300">The strategy buys at the next session’s open.</p>` : ''}
+          ${e.kind === 'buy' && plan ? `<p class="mt-1 text-xs text-slate-300 num">Entry ${fmt.px(plan.entryLow, M)}–${fmt.n2(plan.entryHigh, M)} · stop ${fmt.px(plan.stop, M)} · target ${fmt.px(plan.target, M)} <span class="text-slate-500">(${fmt.pct(plan.upside, 0)}, ${w.hold}-day limit)</span></p>` : e.kind === 'buy' ? '' : ''}
           ${st ? `<p class="mt-1.5 text-[11px] text-slate-500">Backtest: ${st.n} trade${st.n === 1 ? '' : 's'} · ${fmt.prob(st.winRate)} won · ${fmt.pct(st.total, 1)} total · buy &amp; hold ${fmt.pct(e.res.bh.ret, 1)}${st.n < 3 ? ' · <span class="text-amber-300/80">too few trades to trust</span>' : ''}</p>` : ''}
         </li>`; }).join('')}</ul>
       <p class="mt-3 text-[11px] text-slate-500">Alerts appear in the bell menu, as browser notifications and on your webhook if set (Settings → Alerts). The app checks when it scans, so it needs to be open (or opened) after the nightly data update. Not investment advice.</p>`;
@@ -4304,8 +4375,8 @@ const UI = {
     if (!sel.options.length) {
       sel.innerHTML = MARKET_CODES.map(c => `<option value="${c}">${MARKETS[c].flag} ${MARKETS[c].name}</option>`).join('');
       sel.value = view()[0];
-      $('fdKey').innerHTML = Watch.options().filter(([k]) => k !== 'auto').map(([k, l]) => `<option value="${k}">${U.esc(l)}</option>`).join('');
-      $('fdKey').value = 'emasma';
+      $('fdKey').innerHTML = Watch.optionsHtml(true);
+      $('fdKey').value = 'washout';
     }
     UI.finder();
   },
@@ -4326,18 +4397,20 @@ const UI = {
     const rows = Finder.view(), all = f.rows, shown = rows.slice(0, f.show || 50);
     const isX = Cross.is(f.key), W = Finder.win(), st2 = all.map(r => ({ r, s: Finder.stateOf(r) }));
     const worked = all.filter(r => r.n >= 3 && r.total > 0 && r.winRate >= .5).length, buys = st2.filter(z => z.s === 'buy' && !Finder.hiddenFresh(z.r)).length, bests = all.filter(r => r.best && r.n >= 3).length;
-    const xUp = st2.filter(z => z.s === 'buy'), xDn = st2.filter(z => z.s === 'sell'), clearN = a => a.filter(z => z.r.cx?.clarity === 'clear').length;
+    const xUp = all.filter(r => Finder.eventOf(r) === 'up').map(r => ({ r })), xDn = all.filter(r => Finder.eventOf(r) === 'down').map(r => ({ r })), clearN = a => a.filter(z => z.r.cx?.clarity === 'clear').length;
     const dsF = S().mkts[f.m]?.ds;
     const watching = new Set(Watch.list().filter(w => w.key === f.key && w.m === f.m).map(w => w.sym)), owned = new Set(Portfolio.list().filter(h => h.m === f.m).map(h => h.sym));
     const tone = x => !Number.isFinite(x) ? 'text-slate-400' : x > 0 ? 'text-emerald-300' : x < 0 ? 'text-rose-300' : 'text-slate-300';
+    const vCell = r => { const tv = Finder.verdict(r); return tv ? `<div class="mb-1">${UI.techPill(tv)}</div><p class="text-[11px] text-slate-400 max-w-[240px] whitespace-normal">${U.esc(tv.short)}</p>` : ''; };
     const xCell = r => { const c = r.cx, up = c.dir === 'up', ct = Cross.clarityTxt(c);
-      return `<span class="font-semibold ${up ? 'text-emerald-300' : 'text-amber-300'}">${up ? '▲ BUY · crossed up' : '▼ SELL · crossed down'}</span>
+      return `${vCell(r)}<p class="mt-1 text-[11px] text-slate-300">Chart event: ${up ? '▲ crossed up' : '▼ crossed down'}</p>
         <p class="text-[11px] text-slate-300 num">${c.date ? fmt.dateShort(c.date) : ''} · ${Cross.agoTxt(c.ago)}</p>
         <p class="text-[11px] text-slate-400 num">${c.fn} ${fmt.pct(Math.abs(c.gap), 2).replace(/^[+−-]/, '')} ${c.gap >= 0 ? 'above' : 'below'} ${c.sn}</p>
         <span class="mt-0.5 inline-flex h-5 px-1.5 items-center rounded text-[10.5px] ring-1 ${ct.cls}" title="${U.esc(ct.tip)}">${ct.t}</span>`; };
-    const stateCell = r => (r.state === 'buy' || r.state === 'sell') && r.cx && isX ? xCell(r) : r.state === 'buy' ? `<span class="font-semibold text-emerald-300">▲ BUY today</span>${r.plan ? `<p class="text-[11px] text-slate-400 num">entry ${fmt.px(r.plan.entryLow, M)}–${fmt.n2(r.plan.entryHigh, M)} · stop ${fmt.px(r.plan.stop, M)} · target ${fmt.px(r.plan.target, M)}</p>` : '<p class="text-[11px] text-slate-400">buys at the next open</p>'}`
-      : r.state === 'sell' ? '<span class="font-semibold text-amber-300">▼ SELL today</span><p class="text-[11px] text-slate-400">exits at the next open</p>'
-      : r.state === 'open' ? `<span class="text-sky-300">In a trade</span><p class="text-[11px] text-slate-400 num">since ${fmt.dateShort(S().mkts[f.m]?.ds?.dates[r.open.entry])} · ${fmt.pct(r.open.ret, 1)}</p>` : '<span class="text-slate-500">No signal</span>';
+    const evTxt = r => { const e = Finder.eventOf(r); return e === 'up' ? `<p class="mt-1 text-[11px] text-slate-300">Strategy fired today: buy signal${Playbook.tested(f.m, f.key) ? '' : ' <span class="text-slate-500">(information only)</span>'}</p>` : e === 'down' ? `<p class="mt-1 text-[11px] text-slate-300">Strategy exit signal today <span class="text-slate-500">(sell only if you bought on this strategy)</span></p>` : ''; };
+    const stateCell = r => r.cx && isX && Finder.eventOf(r) ? xCell(r)
+      : r.state === 'open' ? `${vCell(r)}<p class="mt-1 text-[11px] text-sky-300 num">Strategy in a trade since ${fmt.dateShort(S().mkts[f.m]?.ds?.dates[r.open.entry])} · ${fmt.pct(r.open.ret, 1)}</p>`
+      : `${vCell(r)}${evTxt(r)}`;
     el.innerHTML = `<div class="rounded-xl border border-line bg-panel">
       <div class="p-3 border-b border-line flex flex-wrap items-center gap-x-4 gap-y-2">
         <p class="text-sm text-slate-300 flex-1 min-w-[260px]"><b class="text-slate-100">${U.esc(Watch.label(f.key))}</b> on ${fmt.num(f.scanned)} ${MARKETS[f.m].flag} ${MARKETS[f.m].name} stocks (close of ${fmt.date(f.date)}): worked on <b class="text-emerald-300">${fmt.num(worked)}</b> <span class="text-slate-500">(3+ trades, profitable, ≥50% won)</span> · best fit for <b class="text-amber-300">${fmt.num(bests)}</b> · ${isX ? `crossed in the last ${W === 1 ? 'session' : `${W} sessions`}: <b class="text-emerald-300">${fmt.num(xUp.length)} up</b> (${fmt.num(clearN(xUp))} clear) and <b class="text-amber-300">${fmt.num(xDn.length)} down</b> (${fmt.num(clearN(xDn))} clear)${Finder.clearOnly() && (xUp.length + xDn.length > clearN(xUp) + clearN(xDn)) ? ` · <span class="text-slate-400">${fmt.num(xUp.length + xDn.length - clearN(xUp) - clearN(xDn))} barely-crossed or choppy ones hidden — untick “Clear crosses only” to see them</span>` : ''}` : `BUY today on <b class="text-emerald-300">${fmt.num(buys)}</b>`}.</p>
@@ -4346,7 +4419,7 @@ const UI = {
       </div>
       ${stale ? '<p class="px-3 pt-2 text-xs text-amber-300">These results are for the strategy and market shown above them — press “Find stocks” to run your new choice.</p>' : ''}
       ${rows.length ? `<div class="overflow-x-auto scroll-thin"><table class="w-full text-sm">
-        <thead><tr class="text-left text-xs text-slate-400 border-b border-line"><th class="px-3 py-2 font-medium">Stock</th><th class="px-3 py-2 font-medium">Today</th><th class="px-3 py-2 font-medium">Success with this strategy</th><th class="px-3 py-2 font-medium text-right">Total return</th><th class="px-3 py-2 font-medium text-right">Avg / trade</th><th class="px-3 py-2"></th></tr></thead>
+        <thead><tr class="text-left text-xs text-slate-400 border-b border-line"><th class="px-3 py-2 font-medium">Stock</th><th class="px-3 py-2 font-medium">StrikeZone verdict</th><th class="px-3 py-2 font-medium">Success with this strategy</th><th class="px-3 py-2 font-medium text-right">Total return</th><th class="px-3 py-2 font-medium text-right">Avg / trade</th><th class="px-3 py-2"></th></tr></thead>
         <tbody>${shown.map(r => `<tr class="border-b border-line/60 align-top ${r.best ? 'bg-amber-400/[0.05]' : ''}">
           <td class="px-3 py-2 ${r.best ? 'border-l-2 border-amber-400' : 'border-l-2 border-transparent'}"><p class="font-semibold">${U.esc(r.sym)} ${r.best ? '<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400 text-ink align-middle">★ BEST FIT</span>' : ''}</p>
             <p class="text-[11px] text-slate-400 truncate max-w-[220px]">${U.esc(r.name)}</p>
@@ -4375,9 +4448,11 @@ const UI = {
     const m = S().settings.scanMode || 'momentum';
     const b = (k, t, sub) => `<button type="button" data-action="scanMode" data-mode="${k}" aria-pressed="${m === k}" class="flex-1 min-w-[150px] text-left rounded-lg px-3 py-2 ${m === k ? 'bg-panel2 ring-2 ring-emerald-400/70' : 'ring-1 ring-line hover:bg-panel2'}"><span class="block text-sm font-semibold ${m === k ? 'text-slate-100' : 'text-slate-300'}">${t}</span><span class="block text-[11px] text-slate-400 leading-snug">${sub}</span></button>`;
     el.innerHTML = `<div class="flex flex-wrap gap-2" role="group" aria-label="What to scan for">
-      ${b('momentum', 'Breakouts &amp; momentum', 'Stocks breaking out or trending up (the original scanner)')}
-      ${b('washout', '⤒ Bottoms — washouts', 'Sharp sell-offs into deep oversold — the bounce setup')}
-      ${b('leader', '↘↗ Leader pullbacks', 'Strong stocks dipping to their 50-day for the first time')}</div>`;
+      ${b('washout', '⤒ Washout bottoms', '✓ Tested BUY setup — panic sell-offs into deep oversold')}
+      ${b('oversold', '↧ Oversold dips', '✓ Tested BUY setup (USA, Canada) — RSI below 30')}
+      ${b('leader', '↘↗ Leader pullbacks', '✓ Tested BUY setup (USA, Canada) — a leader’s first dip below its 50-day')}
+      ${b('momentum', 'Strong stocks (ranked)', 'Momentum ranking — WATCH list: buy them only on a tested dip')}</div>
+      <p class="mt-2 text-[11px] text-slate-400">One verdict per stock. StrikeZone only says <b class="text-emerald-300">BUY</b> on setups that beat simply holding the stock in each market’s last 3 years. <button type="button" data-action="pbOpen" class="text-sky-300 underline underline-offset-2">How we chose them</button></p>`;
     const rev = m !== 'momentum';
     $('filters').classList.toggle('md:grid', !rev); $('filters').classList.toggle('md:hidden', rev); $('filtersToggle').classList.toggle('hidden', rev);
   },
@@ -4399,7 +4474,7 @@ const UI = {
     const card = r => { const M = r.M, p = r.plan;
       return `<li class="rounded-xl border ${r.age === 0 ? 'border-emerald-500/40' : 'border-line'} bg-panel p-3">
         <div class="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
-          <div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(r.sym)} <span class="text-xs font-normal text-slate-400">${multi ? flagTag(M) + ' ' : ''}${U.esc(r.name)} · ${U.esc(r.sector)}</span></p>
+          <div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(r.sym)} ${(() => { const tv = Tech.ofAny(r.ds, r.ti); return tv ? UI.techPill(tv) : ''; })()} <span class="text-xs font-normal text-slate-400">${multi ? flagTag(M) + ' ' : ''}${U.esc(r.name)} · ${U.esc(r.sector)}</span></p>
             <p class="text-[11px] text-slate-400">${r.kind === 'washout' ? `<span class="font-semibold ${r.day >= 2 ? 'text-emerald-300' : 'text-amber-200'}">Washout day ${r.day}</span> · ` : ''}${when(r)} · ${fmt.date(r.date)}${r.age ? ` · since then ${'<span class="' + tone(r.since) + '">' + fmt.pct(r.since, 1) + '</span>'}` : ''} · now ${fmt.px(r.price, M)}</p></div>
           <div class="flex flex-wrap gap-1.5 sm:shrink-0">
             <button type="button" data-action="watchAdd" data-m="${r.m}" data-sym="${U.esc(r.sym)}" data-key="${r.kind}" class="h-7 px-2.5 rounded-lg border border-violet-500/40 text-xs text-violet-300 hover:bg-violet-500/10">◆ Watch</button>
@@ -4413,14 +4488,15 @@ const UI = {
         <div class="mt-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
           <div class="rounded-lg bg-ink border border-line p-2"><p class="text-[11px] text-slate-400">Entry</p><p class="num font-semibold text-emerald-300">${fmt.px(p.entry, M)}</p><p class="text-[10px] text-slate-500">${r.age ? 'signal-day close' : 'today’s close / next open'}</p></div>
           <div class="rounded-lg bg-ink border border-line p-2"><p class="text-[11px] text-slate-400">Stop</p><p class="num font-semibold text-rose-300">${fmt.px(p.stop, M)}</p><p class="text-[10px] text-slate-500">${fmt.pct(p.stop / p.entry - 1, 1)}</p></div>
-          <div class="rounded-lg bg-ink border border-line p-2"><p class="text-[11px] text-slate-400">${r.kind === 'washout' ? 'Exit target (20-day avg)' : 'Target'}</p><p class="num font-semibold text-sky-300">${fmt.px(p.target, M)}</p><p class="text-[10px] text-slate-500">${fmt.pct(p.target / p.entry - 1, 1)} from entry</p></div>
+          <div class="rounded-lg bg-ink border border-line p-2"><p class="text-[11px] text-slate-400">${r.kind === 'washout' ? 'Exit target (20-day avg)' : r.kind === 'oversold' ? 'Typical exit area (20-day avg)' : 'Target'}</p><p class="num font-semibold text-sky-300">${fmt.px(p.target, M)}</p><p class="text-[10px] text-slate-500">${fmt.pct(p.target / p.entry - 1, 1)} from entry</p></div>
           <div class="rounded-lg bg-ink border border-line p-2"><p class="text-[11px] text-slate-400">Time limit</p><p class="num font-semibold">${r.kind === 'washout' ? 15 : 20} sessions</p><p class="text-[10px] text-slate-500">sell if nothing happens</p></div>
         </div>
         <p class="mt-2 text-[11px] text-slate-400">${U.esc(p.exitTxt)}${r.kind === 'washout' ? (r.day === 1 ? ' Day 1 of a washout: historically the 2nd and later days were better entries in the USA and Canada — consider a starter position now and adding if the selling continues.' : ` Day ${r.day}: deeper into the washout, which has historically been the better entry.`) : ''}</p>
       </li>`; };
     el.innerHTML = `<div class="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.04] p-4 mb-3">
         <h3 class="font-semibold">${S0.icon} ${S0.label}</h3>
-        <p class="mt-1 text-sm text-slate-300 max-w-4xl">${S0.desc} ${mode === 'washout' ? 'Rule: RSI below 30, down 8% or more in 5 sessions, and a close below the lower Bollinger Band — bought while it is happening, not after a “confirmation” bounce (waiting made results worse). Each day the condition holds counts as a signal.' : 'Rule: ran 40% or more off its 6-month low with RSI above 75 in the last month, then closes below its 50-day average for the first time.'}</p>
+        <p class="mt-1 text-sm text-slate-300 max-w-4xl">${S0.desc} ${mode === 'washout' ? 'Rule: RSI below 30, down 8% or more in 5 sessions, and a close below the lower Bollinger Band — bought while it is happening, not after a “confirmation” bounce (waiting made results worse). Each day the condition holds counts as a signal.' : mode === 'oversold' ? 'Rule: RSI(14) closes below 30 (washouts, the deeper version, are listed separately). Exit when RSI closes back above 55 or after 20 sessions, with an emergency stop 3.5× the daily range below the signal-day low.' : 'Rule: ran 40% or more off its 6-month low with RSI above 75 in the last month, then closes below its 50-day average for the first time.'}</p>
+        ${(() => { const off = codes.filter(c => !Playbook.on(c, { washout: 'washout', leader: 'leader', oversold: 'oversold' }[mode])); return off.length ? `<p class="mt-2 text-xs text-amber-200">Not in the playbook for ${off.map(c => MARKETS[c].name).join(', ')}: there it did not beat simply holding the stock in our 3-year test, so these show as WAIT and are listed for information only.</p>` : ''; })()}
         <p class="mt-2 text-xs text-slate-400">Track record, tested on this app’s own data:</p>
         <ul class="mt-1 space-y-0.5 text-xs text-slate-300">${res.map(trackLine).join('')}</ul>
         <details class="mt-2 text-xs text-slate-400"><summary class="cursor-pointer text-sky-300">Why there’s no “overbought — about to crash” sell list</summary>
@@ -4654,6 +4730,35 @@ const UI = {
           <p class="mt-1">A downtrend did <b>not</b> mean stocks kept falling. On average, stocks actually did better in the month after a downtrend day than after an uptrend day, but the ups and downs were wider. Sharp-dip buys (stocks with RSI below 30) did best in weak markets, for example about +3.6% per trade in the USA versus about +1.1% in uptrends. So the trend is a reason to adjust <i>how much</i> you buy and how tightly you protect it, not a reason to stop thinking. The USA had only one short downtrend in this period (April 2025), so treat that number with care. Past results do not guarantee future results.</p>
         </div>
         <p class="text-[11px] text-slate-500">Uses each market’s main index: S&P 500, S&P/TSX Composite and Nifty 50. Not investment advice.</p>
+      </div>`;
+    $('chartModal').querySelector('[data-action="chartClose"]')?.focus();
+  },
+
+  /** "How we chose the playbook" — the full test, in plain English. */
+  pbOpen() {
+    UI._chart = null; UI.lastFocus = document.activeElement;
+    (UI._chartObjs || []).forEach(c => { try { c.remove(); } catch { } }); UI._chartObjs = [];
+    $('chartModal').classList.remove('hidden'); const bd = $('chartBackdrop'); bd.classList.remove('hidden'); requestAnimationFrame(() => bd.classList.add('open'));
+    document.body.style.overflow = 'hidden';
+    const R = Playbook.RESULTS, name = k => StockBT.CLASSIC[k]?.name || PATTERNS[k.replace('pat:', '')]?.label || (k === 'scanner' ? 'Scanner shortlist (tier A or B)' : k);
+    const order = Object.keys(R).sort((a, b) => MARKET_CODES.reduce((t, c) => t + (R[b][c]?.[3] || 0), 0) - MARKET_CODES.reduce((t, c) => t + (R[a][c]?.[3] || 0), 0));
+    const cell = (k, c) => { const a = R[k][c]; if (!a) return '<td class="px-2 py-1.5 text-slate-500">—</td>'; const on = Playbook.tested(c, k);
+      return `<td class="px-2 py-1.5 num text-right ${on ? 'bg-emerald-500/10' : ''}"><span class="${a[3] > 0 ? 'text-emerald-300' : 'text-rose-300'} font-semibold">${fmt.pct(a[3], 1)}</span>${on ? ' <span class="text-emerald-300">✓</span>' : ''}<span class="block text-[10px] text-slate-500">${fmt.num(a[0])} trades · ${fmt.prob(a[1])} won · ${fmt.pct(a[2], 1)}</span></td>`; };
+    $('chartBody').innerHTML = `
+      <div class="sticky top-0 z-10 bg-panel/95 backdrop-blur border-b border-line px-4 py-3 flex items-center gap-2">
+        <h2 id="chartTitle" class="font-semibold text-lg mr-auto">How StrikeZone decides — one verdict per stock</h2>
+        <button type="button" data-action="chartClose" class="h-9 w-9 inline-flex items-center justify-center rounded-lg hover:bg-panel2" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="p-4 space-y-4 text-sm text-slate-300">
+        <p class="max-w-4xl">Every stock gets <b>one</b> verdict, and the same verdict appears on every page. It can say <b class="text-emerald-300">BUY</b> only when one of the tested setups below is active. Strong stocks without a tested entry are <b class="text-sky-300">WATCH</b> (wait for a dip), everything else is <b>WAIT</b>. If you own a stock, the Portfolio tab adds your own risk rules (trailing stop, loss limit) on top.</p>
+        <div class="grid md:grid-cols-3 gap-3">${MARKET_CODES.map(c => `<div class="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.04] p-3"><p class="font-semibold">${flagTag(MARKETS[c])} ${MARKETS[c].name} playbook</p><ul class="mt-1 space-y-1">${Playbook.list(c).map(z => `<li><b class="text-emerald-300">${z.icon} ${z.name}</b><span class="block text-[11px] text-slate-400">${U.esc(Playbook.statTxt(c, z.k))}</span></li>`).join('')}</ul></div>`).join('')}</div>
+        <div class="rounded-xl border border-line p-3"><p class="font-semibold text-slate-100">The test</p>
+          <p class="mt-1 max-w-4xl">All 21 strategies were replayed on 3 years of daily prices for every stock in each market (about 3,500 stocks, 350,000 trades). Each trade was compared with simply holding the same stock for the same number of days, because in a rising market almost anything “makes money”. A setup made the playbook for a market only if it beat holding <b>overall and in both halves of the period</b>, and beat holding in at least two of the three markets (so it isn’t luck in one place).</p>
+          <p class="mt-2 max-w-4xl"><b>What we found:</b> buying weakness the right way worked; chasing strength didn’t. Crossovers, breakouts, chart patterns and the momentum shortlist all trailed simply holding. The old BUY NOW / BUY EARLY / BUY ABOVE calls did too: over the next 20 sessions they were 1.5–2.3% behind holding in the USA and India, which is why they were retired. Those tools are still in the app as <b>information</b> (chart events, rankings), but they no longer say BUY.</p></div>
+        <div class="overflow-x-auto scroll-thin rounded-xl border border-line"><table class="w-full text-xs">
+          <thead><tr class="text-left text-slate-400 border-b border-line"><th class="px-2 py-2 font-medium">Strategy</th>${MARKET_CODES.map(c => `<th class="px-2 py-2 font-medium text-right">${flagTag(MARKETS[c])} ${MARKETS[c].name}: vs holding</th>`).join('')}</tr></thead>
+          <tbody>${order.map(k => `<tr class="border-b border-line/50"><td class="px-2 py-1.5 text-slate-200">${U.esc(name(k))}</td>${MARKET_CODES.map(c => cell(k, c)).join('')}</tr>`).join('')}</tbody></table></div>
+        <p class="text-[11px] text-slate-500">“vs holding” = average result per trade minus what holding the stock for the same days earned. ✓ = in the playbook for that market. Entries at the next open, exits as each rule says, no costs or slippage. Past results do not guarantee future results. Not investment advice.</p>
       </div>`;
     $('chartModal').querySelector('[data-action="chartClose"]')?.focus();
   },
@@ -5129,6 +5234,7 @@ function wire() {
         }
         case 'chartClose': UI.chartClose(); break;
         case 'moodOpen': UI.moodOpen(); break;
+        case 'pbOpen': UI.pbOpen(); break;
         case 'ixRange': S().settings.ixRange = +act.dataset.n; Store.persist(); UI.markets(); break;
         case 'ixView': S().settings.ixView = act.dataset.v; Store.persist(); UI.markets(); break;
         case 'ixPick': UI._ixPick = !UI._ixPick; UI.markets(); break;

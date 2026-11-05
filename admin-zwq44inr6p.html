@@ -106,9 +106,9 @@
     <button role="tab" data-tab="watchlist" class="tab">Watchlist</button>
     <button role="tab" data-tab="portfolio" class="tab">Portfolio</button>
     <button role="tab" data-tab="watch" class="tab">Strategy watch</button>
+    <button role="tab" data-tab="track" class="tab">Track record</button>
     <button role="tab" data-tab="backtest" class="tab">Backtest</button>
-    <button role="tab" data-tab="paper" class="tab">Paper log</button>
-    <button role="tab" data-tab="pipeline" class="tab">Pipeline</button>
+    <button role="tab" data-tab="pipeline" class="tab adminOnly">Pipeline</button>
 
     <button role="tab" data-tab="visitors" class="tab adminOnly">Visitors</button>
     <button role="tab" data-tab="settings" class="tab adminOnly">Settings</button>
@@ -343,7 +343,7 @@
 
   <section id="tab-visitors" role="tabpanel" aria-label="Visitors" hidden><div id="usersView" class="mb-4"></div><div id="visitorsView"></div></section>
 
-  <section id="tab-paper" role="tabpanel" aria-label="Paper trading log" hidden><div id="paperView"></div></section>
+  <section id="tab-track" role="tabpanel" aria-label="Track record" hidden><div id="trackView"></div></section>
   <section id="tab-pipeline" role="tabpanel" aria-label="Pipeline" hidden><div id="pipelineView"></div></section>
   <section id="tab-settings" role="tabpanel" aria-label="Settings" hidden><div id="settingsView"></div></section>
 </main>
@@ -353,7 +353,7 @@
     StrikeZone ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-04.3 · admin</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-05.1 · admin</p>
   </div>
 </footer>
 
@@ -645,7 +645,7 @@ const Store = (() => {
     filters: { q: '', cap: 'all', sector: 'all', pattern: 'all', tiers: ['A', 'B', 'C'], minProb: 0, top: 25, mine: false, tech: 'all' },
     mySync: { state: 'idle', msg: '' },
     sbt: null, sbtBusy: false,
-    bestTick: 0, bestProg: null, watchTick: 0, pfTick: 0, acct: 0, feedTick: 0, idxTick: 0, whaleTick: 0, quoteTick: 0, finder: null,
+    bestTick: 0, bestProg: null, watchTick: 0, pfTick: 0, acct: 0, feedTick: 0, idxTick: 0, whaleTick: 0, quoteTick: 0, trackTick: 0, finder: null,
     sort: 'prob',
     busy: false,
     pipes: {},           // code -> { stages, runs, ms }
@@ -1339,6 +1339,112 @@ const Watch = {
   hotCount() { return new Set(this.list().filter(w => this.state[w.id]?.hot?.length).map(w => w.m + w.sym)).size; }
 };
 
+/** TRACK RECORD — every BUY the app showed, and what happened next.
+ *  How it stays honest:
+ *   • The signals are recorded by the nightly data job, which opens this same app (the published version) on the new
+ *     data and saves every new BUY into signals.json — the evening it appears. Entries are never edited or removed.
+ *   • A trade is bought at the NEXT session's open (you can't buy at a close you only see afterwards) and exits by the
+ *     setup's own rule (stop, target/exit signal or time limit) — the same rules the playbook was tested with.
+ *   • Once a trade is closed its result is frozen. Open trades are marked to the latest close.
+ *   • One trade per stock at a time: while a stock's trade is open, repeat BUY days don't count again.
+ *   • Days the job could not record live (the first 60-session history, or a missed night) are filled by replaying
+ *     the same code on the data of that day, and are labelled "replayed". */
+const Track = {
+  data: null, err: null, _busy: null, local: false,
+  HOLD: { washout: 15, leaderpb: 20, oversold: 20 },
+  live() { const st = S().settings; return Feed.configured(st.feed) && MARKET_CODES.some(c => st.sources[c] === 'live'); },
+  async load(force = false) {
+    if (this._busy) return this._busy;
+    if (this.data && !force) return this.data;
+    this._busy = (async () => {
+      if (!this.live()) { this.err = 'demo'; }
+      else try { this.data = await Feed.get(S().settings.feed, 'signals.json'); this.err = null; this.local = false; }
+      catch (e) { this.err = /not found/.test(e.message) ? 'nofile' : e.message; }
+      this._busy = null; Store.set({ trackTick: Date.now() }); return this.data;
+    })();
+    return this._busy;
+  },
+  /** BUY verdicts on day i (point-in-time: only data up to day i is used). */
+  scanDay(ds, i, xs) {
+    const keep = ds.cursor, out = [];
+    ds.cursor = i;
+    try {
+      for (let ti = 0; ti < ds.tickers.length; ti++) {
+        const tk = ds.tickers[ti]; if (tk.excluded || i - tk.start < 60 || !Number.isFinite(tk.c[i])) continue;
+        const x = xs.get(ti) || (xs.set(ti, Ind.compute(tk, ds.M)), xs.get(ti));
+        if (!Object.keys(Playbook.SETUPS).some(k => Playbook.on(ds.m, k) && Rev.live(x, i, k, tk.start))) continue;
+        const t = Tech.ofAny(ds, ti);
+        if (t && Tech.isBuy(t)) out.push({ ti, tk, x, t });
+      }
+    } finally { ds.cursor = keep; }
+    return out;
+  },
+  /** Result of one signal on the data available now. */
+  outcome(ds, sig, xs) {
+    const ti = ds.tickers.findIndex(t => t.sym === sig.s); if (ti < 0) return null;
+    const tk = ds.tickers[ti], x = xs?.get(ti) || Ind.compute(tk, ds.M), i = ds.dates.indexOf(sig.d), last = ds.cursor;
+    if (i < 0) return null;
+    if (i + 1 > last) return { st: 'pending' };
+    const e = x.o[i + 1], H = this.HOLD[sig.setup] || 20; if (!(e > 0)) return null;
+    const done = (j, px, how) => ({ st: px / e - 1 > 0 ? 'win' : 'loss', how, ed: ds.dates[i + 1], e, xd: ds.dates[j], x: px, r: px / e - 1, days: j - i });
+    if (sig.setup === 'leaderpb') {
+      const st = e * .93, tg = e * 1.10;
+      for (let j = i + 1; j <= Math.min(last, i + H); j++) {
+        if (x.o[j] <= st && j > i + 1) return done(j, x.o[j], 'stop'); if (x.l[j] <= st) return done(j, st, 'stop');
+        if (x.o[j] >= tg && j > i + 1) return done(j, x.o[j], 'target'); if (x.h[j] >= tg) return done(j, tg, 'target');
+      }
+    } else {
+      const stop = sig.setup === 'washout' ? x.l[i] - x.atr[i] : x.l[i] - 3.5 * x.atr[i];
+      for (let j = i + 1; j <= Math.min(last, i + H); j++) {
+        if (x.l[j] <= stop) return done(j, Math.min(x.o[j], stop), 'stop');
+        if (sig.setup === 'washout' ? x.c[j] > x.sma20[j] : x.rsi[j] > 55) return done(j, x.c[j], 'exit signal');
+      }
+    }
+    if (i + H <= last) return done(i + H, x.c[i + H], 'time limit');
+    return { st: 'open', ed: ds.dates[i + 1], e, xd: ds.dates[last], x: x.c[last], r: x.c[last] / e - 1, days: last - i };
+  },
+  /** Market move over the same days (main index), for "vs market". */
+  bench(m, d0, d1) {
+    const lead = (Idx.list || []).find(d => d.m === m);
+    if (lead) { const a = lead.dates.indexOf(d0), b = lead.dates.indexOf(d1); if (a >= 0 && b >= a) return lead.c[b] / lead.c[a] - 1; }
+    const ds = S().mkts[m]?.ds; if (!ds?.index) return null; const a = ds.dates.indexOf(d0), b = ds.dates.indexOf(d1);
+    return a >= 0 && b >= a ? ds.index.c[b] / ds.index.c[a] - 1 : null;
+  },
+  /** Add the new signals for these markets and update the open results. Used by the nightly recorder (and by the
+   *  "compute in my browser" button when there is no recorded file yet). */
+  async run(prev, { markets = MARKET_CODES, backfill = 60, live = true } = {}) {
+    const log = (prev?.signals || []).map(z => ({ ...z })), now = new Date().toISOString(), notes = [];
+    for (const m of markets) {
+      if (!S().mkts[m]?.ds) { while (S().busy) await U.sleep(200); await App.run({ codes: [m], reason: 'Track record' }); while (S().busy) await U.sleep(200); }
+      const ds = S().mkts[m]?.ds; if (!ds) { notes.push(`${m}: no data`); continue; }
+      const last = ds.cursor, xs = new Map(), mine = log.filter(z => z.m === m);
+      const lastD = mine.reduce((a, z) => z.d > a ? z.d : a, '');
+      let from = lastD ? ds.dates.findIndex(d => d > lastD) : Math.max(0, last - backfill + 1);
+      if (from < 0) from = last + 1;
+      for (let i = from; i <= last; i++) {
+        const hits = this.scanDay(ds, i, xs);
+        for (const h of hits) {
+          const open = log.filter(z => z.m === m && z.s === h.tk.sym && z.d < ds.dates[i]).sort((p, q) => q.d.localeCompare(p.d))[0];
+          if (open) { const o = this.outcome(ds, open, xs); if (!o || ['open', 'pending'].includes(o.st) || (o.xd && o.xd > ds.dates[i])) continue; }
+          log.push({ id: `${m}|${h.tk.sym}|${ds.dates[i]}`, m, s: h.tk.sym, n: h.tk.name, setup: h.t.v, d: ds.dates[i], px: +h.tk.c[i].toFixed(4),
+            why: h.t.short, logged: now, replayed: !(live && i === last), ver: '2026-11-05.1 · admin' });
+        }
+        if ((i - from) % 5 === 4) await U.sleep(0);
+      }
+      for (const z of log.filter(z => z.m === m)) {
+        if (z.out && ['win', 'loss'].includes(z.out.st)) continue;            // closed results are frozen
+        const o = this.outcome(ds, z, xs); if (!o) continue;
+        if (o.ed) o.b = this.bench(m, ds.dates[ds.dates.indexOf(z.d)], o.xd);
+        z.out = { ...o, at: now };
+      }
+      notes.push(`${m}: ${log.filter(z => z.m === m && z.logged === now).length} new signals`);
+    }
+    return { v: 1, generated: now, app: '2026-11-05.1 · admin', rules: 'Buy at the next open; exit by the setup rule; closed results frozen.', signals: log, notes };
+  }
+};
+/** For the nightly recorder (headless browser in the data job). */
+window.StrikeZone = { ready: false, version: '2026-11-05.1 · admin', track: (prev, opts) => Track.run(prev, opts) };
+
 /** Moving-average crossovers, read the way you would read them on a chart: when did the fast line last cross the slow
  *  line, in which direction, and how clearly (how far apart the lines are now, and whether they keep criss-crossing).
  *  Tested on 3 years of data: crosses that held for 2 closes and opened a 1%+ gap won more often than every raw cross
@@ -1493,7 +1599,7 @@ const Quotes = {
     return this._busy;
   },
   /** Refresh every 5 minutes while a market is open and the page is visible. */
-  start() { if (this._timer) return; this._timer = setInterval(() => { if (document.visibilityState === 'visible' && MARKET_CODES.some(c => this.isOpen(c))) this.load(true); }, 5 * 60e3); },
+  start() { if (this._timer || RECORDER) return; this._timer = setInterval(() => { if (document.visibilityState === 'visible' && MARKET_CODES.some(c => this.isOpen(c))) this.load(true); }, 60e3); },
   time(at, m) { if (!at) return ''; const [tz, , , lbl] = this.HOURS[m] || this.HOURS.US; return new Date(at).toLocaleTimeString('en-US', { timeZone: tz, hour: 'numeric', minute: '2-digit' }) + ' ' + lbl; },
   /** Today's live bar for a stock — only when it is newer than the last official close. */
   of(m, sym) {
@@ -1504,7 +1610,7 @@ const Quotes = {
   },
   idx(s, lastDate) { const q = this.data?.idx?.[s]; if (!q || !(q[4] > 0) || q[0] <= lastDate) return null; return { d: q[0], o: q[1], h: q[2], l: q[3], c: q[4], at: q[6] }; },
   /** "● Live $123.45 +1.2% · 11:45 AM ET" for headers. */
-  tag(m, q, M) { return `<span class="inline-flex items-center gap-1 text-xs ${q.chg >= 0 ? 'text-emerald-300' : 'text-rose-300'}"><span class="w-1.5 h-1.5 rounded-full ${q.open ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}"></span>${q.open ? 'Live' : 'Today'} <b class="num">${fmt.px(q.c, M)}</b> <span class="num">${fmt.pct(q.chg, 2)}</span> <span class="text-slate-400">· ${this.time(q.at, m)}${q.open ? ', ~15 min delayed' : ''}</span></span>`; }
+  tag(m, q, M) { return `<span class="inline-flex items-center gap-1 text-xs ${q.chg >= 0 ? 'text-emerald-300' : 'text-rose-300'}"><span class="w-1.5 h-1.5 rounded-full ${q.open ? 'bg-emerald-400 animate-pulse' : 'bg-slate-400'}"></span>${q.open ? 'Live' : 'Today'} <b class="num">${fmt.px(q.c, M)}</b> <span class="num">${fmt.pct(q.chg, 2)}</span> <span class="text-slate-400">· ${this.time(q.at, m)}${q.open ? ', updates every 5 min' : ''}</span></span>`; }
 };
 
 /** TradingView's free live chart, embedded. */
@@ -2456,6 +2562,7 @@ service cloud.firestore {
 };
 
 /** Visit log: each visit is sent to the owner's Google Form (rows land in a Google Sheet). Admin devices are never logged. */
+const RECORDER = /[?&]recorder=1\b/.test(location.search);
 const Visit = {
   t0: Date.now(), tabs: new Set(), markets: new Set(), sentSummary: false, opened: false,
   get(k) { try { return localStorage.getItem(k); } catch { return null; } },
@@ -2519,7 +2626,7 @@ const Visit = {
     window.addEventListener('pagehide', () => this.summary());
     go();
   },
-  track(kind, v) { if (kind === 'tab') this.tabs.add(v); if (kind === 'market') this.markets.add(v); }
+  track(kind, v) { if (RECORDER) return; if (kind === 'tab') this.tabs.add(v); if (kind === 'market') this.markets.add(v); }
 };
 
 /** Reads the published Google Sheet (CSV) of visits and renders the admin panel. */
@@ -3718,7 +3825,7 @@ const App = {
     }
     S().prevA[ds.key] = aNow;
     let added = 0;
-    if (st.autoTrackA) for (const r of rows.filter(r => r.sc.tier === 'A')) if (Paper.add(r, 'auto', true)) added++;
+
     const fills = Paper.evaluate(true);
     const wsig = Watch.evaluate([code], true);
     const psig = Portfolio.evaluate([code], true);
@@ -4131,21 +4238,22 @@ const UI = {
 
   tabs() {
     if (!Admin.is && ['settings', 'visitors'].includes(S().tab)) S().tab = 'watchlist';
+    if (!$('tab-' + S().tab)) S().tab = 'markets';
     const t = S().tab;
-    Visit.track('tab', { markets: 'Markets', watchlist: 'Watchlist', portfolio: 'Portfolio', watch: 'Strategy watch', backtest: 'Backtest', paper: 'Paper log', pipeline: 'Pipeline', settings: 'Settings', visitors: 'Visitors' }[t]);
+    Visit.track('tab', { markets: 'Markets', watchlist: 'Watchlist', portfolio: 'Portfolio', watch: 'Strategy watch', backtest: 'Backtest', track: 'Track record', pipeline: 'Pipeline', settings: 'Settings', visitors: 'Visitors' }[t]);
     document.querySelectorAll('[role=tab]').forEach(b => {
       const on = b.dataset.tab === t;
       b.setAttribute('aria-selected', on);
       b.className = `tab shrink-0 px-3 py-2.5 text-sm border-b-2 -mb-px ${on ? 'border-emerald-400 text-slate-100 font-medium' : 'border-transparent text-slate-400 hover:text-slate-200'}`;
     });
-    for (const k of ['markets', 'watchlist', 'portfolio', 'watch', 'backtest', 'paper', 'pipeline', 'visitors', 'settings']) { const sec = $('tab-' + k); if (sec) sec.hidden = k !== t; }
+    for (const k of ['markets', 'watchlist', 'portfolio', 'watch', 'track', 'backtest', 'pipeline', 'visitors', 'settings']) { const sec = $('tab-' + k); if (sec) sec.hidden = k !== t; }
     if (t === 'visitors') UI.visitors();
     if (t === 'watch') UI.watchForm();
     if (t === 'portfolio') UI.portfolioOpen();
     if (t === 'markets') UI.markets();
     if (t === 'watchlist') UI.results();
     if (t === 'settings') UI.settings();
-    if (t === 'paper') UI.paper();
+    if (t === 'track') UI.track();
     if (t === 'pipeline') UI.pipeline();
     if (t === 'backtest') UI.btForm();
   },
@@ -4451,7 +4559,7 @@ const UI = {
           <p class="text-xs text-slate-400 truncate">${flagTag(M)} ${M.exch} · ${U.esc(tk.name)} · ${U.esc(tk.sector)} · ${fmt.cap(tk.cap, M)}</p></div>
         ${UI.chartBtn(row.m, tk.sym, '📈 Chart', 'h-9 px-3 rounded-lg border border-sky-500/40 text-sm text-sky-300 hover:bg-sky-500/10')}
         <button type="button" data-action="btStock" data-m="${row.m}" data-sym="${U.esc(tk.sym)}" class="hidden sm:inline-flex h-9 px-3 items-center rounded-lg border border-line text-sm text-slate-300 hover:bg-panel2">Backtest</button>
-        <button type="button" data-action="track" data-key="${row.key}" class="h-9 px-3 rounded-lg border border-emerald-500/40 text-emerald-300 text-sm hover:bg-emerald-500/10">Track</button>
+
         <button type="button" data-action="closeDrawer" class="h-9 w-9 inline-flex items-center justify-center rounded-lg hover:bg-panel2" aria-label="Close details"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
       </div>
       <div class="p-4 sm:p-5 space-y-5">
@@ -5551,6 +5659,92 @@ const UI = {
     if (bt.curve.length) requestAnimationFrame(() => { try { const c = Charts.equity($('btChart'), bt.curve); c._bt = true; UI.charts.push(c); } catch (e) { console.error(e); } });
   },
 
+  /* ---------- Track record ---------- */
+  track() {
+    const el = $('trackView'); if (!el || S().tab !== 'track') return;
+    if (!Track.data && !Track._busy && Track.err == null) Track.load();
+    const f = (UI._trF ||= { m: 'ALL', setup: 'all', days: 90, show: 'all', liveOnly: false, more: 0 });
+    const D = Track.data, chip = (key, v, l, on) => `<button type="button" data-action="trF" data-k="${key}" data-v="${v}" class="h-7 px-2.5 rounded-lg text-xs ring-1 ${on ? 'bg-panel2 ring-white/50 text-slate-100 font-semibold' : 'ring-line text-slate-400 hover:bg-panel2'}">${l}</button>`;
+    const intro = `<div class="mb-3"><h2 class="text-lg font-semibold">Track record</h2>
+      <p class="text-sm text-slate-300 max-w-4xl">Every <b class="text-emerald-300">BUY</b> StrikeZone has shown — saved the evening it appeared — and what happened next. Each trade is bought at the <b>next session’s open</b> and sold by its setup’s own rule (stop, exit signal or time limit). Nothing is edited or removed afterwards; closed results are frozen. <button type="button" data-action="trHow" class="text-sky-300 underline underline-offset-2">How it’s measured</button></p>
+      ${UI._trHow ? `<div class="mt-2 rounded-xl border border-line bg-ink/60 p-3 text-xs text-slate-300 max-w-4xl space-y-1">
+        <p><b>Recorded, not reconstructed.</b> The nightly data job opens this same app on the new data and saves every new BUY into a log file (signals.json) before anyone sees it. Entries are never changed afterwards.</p>
+        <p><b>Realistic entry.</b> You see a signal after the close, so the trade is bought at the next session’s opening price — never at the close it was based on.</p>
+        <p><b>Exit rules:</b> Washout — stop 1 ATR under the signal-day low, sell on the first close above the 20-day average, or after 15 sessions. Oversold dip — stop 3.5 ATR under the low, sell when RSI closes above 55, or after 20 sessions. Leader pullback — −7% stop, +10% target, or after 20 sessions.</p>
+        <p><b>One trade per stock at a time.</b> Repeat BUY days while a trade is open don’t count again. <b>vs market</b> = the trade minus the main index over the same days (S&P 500, S&P/TSX, Nifty 50). No costs or taxes.</p>
+        <p><b>“Replayed”</b> marks days the job did not record live (the starting 60-session history, or a missed night): the same code was run on that day’s data. Tick “Recorded live only” to exclude them.</p></div>` : ''}</div>`;
+    if (!D) {
+      const msg = Track._busy ? '<div class="skeleton h-40"></div>' : `<div class="rounded-xl border border-dashed border-line p-5 text-sm text-slate-300 max-w-3xl">
+        <p>${Track.err === 'nofile' ? 'The recorded log isn’t in the data feed yet — it starts with the next nightly data update (after the updated data job is installed).' : Track.err === 'demo' ? 'The recorded track record comes with the live data feed.' : `Couldn’t load the log: ${U.esc(Track.err || '')}`}</p>
+        <p class="mt-2 text-slate-400">Meanwhile you can replay the last 60 sessions here in your browser (same rules, labelled “replayed”).</p>
+        <button type="button" data-action="trCompute" class="mt-3 h-9 px-4 rounded-lg bg-sky-500 text-ink font-semibold text-sm hover:bg-sky-400" ${UI._trBusy ? 'disabled' : ''}>${UI._trBusy ? 'Replaying…' : 'Replay the last 60 sessions'}</button></div>`;
+      el.innerHTML = intro + msg; return;
+    }
+    // filter + mark open trades to the latest data
+    const end = D.signals.reduce((a, z) => z.d > a ? z.d : a, ''), cut = f.days ? new Date(Date.parse(end) - f.days * 1.45 * 864e5).toISOString().slice(0, 10) : '';
+    const rows = D.signals.filter(z => (f.m === 'ALL' || z.m === f.m) && (f.setup === 'all' || z.setup === f.setup) && z.d >= cut && (!f.liveOnly || !z.replayed)).map(z => {
+      let o = z.out || {};
+      if (!['win', 'loss'].includes(o.st)) { const ds = S().mkts[z.m]?.ds; if (ds && ds.dates.includes(z.d)) { const n = Track.outcome(ds, z); if (n) o = { ...n, b: n.ed ? Track.bench(z.m, z.d, n.xd) : null }; } }
+      return { ...z, o };
+    });
+    const closed = rows.filter(z => ['win', 'loss'].includes(z.o.st)), open = rows.filter(z => z.o.st === 'open'), wins = closed.filter(z => z.o.st === 'win');
+    const avg = a => a.length ? a.reduce((t, z) => t + z.o.r, 0) / a.length : NaN, avgEx = a => { const b = a.filter(z => Number.isFinite(z.o.b)); return b.length ? b.reduce((t, z) => t + z.o.r - z.o.b, 0) / b.length : NaN; };
+    const best = closed.slice().sort((a, b) => b.o.r - a.o.r)[0], worst = closed.slice().sort((a, b) => a.o.r - b.o.r)[0];
+    const pc = (v, d = 1) => Number.isFinite(v) ? `<span class="${v >= 0 ? 'text-emerald-300' : 'text-rose-300'}">${fmt.pct(v, d)}</span>` : '—';
+    const tile = (l, v, sub = '') => `<div class="rounded-xl border border-line bg-panel p-3"><p class="text-[11px] uppercase tracking-wide text-slate-500">${l}</p><p class="mt-0.5 text-xl font-semibold num">${v}</p>${sub ? `<p class="text-[11px] text-slate-400">${sub}</p>` : ''}</div>`;
+    const setups = [['all', 'All setups'], ['washout', '⤒ Washout'], ['leaderpb', '↘↗ Leader dip'], ['oversold', '↧ Oversold']];
+    const groups = Object.entries(rows.reduce((g, z) => ((g[z.d] ||= []).push(z), g), {})).sort((a, b) => b[0].localeCompare(a[0]));
+    const shownG = groups.slice(0, 15 + (f.more || 0) * 15);
+    const res = z => { const o = z.o, M = MARKETS[z.m];
+      const badge = o.st === 'win' ? '<span class="inline-flex h-6 px-2 items-center rounded bg-emerald-500/20 text-emerald-200 text-xs font-semibold">✓ Won</span>' : o.st === 'loss' ? '<span class="inline-flex h-6 px-2 items-center rounded bg-rose-500/20 text-rose-200 text-xs font-semibold">✗ Lost</span>' : o.st === 'open' ? '<span class="inline-flex h-6 px-2 items-center rounded bg-sky-500/20 text-sky-200 text-xs font-semibold">⏳ Open</span>' : '<span class="inline-flex h-6 px-2 items-center rounded bg-slate-500/20 text-slate-300 text-xs">Buys next open</span>';
+      return `<tr class="border-b border-line/50 hover:bg-panel2/40">
+        <td class="px-3 py-2"><p class="font-semibold">${U.esc(z.s)} <span class="text-[11px] font-normal text-slate-500">${flagTag(M)}${z.replayed ? ' · <span title="Not recorded live — the same code replayed on that day’s data">replayed</span>' : ''}</span></p><p class="text-[11px] text-slate-500 truncate max-w-[200px]">${U.esc(z.n || '')}</p></td>
+        <td class="px-3 py-2">${UI.techPill({ v: z.setup })}</td>
+        <td class="px-3 py-2 num text-xs">${o.e ? `${fmt.px(o.e, M)}<span class="block text-[10.5px] text-slate-500">${fmt.dateShort(o.ed)} open</span>` : '—'}</td>
+        <td class="px-3 py-2 num text-xs">${o.x ? `${fmt.px(o.x, M)}<span class="block text-[10.5px] text-slate-500">${o.st === 'open' ? 'last close' : `${fmt.dateShort(o.xd)} · ${U.esc(o.how)}`}</span>` : '—'}</td>
+        <td class="px-3 py-2 text-right num font-semibold">${pc(o.r)}<span class="block text-[10.5px] font-normal text-slate-500">${o.days ? o.days + ' sessions' : ''}</span></td>
+        <td class="px-3 py-2 text-right num text-xs">${Number.isFinite(o.b) && o.e ? pc(o.r - o.b) : '—'}<span class="block text-[10.5px] text-slate-500">${Number.isFinite(o.b) ? 'market ' + fmt.pct(o.b, 1) : ''}</span></td>
+        <td class="px-3 py-2">${badge}</td>
+        <td class="px-3 py-2 text-right">${UI.chartBtn(z.m, z.s, '📈', 'h-7 w-8 inline-flex items-center justify-center rounded-lg border border-sky-500/40 text-sky-300 hover:bg-sky-500/10')}</td></tr>`; };
+    const bySetup = ['washout', 'leaderpb', 'oversold'].flatMap(k => MARKET_CODES.map(m => { const a = closed.filter(z => z.setup === k && z.m === m), o = open.filter(z => z.setup === k && z.m === m); return a.length || o.length ? { k, m, a, o } : null; })).filter(Boolean);
+    el.innerHTML = intro + `
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <div class="flex gap-1">${chip('m', 'ALL', 'All markets', f.m === 'ALL')}${MARKET_CODES.map(c => chip('m', c, `${MARKETS[c].flag} ${MARKETS[c].name}`, f.m === c)).join('')}</div>
+        <div class="flex gap-1">${setups.map(([v, l]) => chip('setup', v, l, f.setup === v)).join('')}</div>
+        <div class="flex gap-1">${[[30, '30 days'], [90, '90 days'], [0, 'All']].map(([v, l]) => chip('days', v, l, f.days === v)).join('')}</div>
+        <label class="ml-auto inline-flex items-center gap-2 text-xs text-slate-300 cursor-pointer"><input type="checkbox" data-trlive ${f.liveOnly ? 'checked' : ''} class="h-4 w-4 accent-emerald-400"> Recorded live only</label>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2 mb-3">
+        ${tile('Signals', fmt.num(rows.length), `${fmt.num(closed.length)} closed · ${fmt.num(open.length)} open`)}
+        ${tile('Win rate', closed.length ? `${fmt.prob(wins.length / closed.length)}` : '—', `${fmt.num(wins.length)} won · ${fmt.num(closed.length - wins.length)} lost`)}
+        ${tile('Average per trade', pc(avg(closed), 2), 'closed trades')}
+        ${tile('vs market', pc(avgEx(closed), 2), 'average, same days')}
+        ${tile('Open trades now', pc(avg(open), 2), `${fmt.num(open.length)} trades, marked to last close`)}
+        ${tile('Best / worst', closed.length ? `${pc(best.o.r, 0)} / ${pc(worst.o.r, 0)}` : '—', closed.length ? `${U.esc(best.s)} / ${U.esc(worst.s)}` : '')}
+      </div>
+      ${closed.length >= 2 ? `<div class="rounded-xl border border-line bg-panel p-3 mb-3"><p class="text-sm font-semibold">Week by week <span class="text-xs font-normal text-slate-400">— average result of the trades that closed each week (bars) vs the market over the same trades (line)</span></p><div id="trEq" class="mt-2 h-[180px]"></div></div>` : ''}
+      ${bySetup.length ? `<div class="rounded-xl border border-line bg-panel mb-3 overflow-x-auto scroll-thin"><table class="w-full text-sm"><thead><tr class="text-left text-xs text-slate-400 border-b border-line"><th class="px-3 py-2 font-medium">Setup</th><th class="px-3 py-2 font-medium">Market</th><th class="px-3 py-2 font-medium text-right">Closed</th><th class="px-3 py-2 font-medium text-right">Won</th><th class="px-3 py-2 font-medium text-right">Avg / trade</th><th class="px-3 py-2 font-medium text-right">vs market</th><th class="px-3 py-2 font-medium text-right">Open now</th><th class="px-3 py-2 font-medium text-right">Tested before (avg)</th></tr></thead>
+        <tbody>${bySetup.map(({ k, m, a, o }) => { const pb = Playbook.stat(m, { washout: 'washout', leaderpb: 'leader', oversold: 'oversold' }[k]);
+          return `<tr class="border-b border-line/50"><td class="px-3 py-2">${UI.techPill({ v: k })}</td><td class="px-3 py-2 text-xs">${flagTag(MARKETS[m])} ${MARKETS[m].name}</td><td class="px-3 py-2 text-right num">${a.length}</td><td class="px-3 py-2 text-right num">${a.length ? fmt.prob(a.filter(z => z.o.st === 'win').length / a.length) : '—'}</td><td class="px-3 py-2 text-right num">${pc(avg(a), 2)}</td><td class="px-3 py-2 text-right num">${pc(avgEx(a), 2)}</td><td class="px-3 py-2 text-right num">${o.length ? `${o.length} · ${fmt.pct(avg(o), 1)}` : '—'}</td><td class="px-3 py-2 text-right num text-xs text-slate-400">${pb ? `${fmt.prob(pb.win)} won · ${fmt.pct(pb.avg, 1)}` : '—'}</td></tr>`; }).join('')}</tbody></table></div>` : ''}
+      ${groups.length ? shownG.map(([d, a]) => { const w = a.filter(z => z.o.st === 'win').length, l = a.filter(z => z.o.st === 'loss').length, op = a.filter(z => z.o.st === 'open').length;
+        return `<div class="rounded-xl border border-line bg-panel mb-2 overflow-x-auto scroll-thin"><div class="px-3 py-2 border-b border-line flex flex-wrap items-center gap-x-3 gap-y-1"><p class="font-semibold">${fmt.date(d)}</p><p class="text-xs text-slate-400">${a.length} signal${a.length === 1 ? '' : 's'} · <span class="text-emerald-300">${w} won</span> · <span class="text-rose-300">${l} lost</span>${op ? ` · <span class="text-sky-300">${op} open</span>` : ''} · average ${fmt.pct(avg(a), 1)}</p></div>
+          <table class="w-full text-sm"><thead><tr class="text-left text-[11px] text-slate-500"><th class="px-3 py-1.5 font-medium">Stock</th><th class="px-3 py-1.5 font-medium">Signal</th><th class="px-3 py-1.5 font-medium">Bought</th><th class="px-3 py-1.5 font-medium">Sold / now</th><th class="px-3 py-1.5 font-medium text-right">Result</th><th class="px-3 py-1.5 font-medium text-right">vs market</th><th class="px-3 py-1.5 font-medium">Outcome</th><th></th></tr></thead><tbody>${a.sort((p, q) => (q.o.r ?? -9) - (p.o.r ?? -9)).map(res).join('')}</tbody></table></div>`; }).join('')
+        + (groups.length > shownG.length ? `<button type="button" data-action="trMore" class="mt-1 h-9 px-4 rounded-lg border border-line text-sm text-slate-300 hover:bg-panel2">Show earlier days (${groups.length - shownG.length} more)</button>` : '')
+        : '<p class="text-sm text-slate-400">No signals match these filters.</p>'}
+      <p class="mt-3 text-[11px] text-slate-500">Log ${Track.local ? 'replayed in this browser' : `recorded by the nightly job · last updated ${fmt.date(D.generated.slice(0, 10))}`}. Past results do not guarantee future results. Not investment advice.</p>`;
+    if (closed.length >= 2) requestAnimationFrame(() => { try {
+      const box = $('trEq'); if (!box || !Charts.ok()) return; (UI._trCh || []).forEach(c => { try { c.remove(); } catch { } });
+      const ch = LightweightCharts.createChart(box, { ...Charts.base(), rightPriceScale: { borderColor: '#1f2a37' }, timeScale: { borderColor: '#1f2a37' } });
+      const pf = { type: 'custom', formatter: v => v.toFixed(1) + '%' };
+      const hb = ch.addHistogramSeries({ priceLineVisible: false, priceFormat: pf }), ln = ch.addLineSeries({ color: '#94a3b8', lineWidth: 1.5, lineStyle: 2, priceLineVisible: false, priceFormat: pf });
+      const wk = d => { const t = new Date(d + 'T00:00:00Z'); t.setUTCDate(t.getUTCDate() - ((t.getUTCDay() + 6) % 7)); return t.toISOString().slice(0, 10); };
+      const W = {}; for (const z of closed) { const k = wk(z.o.xd); (W[k] ||= { r: 0, n: 0, b: 0, nb: 0 }); W[k].r += z.o.r; W[k].n++; if (Number.isFinite(z.o.b)) { W[k].b += z.o.b; W[k].nb++; } }
+      const ks = Object.keys(W).sort();
+      hb.setData(ks.map(k => { const v = W[k].r / W[k].n * 100; return { time: k, value: +v.toFixed(2), color: v >= 0 ? 'rgba(52,211,153,0.75)' : 'rgba(248,113,113,0.75)' }; }));
+      ln.setData(ks.filter(k => W[k].nb).map(k => ({ time: k, value: +(W[k].b / W[k].nb * 100).toFixed(2) }))); ch.timeScale().fitContent(); UI._trCh = [ch];
+    } catch (e) { console.error(e); } });
+  },
+
   /* ---------- Paper log ---------- */
   paper() {
     const s = S(), el = $('paperView');
@@ -5944,6 +6138,10 @@ function wire() {
         case 'chartClose': UI.chartClose(); break;
         case 'moodOpen': UI.moodOpen(); break;
         case 'pbOpen': UI.pbOpen(); break;
+        case 'trF': { const f = UI._trF, k = act.dataset.k; f[k] = k === 'days' ? +act.dataset.v : act.dataset.v; f.more = 0; UI.track(); break; }
+        case 'trHow': UI._trHow = !UI._trHow; UI.track(); break;
+        case 'trMore': UI._trF.more = (UI._trF.more || 0) + 1; UI.track(); break;
+        case 'trCompute': if (!UI._trBusy) { UI._trBusy = true; UI.track(); Track.run(null, { markets: S().settings.market === 'ALL' ? MARKET_CODES : [S().settings.market], live: false }).then(d => { Track.data = d; Track.local = true; }).catch(e => UI.toast('Replay failed: ' + e.message, 'error')).finally(() => { UI._trBusy = false; UI.track(); }); } break;
         case 'chartTv': if (UI._chart) { UI._chart.tv = act.dataset.on === '1'; UI.chartRender(); } break;
         case 'ixTv': UI._ixTv = act.dataset.on === '1'; UI.indexOpen(+act.dataset.k); break;
         case 'ixRange': S().settings.ixRange = +act.dataset.n; Store.persist(); UI.markets(); break;
@@ -6163,7 +6361,7 @@ function wire() {
     e.preventDefault(); $('dropZone').classList.remove('border-emerald-400');
     const file = e.dataTransfer.files[0]; if (file) { UI.droppedFile = file; $('csvName').textContent = file.name; }
   });
-  $('paperView').addEventListener('change', e => { if (e.target.id === 'pAuto') { S().settings.autoTrackA = e.target.checked; Store.persist(); } });
+
 
   // My stocks
   $('myMkt').addEventListener('change', () => { $('myInput').placeholder = `e.g. ${{ US: 'AAPL', CA: 'SHOP', IN: 'TCS' }[$('myMkt').value]}`; });
@@ -6366,6 +6564,7 @@ Store.on(['feedTick'], () => { const g = Feed.lastMeta?.generated; if (!g) retur
 Store.on(['mkts'], () => { if (!Whale.data && Whale.live()) Whale.load(); });
 Store.on(['whaleTick'], () => { UI.results(); UI.finder(); UI.watch(); UI.portfolio(); });
 Store.on(['feedTick'], () => { if (!Quotes.data) Quotes.load(); Quotes.start(); });
+Store.on(['trackTick'], () => { if (S().tab === 'track') UI.track(); });
 Store.on(['quoteTick'], () => { if (S().tab === 'markets') UI.markets(); if (UI._chart && !UI._chart.tv && !$('chartModal').classList.contains('hidden')) UI.chartRender(); });
 Store.on(['mkts'], () => { if (Idx.demo || !Idx.list) { if (!Idx.live()) { Idx.demoList(); if (S().tab === 'markets') UI.markets(); } } });
 Store.on(['tab'], () => UI.tabs());
@@ -6373,7 +6572,7 @@ Store.on(['results', 'settings', 'mkts'], () => UI.stats());
 Store.on(['results', 'filters', 'sort'], () => { UI.results(); UI.tierChips(); });
 Store.on(['settings'], () => UI.schedule());
 Store.on(['pipes', 'log'], () => UI.pipeline());
-Store.on(['paper'], () => { if (S().tab === 'paper') UI.paper(); });
+
 Store.on(['alerts'], () => { if (!$('alertsPanel').classList.contains('hidden')) UI.alertsList(); });
 Store.on(['bt', 'btBusy', 'busy'], () => { if (S().tab === 'backtest') UI.btForm(); });
 Store.on(['sbt', 'sbtBusy'], () => { if (S().tab === 'backtest') UI.sbForm(); });
@@ -6394,14 +6593,13 @@ async function boot() {
   wire();
   UI.whoLine();
   UI.acctButton();
-  Account.init();
-  Visit.start();
-  if (!S().disclaimerSeen) $('disclaimer').classList.remove('hidden');
+  if (!RECORDER) { Account.init(); Visit.start(); }
+  if (!S().disclaimerSeen && !RECORDER) $('disclaimer').classList.remove('hidden');
   $('fTop').value = String(S().filters.top); $('fSort').value = S().sort;
   UI.filterOptions(); UI.tabs(); UI.header(); UI.stats(); UI.results(); UI.tierChips(); UI.schedule(); UI.myStocks();
   UI.dataBar();
   if (MARKET_CODES.some(c => S().settings.sources[c] === 'live') && Feed.configured(S().settings.feed)) Feed.get(S().settings.feed, 'meta.json').catch(() => {});
-  MyStocks.pull();
+  if (!RECORDER) MyStocks.pull();
   const nextAt = {}; MARKET_CODES.forEach(c => { nextAt[c] = Cal.nextRun(MARKETS[c]).at.getTime(); });
   setInterval(() => {
     UI.schedule();
@@ -6420,6 +6618,7 @@ async function boot() {
   }, 30000);
   let ticks = 0;
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && S().settings.autoRun) App.checkLive(); });
+  if (RECORDER) { window.StrikeZone.ready = true; return; }
   App.run({ codes: view(), fresh: true, reason: 'Initial nightly run' }).then(() => UI.filterOptions());
 }
 

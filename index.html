@@ -106,6 +106,7 @@
     <button role="tab" data-tab="watchlist" class="tab">Watchlist</button>
     <button role="tab" data-tab="portfolio" class="tab">Portfolio</button>
     <button role="tab" data-tab="watch" class="tab">Strategy watch</button>
+    <button role="tab" data-tab="whales" class="tab">🐋 Whale activity</button>
     <button role="tab" data-tab="track" class="tab">Track record</button>
     <button role="tab" data-tab="backtest" class="tab">Backtest</button>
     
@@ -185,7 +186,7 @@
         <button type="button" id="fMine" aria-pressed="false" class="h-8 px-2.5 rounded-lg text-sm ring-1 ring-line text-slate-400">★ Mine</button>
         <label class="ml-2 text-xs text-slate-400">Tech check
           <select id="fTech" class="ml-1 h-8 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">
-            <option value="all">All</option><option value="buys">Any tested BUY</option><option value="washout">BUY · WASHOUT</option><option value="leaderpb">BUY · LEADER DIP</option><option value="oversold">BUY · OVERSOLD</option><option value="watch">WATCH</option><option value="wait">WAIT</option><option value="whale">🐋 Big money buying</option><option value="stage-early">🌱 Early-entry zone</option>
+            <option value="all">All</option><option value="buys">Any tested BUY</option><option value="washout">BUY · WASHOUT</option><option value="leaderpb">BUY · LEADER DIP</option><option value="oversold">BUY · OVERSOLD</option><option value="watch">WATCH</option><option value="wait">WAIT</option><option value="whale">🐋 Whale money flowing in</option><option value="stage-early">🌱 Early-entry zone</option>
           </select>
         </label>
         <label class="ml-2 text-xs text-slate-400">Show
@@ -340,6 +341,7 @@
 
 
 
+  <section id="tab-whales" role="tabpanel" aria-label="Whale activity" hidden><div id="whaleView"></div></section>
   <section id="tab-track" role="tabpanel" aria-label="Track record" hidden><div id="trackView"></div></section>
   
 
@@ -350,7 +352,7 @@
     StrikeZone ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-05.2 · public</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-05.4 · public</p>
   </div>
 </footer>
 
@@ -1433,7 +1435,7 @@ const Track = {
           if (ids.has(`${m}|${h.tk.sym}|${ds.dates[i]}`)) continue;
           ids.add(`${m}|${h.tk.sym}|${ds.dates[i]}`);
           log.push({ id: `${m}|${h.tk.sym}|${ds.dates[i]}`, m, s: h.tk.sym, n: h.tk.name, setup: h.t.v, d: ds.dates[i], px: +h.tk.c[i].toFixed(4),
-            why: h.t.short, logged: now, replayed: !(live && i === last), ver: '2026-11-05.2 · public' });
+            why: h.t.short, logged: now, replayed: !(live && i === last), ver: '2026-11-05.4 · public' });
         }
         if ((i - from) % 5 === 4) await U.sleep(0);
       }
@@ -1445,11 +1447,11 @@ const Track = {
       }
       notes.push(`${m}: ${log.filter(z => z.m === m && z.logged === now).length} new signals`);
     }
-    return { v: 1, rv: this.RULES, generated: now, app: '2026-11-05.2 · public', rules: 'Buy at the next open; exit by the setup rule; closed results frozen.', changes, signals: log, notes };
+    return { v: 1, rv: this.RULES, generated: now, app: '2026-11-05.4 · public', rules: 'Buy at the next open; exit by the setup rule; closed results frozen.', changes, signals: log, notes };
   }
 };
 /** For the nightly recorder (headless browser in the data job). */
-window.StrikeZone = { ready: false, version: '2026-11-05.2 · public', track: (prev, opts) => Track.run(prev, opts) };
+window.StrikeZone = { ready: false, version: '2026-11-05.4 · public', track: (prev, opts) => Track.run(prev, opts) };
 
 /** Moving-average crossovers, read the way you would read them on a chart: when did the fast line last cross the slow
  *  line, in which direction, and how clearly (how far apart the lines are now, and whether they keep criss-crossing).
@@ -1658,7 +1660,7 @@ const Whale = {
     if (/HRTI|GRAVITON|JUNOMONETA|QE SECURITIES|NK SECURITIES|MUSIGMA|ALPHAGREP|IRAGE|TOWER RESEARCH|MATHISYS|SILVERLEAF|PACE STOCK|SHARE INDIA|STOCK BROKING|BROKING|SECURITIES (PVT|PRIVATE)|COMMODITIES|FINVEST|DERIVATIVES|ARBITRAGE/.test(w)) return 'trader';
     if (/MUTUAL FUND|\bMF\b|ASSET MANAGEMENT|\bAMC\b|TRUSTEE/.test(w)) return 'mf';
     if (/INSURANCE|ASSURANCE|LIFE INS|\bLIC\b/.test(w)) return 'ins';
-    if (/FUND|CAPITAL|INVESTMENTS?\b|PARTNERS|HOLDINGS|ADVISORS|SINGAPORE|MAURITIUS|\bLLC\b|\bLP\b|\bPTE\b|SICAV|\bPLC\b|\bINC\b|BANK|PENSION|SOVEREIGN|GOVERNMENT OF|NORGES|ABU DHABI|VANGUARD|BLACKROCK|GOLDMAN|MORGAN|SOCIETE|BNP|CITIGROUP|JPMORGAN|NOMURA|UBS|HSBC/.test(w)) return 'inst';
+    if (/FUND|\bAIF\b|ALTERNATIVE INVESTMENT|PORTFOLIO|CAPITAL|INVESTMENTS?\b|PARTNERS|HOLDINGS|ADVISORS|SINGAPORE|MAURITIUS|\bLLC\b|\bLP\b|\bPTE\b|SICAV|\bPLC\b|\bINC\b|BANK|PENSION|SOVEREIGN|GOVERNMENT OF|NORGES|ABU DHABI|VANGUARD|BLACKROCK|GOLDMAN|MORGAN|SOCIETE|BNP|CITIGROUP|JPMORGAN|NOMURA|UBS|HSBC/.test(w)) return 'inst';
     return 'other';
   },
   KIND: { mf: 'Mutual fund', ins: 'Insurer', inst: 'Institution / fund', trader: 'Trading firm', other: 'Large investor', insider: 'Company insider', '13D': 'Activist 5%+ holder', '13G': '5%+ holder' },
@@ -1669,14 +1671,13 @@ const Whale = {
   },
   events(m, sym, days = this.DAYS) {
     if (!this.data) return [];
-    const ds = S().mkts[m]?.ds, end = ds ? ds.dates[ds.cursor] : new Date().toISOString().slice(0, 10);
-    const cut = new Date(Date.parse(end) - days * 864e5).toISOString().slice(0, 10);
-    return (this.index()[m + '|' + sym] || []).filter(e => e.d >= cut && e.d <= end);
+    const cut = new Date(Date.now() - days * 864e5).toISOString().slice(0, 10);
+    return (this.index()[m + '|' + sym] || []).filter(e => e.d >= cut);
   },
   /** One summary per stock: is disclosed big money net buying or selling over the last 30 days? */
-  summary(m, sym) {
+  summary(m, sym, days = this.DAYS) {
     if (m === 'CA') return this.footprint(m, sym);
-    const ev = this.events(m, sym); if (!ev.length) return null;
+    const ev = this.events(m, sym, days); if (!ev.length) return null;
     const M = MARKETS[m], items = [];
     let buy = 0, sell = 0;
     if (m === 'IN') {
@@ -1686,22 +1687,51 @@ const Whale = {
         if (k === 'trader' || Math.abs(net) < .2 * gross) continue;      // same-day in-and-out by trading firms is not "smart money"
         const side = net > 0 ? 'BUY' : 'SELL', val = side === 'BUY' ? o.bv - o.sv : o.sv - o.bv;
         if (side === 'BUY') buy += val; else sell += val;
-        items.push({ d: o.d, side, who: o.who, kind: this.KIND[k], val, t: o.t });
+        items.push({ d: o.d, side, who: o.who, kind: this.KIND[k], k, val, t: o.t });
       }
     } else {
       for (const e of ev) {
         if (e.t === 'insider') { if (e.side === 'BUY') buy += e.val || 0; else if (!e.plan) sell += e.val || 0;
-          items.push({ d: e.d, side: e.side, who: e.who, kind: `${this.KIND.insider}${e.role ? ' · ' + e.role : ''}`, val: e.val, t: 'Form 4', plan: e.plan, url: e.url }); }
-        else { items.push({ d: e.d, side: e.side === 'BUY' ? 'BUY' : 'CHG', who: e.who || 'filer not named', kind: this.KIND[e.t], val: null, pct: e.pct, t: `Schedule ${e.t}${e.amend ? ' amendment' : ''}`, url: e.url }); if (e.side === 'BUY') buy += 1; }
+          items.push({ d: e.d, side: e.side, who: e.who, kind: `${this.KIND.insider}${e.role ? ' · ' + e.role : ''}`, k: 'insider', val: e.val, t: 'Form 4', plan: e.plan, url: e.url }); }
+        else { items.push({ d: e.d, side: e.side === 'BUY' ? 'BUY' : 'CHG', who: e.who || 'filer not named', kind: this.KIND[e.t], k: e.t, val: null, pct: e.pct, t: `Schedule ${e.t}${e.amend ? ' amendment' : ''}`, url: e.url }); if (e.side === 'BUY') buy += 1; }
       }
     }
     if (!items.length) return null;
     items.sort((a, b) => b.d.localeCompare(a.d));
-    const named = items.filter(x => x.side === 'BUY'), tone = buy > 0 && buy >= sell * 1.5 ? 'buy' : sell > 0 && sell >= buy * 1.5 ? 'sell' : 'mixed';
+    const flow = this.flowOf(items), named = items.filter(x => x.side === 'BUY'), tone = { in: 'buy', out: 'sell' }[flow.tone] || 'mixed';
     const money = v => Number.isFinite(v) && v > 0 ? fmt.cap(v, M) : '';
     const top = (tone === 'sell' ? items.filter(x => x.side === 'SELL') : named)[0] || items[0];
     const head = `${top.who}${top.kind ? ` (${top.kind})` : ''} ${top.side === 'BUY' ? (top.t?.startsWith('Schedule') ? `reported a ${top.pct ? top.pct + '% ' : ''}stake` : 'bought') : top.side === 'SELL' ? 'sold' : 'changed its stake'}${money(top.val) ? ' ' + money(top.val) : ''} · ${fmt.dateShort(top.d)}`;
-    return { tone, items, head, buyN: items.filter(x => x.side === 'BUY').length, sellN: items.filter(x => x.side === 'SELL').length, src: m === 'IN' ? 'NSE bulk & block deals' : 'SEC Form 4 & Schedule 13D/13G' };
+    return { tone, flow, items, head, buyN: items.filter(x => x.side === 'BUY').length, sellN: items.filter(x => x.side === 'SELL').length, src: m === 'IN' ? 'NSE bulk & block deals' : 'SEC Form 4 & Schedule 13D/13G' };
+  },
+  /** CASH FLOW — is whale money going into the stock or coming out?
+   *  Counted on the "smart money": mutual funds, insurers, institutions / funds, and (USA) company insiders. A block
+   *  deal always has a buyer and a seller, so counting everyone would net to zero; who is buying and who is leaving is
+   *  the signal. If no smart-money trade is in the window, all large investors are counted. Ratio = money in ÷ out. */
+  SMART: new Set(['mf', 'ins', 'inst', 'insider']),
+  flowOf(items) {
+    const sum = (f, side) => items.filter(x => x.side === side && f(x)).reduce((t, x) => t + (Number.isFinite(x.val) && x.val > 0 ? x.val : 0), 0);
+    const smart = x => this.SMART.has(x.k), any = () => true;
+    let inV = sum(smart, 'BUY'), outV = sum(smart, 'SELL'), basis = 'Funds, institutions & insiders';
+    if (!inV && !outV) { inV = sum(any, 'BUY'); outV = sum(any, 'SELL'); basis = items.some(x => x.t === 'volume') ? 'Estimated from heavy-volume days' : 'Large investors'; }
+    const stake = items.filter(x => x.side === 'BUY' && x.pct).length;      // 5%+ stake filings: value not disclosed
+    const ratio = outV > 0 ? inV / outV : inV > 0 || stake ? Infinity : NaN;
+    const tone = !(inV + outV) && !stake ? 'none' : ratio >= 1.25 ? 'in' : ratio <= .8 ? 'out' : 'bal';
+    return { inV, outV, net: inV - outV, ratio, tone, basis, stake };
+  },
+  FLOW: { in: ['▲ Money flowing in', 'text-emerald-300', 'bg-emerald-400', 'border-emerald-500/40 bg-emerald-500/[0.06]'], out: ['▼ Money flowing out', 'text-rose-300', 'bg-rose-400', 'border-rose-500/40 bg-rose-500/[0.06]'], bal: ['◆ Balanced', 'text-slate-200', 'bg-slate-400', 'border-line bg-ink/40'], none: ['No money figures', 'text-slate-400', 'bg-slate-500', 'border-line'] },
+  ratioTxt(r) { return r === Infinity ? 'all in' : r === 0 ? 'all out' : Number.isFinite(r) ? (r >= 10 ? r.toFixed(0) : r.toFixed(2)) + '×' : '—'; },
+  /** "Money in ₹X · out ₹Y · net ±Z · ratio 1.4× · ▲ Money flowing in" with an in/out bar. */
+  flowBar(fl, M, big = false) {
+    if (!fl || fl.tone === 'none') return '';
+    const [lbl, tc, , box] = this.FLOW[fl.tone], tot = fl.inV + fl.outV, pin = tot ? Math.round(fl.inV / tot * 100) : 100;
+    const money = v => v > 0 ? fmt.cap(v, M) : '—';
+    return `<div class="rounded-lg border ${box} ${big ? 'p-3' : 'px-2.5 py-2'}">
+      <div class="flex flex-wrap items-baseline gap-x-3 gap-y-0.5"><span class="${big ? 'text-lg' : 'text-sm'} font-bold ${tc}">${lbl}</span>
+        <span class="text-xs text-slate-400">cash-flow ratio <b class="num text-slate-100">${this.ratioTxt(fl.ratio)}</b></span>
+        <span class="text-xs text-slate-400">net <b class="num ${fl.net >= 0 ? 'text-emerald-300' : 'text-rose-300'}">${fl.net >= 0 ? '+' : '−'}${fmt.cap(Math.abs(fl.net), M)}</b></span></div>
+      <div class="mt-1.5 flex h-2 rounded-full overflow-hidden bg-rose-500/70" role="img" aria-label="${pin}% of the money was buying"><div class="bg-emerald-400" style="width:${pin}%"></div></div>
+      <div class="mt-1 flex justify-between text-[11px] num"><span class="text-emerald-300">In ${money(fl.inV)}${fl.stake ? ` + ${fl.stake} stake filing${fl.stake === 1 ? '' : 's'}` : ''}</span><span class="text-slate-500">${U.esc(fl.basis)}</span><span class="text-rose-300">Out ${money(fl.outV)}</span></div></div>`;
   },
   /** Canada: heavy-volume days in the last 10 sessions (no names — a footprint, not a disclosure). */
   footprint(m, sym) {
@@ -1710,28 +1740,30 @@ const Whale = {
     for (let k = i; k > i - 10 && k - 51 > tk.start; k--) {
       let a = 0; for (let j = k - 50; j < k; j++) a += tk.v[j]; a /= 50;
       const rv = tk.v[k] / a, ch = tk.c[k] / tk.c[k - 1] - 1, pos = (tk.c[k] - tk.l[k]) / Math.max(1e-9, tk.h[k] - tk.l[k]);
-      if (rv >= 3 && ch >= .02 && pos >= .6) items.push({ d: ds.dates[k], side: 'BUY', who: `Volume ${rv.toFixed(1)}× normal on a ${fmt.pct(ch, 1)} up day`, kind: 'heavy buying', t: 'volume' });
-      else if (rv >= 3 && ch <= -.02 && pos <= .4) items.push({ d: ds.dates[k], side: 'SELL', who: `Volume ${rv.toFixed(1)}× normal on a ${fmt.pct(ch, 1)} down day`, kind: 'heavy selling', t: 'volume' });
+      const val = (tk.v[k] - a) * tk.c[k];   // the extra money traded above a normal day
+      if (rv >= 3 && ch >= .02 && pos >= .6) items.push({ d: ds.dates[k], side: 'BUY', who: `Volume ${rv.toFixed(1)}× normal on a ${fmt.pct(ch, 1)} up day`, kind: 'heavy buying', t: 'volume', val });
+      else if (rv >= 3 && ch <= -.02 && pos <= .4) items.push({ d: ds.dates[k], side: 'SELL', who: `Volume ${rv.toFixed(1)}× normal on a ${fmt.pct(ch, 1)} down day`, kind: 'heavy selling', t: 'volume', val });
     }
     if (!items.length) return null;
     const b = items.filter(x => x.side === 'BUY').length, sN = items.length - b;
-    return { tone: b > sN ? 'buy' : sN > b ? 'sell' : 'mixed', items, head: `${items[0].who} · ${fmt.dateShort(items[0].d)}`, buyN: b, sellN: sN, src: 'volume footprint (no names)', footprint: true };
+    const flow = this.flowOf(items);
+    return { tone: { in: 'buy', out: 'sell' }[flow.tone] || 'mixed', flow, items, head: `${items[0].who} · ${fmt.dateShort(items[0].d)}`, buyN: b, sellN: sN, src: 'volume footprint (no names)', footprint: true };
   },
   chip(m, sym) {
     const w = this.summary(m, sym); if (!w) return '';
     const cls = { buy: 'text-emerald-200 ring-emerald-400/50 bg-emerald-500/10', sell: 'text-amber-200 ring-amber-400/50 bg-amber-500/10', mixed: 'text-slate-200 ring-slate-400/40 bg-slate-500/10' }[w.tone];
-    const lbl = w.footprint ? { buy: 'Heavy buying', sell: 'Heavy selling', mixed: 'Heavy volume' }[w.tone] : { buy: 'Big money buying', sell: 'Big money selling', mixed: 'Big money active' }[w.tone];
-    return `<span class="inline-flex items-center gap-1 h-5 px-1.5 rounded text-[10.5px] font-medium ring-1 align-middle whitespace-nowrap ${cls}" title="${U.esc(`${w.head}. ${w.buyN} buy / ${w.sellN} sell in the last ${this.DAYS} days · source: ${w.src}. Information only — not part of the BUY verdict.`)}">🐋 ${lbl}</span>`;
+    const lbl = (w.footprint ? { buy: 'Heavy buying', sell: 'Heavy selling', mixed: 'Heavy volume' } : { buy: 'Whale money in', sell: 'Whale money out', mixed: 'Whale activity' })[w.tone] + (w.flow && Number.isFinite(w.flow.ratio) && w.flow.ratio > 0 && w.tone !== 'mixed' ? ` ${this.ratioTxt(w.flow.ratio)}` : '');
+    return `<span role="button" tabindex="0" data-action="whaleGo" data-m="${m}" data-sym="${U.esc(sym)}" class="inline-flex items-center gap-1 h-5 px-1.5 rounded text-[10.5px] font-medium ring-1 align-middle whitespace-nowrap cursor-pointer hover:brightness-125 ${cls}" title="${U.esc(`${w.head}. Cash flow: in ${fmt.cap(w.flow?.inV || 0, MARKETS[m])}, out ${fmt.cap(w.flow?.outV || 0, MARKETS[m])} (ratio ${this.ratioTxt(w.flow?.ratio)}). ${w.buyN} buy / ${w.sellN} sell in the last ${this.DAYS} days · source: ${w.src}. Information only — not part of the BUY verdict. Click for details.`)}">🐋 ${lbl}</span>`;
   },
   /** Full list for the chart window. */
   section(m, sym) {
     const w = this.summary(m, sym), M = MARKETS[m];
     const srcTxt = m === 'IN' ? 'NSE bulk deals (≥ 0.5% of the company in a day) and block deals (₹10 crore+ trades)' : m === 'US' ? 'SEC Form 4 (insider buys and sells) and Schedule 13D/13G (5%+ stakes)' : 'Canada has no free public feed of large trades, so this shows heavy-volume days from the price data (no names)';
-    const none = this.err === 'nofile' ? 'Not in the data feed yet — it appears after the next data update (with the updated fetch.py).' : this.err === 'demo' ? 'Shown with the live data feed.' : `No ${m === 'CA' ? 'heavy-volume days in the last 10 sessions' : `disclosed big-money trades in the last ${this.DAYS} days`}.`;
+    const none = this.err === 'nofile' ? 'Not in the data feed yet — it appears after the next data update (with the updated fetch.py).' : this.err === 'demo' ? 'Shown with the live data feed.' : `No ${m === 'CA' ? 'heavy-volume days in the last 10 sessions' : `disclosed whale trades in the last ${this.DAYS} days`}.`;
     const row = x => `<li class="py-1 border-b border-line/40 last:border-0"><span class="${x.side === 'BUY' ? 'text-emerald-300' : x.side === 'SELL' ? 'text-amber-300' : 'text-slate-300'} font-semibold">${x.side === 'BUY' ? '▲ Bought' : x.side === 'SELL' ? '▼ Sold' : '◆ Changed'}</span> <span class="text-slate-200">${U.esc(x.who)}</span>${x.kind ? ` <span class="text-slate-500">· ${U.esc(x.kind)}</span>` : ''}${Number.isFinite(x.val) && x.val > 0 ? ` · <span class="num">${fmt.cap(x.val, M)}</span>` : ''}${x.pct ? ` · ${x.pct}% of the company` : ''}${x.plan ? ' <span class="text-slate-500">(pre-planned 10b5-1 sale)</span>' : ''}
       <span class="block text-[10.5px] text-slate-500">${fmt.date(x.d)} · ${U.esc(x.t === 'volume' ? 'volume footprint' : x.t)}${x.url ? ` · <a class="text-sky-300 underline" href="${x.url}" target="_blank" rel="noopener">filing ↗</a>` : ''}</span></li>`;
-    return `<div class="rounded-xl border border-line bg-ink/60 p-3 text-xs"><p class="font-semibold text-sm mb-1">🐋 Big-money moves <span class="font-normal text-slate-500">(last ${m === 'CA' ? '10 sessions' : this.DAYS + ' days'})</span></p>
-      ${w ? `<ul>${w.items.slice(0, 8).map(row).join('')}</ul>` : `<p class="text-slate-400">${none}</p>`}
+    return `<div class="rounded-xl border border-line bg-ink/60 p-3 text-xs"><p class="font-semibold text-sm mb-1">🐋 Whale activity <span class="font-normal text-slate-500">(last ${m === 'CA' ? '10 sessions' : this.DAYS + ' days'})</span></p>
+      ${w ? `<div class="mb-2">${this.flowBar(w.flow, M)}</div><ul>${w.items.slice(0, 8).map(row).join('')}</ul>` : `<p class="text-slate-400">${none}</p>`}
       <p class="mt-1.5 text-[10.5px] text-slate-500">${srcTxt}. Information only — not part of the BUY verdict.</p></div>`;
   }
 };
@@ -4040,13 +4072,13 @@ const UI = {
     if (!Admin.is && ['settings', 'visitors'].includes(S().tab)) S().tab = 'watchlist';
     if (!$('tab-' + S().tab)) S().tab = 'markets';
     const t = S().tab;
-    Visit.track('tab', { markets: 'Markets', watchlist: 'Watchlist', portfolio: 'Portfolio', watch: 'Strategy watch', backtest: 'Backtest', track: 'Track record', pipeline: 'Pipeline', settings: 'Settings', visitors: 'Visitors' }[t]);
+    Visit.track('tab', { markets: 'Markets', watchlist: 'Watchlist', portfolio: 'Portfolio', watch: 'Strategy watch', backtest: 'Backtest', whales: 'Whale activity', track: 'Track record', pipeline: 'Pipeline', settings: 'Settings', visitors: 'Visitors' }[t]);
     document.querySelectorAll('[role=tab]').forEach(b => {
       const on = b.dataset.tab === t;
       b.setAttribute('aria-selected', on);
       b.className = `tab shrink-0 px-3 py-2.5 text-sm border-b-2 -mb-px ${on ? 'border-emerald-400 text-slate-100 font-medium' : 'border-transparent text-slate-400 hover:text-slate-200'}`;
     });
-    for (const k of ['markets', 'watchlist', 'portfolio', 'watch', 'track', 'backtest', 'pipeline', 'visitors', 'settings']) { const sec = $('tab-' + k); if (sec) sec.hidden = k !== t; }
+    for (const k of ['markets', 'watchlist', 'portfolio', 'watch', 'whales', 'track', 'backtest', 'pipeline', 'visitors', 'settings']) { const sec = $('tab-' + k); if (sec) sec.hidden = k !== t; }
     
     if (t === 'watch') UI.watchForm();
     if (t === 'portfolio') UI.portfolioOpen();
@@ -4054,6 +4086,7 @@ const UI = {
     if (t === 'watchlist') UI.results();
     
     if (t === 'track') UI.track();
+    if (t === 'whales') UI.whales();
     if (t === 'pipeline') UI.pipeline();
     if (t === 'backtest') UI.btForm();
   },
@@ -4252,7 +4285,7 @@ const UI = {
       return;
     }
     if (!rows.length && s.filters.tech !== 'all' && s.results.length) {
-      const lbl = s.filters.tech === 'stage-early' ? '🌱 early-entry zone' : s.filters.tech === 'whale' ? '🐋 big money buying' : s.filters.tech === 'buys' ? 'any buy signal' : Tech.V[s.filters.tech]?.label || s.filters.tech;
+      const lbl = s.filters.tech === 'stage-early' ? '🌱 early-entry zone' : s.filters.tech === 'whale' ? '🐋 whale money flowing in' : s.filters.tech === 'buys' ? 'any buy signal' : Tech.V[s.filters.tech]?.label || s.filters.tech;
       el.innerHTML = `<div class="rounded-xl border border-dashed border-line bg-panel p-8 text-center"><p class="font-medium text-slate-200">No stocks with “${U.esc(lbl)}” in this scan</p>
         <p class="mt-1 text-sm text-slate-400 max-w-lg mx-auto">${s.filters.tech === 'stage-early' ? 'The early-entry zone is rare by design — about 2 in every 100 setups. Check again after the next scan, or add promising stocks to Strategy watch.' : 'Try another action, or check again after the next scan.'}</p>
         <button type="button" data-action="techFilter" data-v="all" class="mt-4 h-9 px-4 rounded-lg border border-line text-sm hover:bg-panel2">Show all stocks</button></div>`;
@@ -4326,7 +4359,7 @@ const UI = {
     const techBar = `<div class="mb-3 rounded-xl border border-line bg-panel px-3 py-2.5 flex flex-wrap items-center gap-2 text-xs">
         <span class="text-slate-400 mr-1">Tech check of these ${all.length} stocks:</span>
         ${Object.keys(Tech.V).map(k => `<button type="button" data-action="techFilter" data-v="${k}" aria-pressed="${s.filters.tech === k}" class="inline-flex items-center gap-1.5 h-7 pl-1 pr-2 rounded-lg ${s.filters.tech === k ? 'ring-2 ring-white/60' : 'ring-1 ring-line'} hover:bg-panel2" title="${Tech.V[k].desc}">${UI.techPill({ v: k })}<span class="num text-slate-200 font-semibold">${tc[k] || 0}</span></button>`).join('')}
-        <button type="button" data-action="techFilter" data-v="whale" aria-pressed="${s.filters.tech === 'whale'}" class="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg ${s.filters.tech === 'whale' ? 'ring-2 ring-white/60' : 'ring-1 ring-emerald-500/40'} text-emerald-200 hover:bg-panel2" title="Stocks where disclosed big money (India: NSE bulk/block deals · USA: SEC insider and 5%+ holder filings · Canada: heavy-volume up days) was net buying in the last 30 days">🐋 Big money buying <span class="num font-semibold">${all.filter(x => Whale.summary(x.m, x.cd.sym)?.tone === 'buy').length}</span></button>
+        <button type="button" data-action="techFilter" data-v="whale" aria-pressed="${s.filters.tech === 'whale'}" class="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg ${s.filters.tech === 'whale' ? 'ring-2 ring-white/60' : 'ring-1 ring-emerald-500/40'} text-emerald-200 hover:bg-panel2" title="Stocks where whale money (India: NSE bulk/block deals · USA: SEC insider and 5%+ holder filings · Canada: heavy-volume up days) was flowing in over the last 30 days">🐋 Whale money in <span class="num font-semibold">${all.filter(x => Whale.summary(x.m, x.cd.sym)?.tone === 'buy').length}</span></button>
         <button type="button" data-action="techFilter" data-v="stage-early" aria-pressed="${s.filters.tech === 'stage-early'}" class="inline-flex items-center gap-1.5 h-7 px-2 rounded-lg ${s.filters.tech === 'stage-early' ? 'ring-2 ring-white/60' : 'ring-1 ring-lime-500/40'} text-lime-200 hover:bg-panel2" title="Stocks in the early-entry zone: a higher low is holding and price is still within about 3 daily ranges of the low — before the breakout">🌱 Early-entry zone <span class="num font-semibold">${all.filter(x => x.cd.stage?.code === 'early').length}</span></button>
         ${s.filters.tech !== 'all' ? '<button type="button" data-action="techFilter" data-v="all" class="ml-1 underline underline-offset-2 text-slate-300">Show all</button>' : ''}
         <span class="w-full text-[11px] text-slate-500">Each stock is checked on 10 indicators (dots, left to right): trend · trend stage (🌱 early → ◕ late) · strength vs market · market · RSI · Bollinger Bands · MACD · volume · resistance · entry timing. <span style="color:#34d399">●</span> good <span style="color:#94a3b8">●</span> neutral <span style="color:#fbbf24">●</span> caution <span style="color:#fb7185">●</span> bad. Click a badge to filter.</span>
@@ -5364,6 +5397,100 @@ const UI = {
     if (bt.curve.length) requestAnimationFrame(() => { try { const c = Charts.equity($('btChart'), bt.curve); c._bt = true; UI.charts.push(c); } catch (e) { console.error(e); } });
   },
 
+  /* ---------- Whale activity ---------- */
+  whales() {
+    const el = $('whaleView'); if (!el || S().tab !== 'whales') return;
+    if (!Whale.data && !Whale._busy) Whale.load();
+    const f = (UI._whF ||= { m: S().settings.market === 'ALL' ? 'IN' : S().settings.market, side: 'all', days: 30, q: '', noise: true, cov: '1' });
+    const M = MARKETS[f.m], ds = S().mkts[f.m]?.ds, covSet = ds ? new Set(ds.tickers.map(t => t.sym)) : null, covOk = sy => f.cov !== '1' || !covSet || covSet.has(sy);
+    const chip = (key, v, l, on) => `<button type="button" data-action="whF" data-k="${key}" data-v="${v}" class="h-7 px-2.5 rounded-lg text-xs ring-1 ${on ? 'bg-panel2 ring-white/50 text-slate-100 font-semibold' : 'ring-line text-slate-400 hover:bg-panel2'}">${l}</button>`;
+    const src = { IN: 'NSE bulk deals (one buyer or seller trading at least 0.5% of a company’s shares in a day) and block deals (single trades of ₹10 crore or more), published daily by the exchange.',
+      US: 'SEC filings: Form 4 (company insiders — directors, officers, 10%+ owners — buying or selling in the open market) and Schedule 13D / 13G (anyone crossing 5% ownership; 13D = intends to influence the company).',
+      CA: 'Canada has no free public feed of named large trades (insider filings on SEDI have no data access), so this shows the volume footprint instead: days with 3× normal volume on a big up or down move, from the price data. No names.' }[f.m];
+    const head = `<div class="mb-3"><h2 class="text-lg font-semibold">🐋 Whale activity</h2>
+      <p class="text-sm text-slate-300 max-w-4xl">Large trades by funds, institutions, insiders and big investors that the regulators make public — where “smart money” is buying and selling. <span class="text-slate-400">Information to weigh alongside the verdict; it is not part of the BUY rule (not tested yet).</span></p></div>
+      <div class="flex flex-wrap items-center gap-2 mb-2">
+        <div class="flex gap-1">${MARKET_CODES.map(c => chip('m', c, `${MARKETS[c].flag} ${MARKETS[c].name}`, f.m === c)).join('')}</div>
+        <div class="flex gap-1">${chip('side', 'all', 'Buying & selling', f.side === 'all')}${chip('side', 'BUY', '▲ Buying', f.side === 'BUY')}${chip('side', 'SELL', '▼ Selling', f.side === 'SELL')}</div>
+        <div class="flex gap-1">${[[7, '7 days'], [30, '30 days'], [90, '90 days']].map(([v, l]) => chip('days', v, l, f.days === v)).join('')}</div>
+        ${f.m !== 'CA' ? `<div class="flex gap-1">${chip('cov', '1', 'Stocks StrikeZone covers', f.cov === '1')}${chip('cov', '0', 'All stocks', f.cov !== '1')}</div>` : ''}
+        ${f.q ? `<span class="inline-flex items-center gap-1 h-7 px-2 rounded-lg ring-1 ring-sky-400/50 text-xs text-sky-200">Stock: <b>${U.esc(f.q)}</b><button type="button" data-action="whClear" class="ml-1 text-slate-400 hover:text-white" aria-label="Show all stocks">✕</button></span>` : ''}
+        <input id="whQ" type="search" placeholder="Find a stock…" value="${U.esc(f.q)}" class="ml-auto h-8 w-40 rounded-lg bg-ink border border-line px-2 text-sm">
+      </div>
+      <p class="text-[11px] text-slate-500 mb-3 max-w-4xl"><b class="text-slate-400">Source:</b> ${src}</p>`;
+    const sinceTxt = (sym, px) => { if (!ds || !(px > 0)) return ''; const ti = ds.tickers.findIndex(t => t.sym === sym); if (ti < 0) return ''; const c = ds.tickers[ti].c[ds.cursor]; return Number.isFinite(c) ? fmt.pct(c / px - 1, 1) : ''; };
+    const pill = sym => { if (!ds) return ''; const ti = ds.tickers.findIndex(t => t.sym === sym); if (ti < 0) return ''; const t = Tech.ofAny(ds, ti); return t ? UI.techPill(t) : ''; };
+    const bigCls = side => side === 'BUY' ? 'text-emerald-300' : side === 'SELL' ? 'text-amber-300' : 'text-slate-300';
+    /** Market-wide cash flow for the filtered stocks, with a breakdown by type of investor. */
+    const topBox = (items, nStocks) => {
+      if (!items.length) return '';
+      const fl = Whale.flowOf(items), groups = [['mf', 'Mutual funds'], ['ins', 'Insurers'], ['inst', 'Institutions / funds'], ['insider', 'Company insiders'], ['other', 'Other large investors'], ['volume', 'Heavy-volume days (estimate)']];
+      const rows = groups.map(([k, l]) => { const a = items.filter(x => (x.t === 'volume' ? 'volume' : ['13D', '13G'].includes(x.k) ? 'inst' : x.k || 'other') === k); if (!a.length) return null;
+        const i = a.filter(x => x.side === 'BUY').reduce((t, x) => t + (x.val > 0 ? x.val : 0), 0), o = a.filter(x => x.side === 'SELL').reduce((t, x) => t + (x.val > 0 ? x.val : 0), 0), tot = i + o;
+        return `<div class="grid grid-cols-[150px_1fr_auto] items-center gap-2 text-xs"><span class="text-slate-300">${l}</span><div class="flex h-1.5 rounded-full overflow-hidden ${tot ? 'bg-rose-500/70' : 'bg-line'}"><div class="bg-emerald-400" style="width:${tot ? Math.round(i / tot * 100) : 0}%"></div></div><span class="num text-slate-400 whitespace-nowrap"><span class="text-emerald-300">${i ? fmt.cap(i, M) : '—'}</span> in · <span class="text-rose-300">${o ? fmt.cap(o, M) : '—'}</span> out</span></div>`; }).filter(Boolean);
+      return `<div class="mb-4 grid lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] gap-3">
+        <div><p class="text-sm font-semibold mb-1.5">Whale cash flow — ${M.flag} ${M.name}${f.q ? ' · ' + U.esc(f.q) : ''}, last ${f.m === 'CA' ? '10 sessions' : f.days + ' days'} <span class="text-xs font-normal text-slate-400">(${nStocks} stock${nStocks === 1 ? '' : 's'})</span></p>${Whale.flowBar(fl, M, true)}
+          <p class="mt-1.5 text-[11px] text-slate-500">Cash-flow ratio = money whales put in ÷ money they took out. Above 1.25× = money flowing in, below 0.8× = flowing out. ${f.m === 'CA' ? 'Canada: estimated from the extra money traded on heavy-volume up and down days (no names).' : 'Counted on mutual funds, insurers, institutions and company insiders, because every block deal has a buyer and a seller — who is coming in and who is leaving is the signal. Same-day trading firms are left out.'}</p></div>
+        <div class="rounded-lg border border-line bg-ink/40 p-3"><p class="text-xs font-semibold text-slate-300 mb-2">Who is putting money in / taking it out</p><div class="space-y-1.5">${rows.join('')}</div></div></div>`;
+    };
+    let body = '';
+    if (f.m === 'CA') {
+      if (!ds) body = `<p class="text-sm text-slate-400">Load the Canada market (pick 🇨🇦 Canada at the top) to see heavy-volume days.</p>`;
+      else {
+        const rows = ds.tickers.filter(t => !t.excluded && (!f.q || t.sym.includes(f.q.toUpperCase()))).map(t => ({ t, w: Whale.footprint('CA', t.sym) })).filter(z => z.w && (f.side === 'all' || z.w.items.some(x => x.side === f.side)));
+        rows.sort((a, b) => b.w.items[0].d.localeCompare(a.w.items[0].d));
+        body = topBox(rows.flatMap(z => z.w.items), rows.length) + (rows.length ? `<div class="rounded-xl border border-line bg-panel overflow-x-auto scroll-thin"><table class="w-full text-sm"><thead><tr class="text-left text-xs text-slate-400 border-b border-line"><th class="px-3 py-2 font-medium">Date</th><th class="px-3 py-2 font-medium">Stock</th><th class="px-3 py-2 font-medium">What happened</th><th class="px-3 py-2 font-medium">Verdict</th><th></th></tr></thead><tbody>
+          ${rows.flatMap(z => z.w.items.filter(x => f.side === 'all' || x.side === f.side).map(x => `<tr class="border-b border-line/50"><td class="px-3 py-2 text-xs num whitespace-nowrap">${fmt.dateShort(x.d)}</td><td class="px-3 py-2"><b>${U.esc(z.t.sym)}</b><span class="block text-[11px] text-slate-500 truncate max-w-[200px]">${U.esc(z.t.name)}</span></td><td class="px-3 py-2 text-xs"><span class="${bigCls(x.side)} font-semibold">${x.side === 'BUY' ? '▲ Heavy buying' : '▼ Heavy selling'}</span> · ${U.esc(x.who)}</td><td class="px-3 py-2">${pill(z.t.sym)}</td><td class="px-3 py-2 text-right">${UI.chartBtn('CA', z.t.sym, '📈', 'h-7 w-8 inline-flex items-center justify-center rounded-lg border border-sky-500/40 text-sky-300 hover:bg-sky-500/10')}</td></tr>`)).slice(0, 300).join('')}</tbody></table></div>` : '<p class="text-sm text-slate-400">No heavy-volume days in the last 10 sessions for these filters.</p>');
+      }
+    } else if (!Whale.data) body = Whale._busy ? '<div class="skeleton h-40"></div>' : '<p class="text-sm text-slate-400">Loading…</p>';
+    else if (Whale.err === 'nofile' || Whale.err === 'demo') body = `<p class="text-sm text-slate-400">${Whale.err === 'demo' ? 'Whale data comes with the live data feed.' : 'Not in the data feed yet — it appears after the next data update with the updated fetch.py.'}</p>`;
+    else {
+      const all = (Whale.data[f.m] || []);
+      if (!all.length) body = f.m === 'US'
+        ? `<div class="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 text-sm text-slate-300 max-w-3xl"><p class="font-semibold text-amber-200">No SEC filings have come through yet.</p><p class="mt-1">The SEC only answers automated requests that include a contact name and email. In the scanner-data repo add the secret <b>SEC_USER_AGENT</b> (Settings → Secrets and variables → Actions) with a value like “Your Name your@email.com”, then run the Nightly market data job for <b>US</b>.</p></div>`
+        : '<p class="text-sm text-slate-400">No deals in the feed yet.</p>';
+      else {
+        const syms = [...new Set(all.map(e => e.s))].filter(sy => (!f.q || sy.includes(f.q.toUpperCase())) && (f.q ? true : covOk(sy)));
+        const sums = syms.map(sy => ({ sy, w: Whale.summary(f.m, sy, f.days) })).filter(z => z.w);
+        // Every block deal has a buyer AND a seller, so a stock can be on both lists: who bought and who sold both matter.
+        const val = (z, side) => z.w.items.filter(x => x.side === side).reduce((t, x) => t + (Number.isFinite(x.val) ? x.val : 0) + (x.pct ? 1 : 0), 0);
+        const buyers = sums.filter(z => z.w.flow.tone === 'in').sort((a, b) => b.w.flow.net - a.w.flow.net || val(b, 'BUY') - val(a, 'BUY')), sellers = sums.filter(z => z.w.flow.tone === 'out').sort((a, b) => a.w.flow.net - b.w.flow.net), bal = sums.filter(z => z.w.flow.tone === 'bal');
+        const card = (z, side) => { const top = z.w.items.filter(x => x.side === side).slice(0, 3), v = val(z, side), other = z.w.items.filter(x => x.side === (side === 'BUY' ? 'SELL' : 'BUY'));
+          const ev = Whale.events(f.m, z.sy, f.days).find(e => e.side === side), since = sinceTxt(z.sy, ev?.px);
+          return `<li class="rounded-xl border ${side === 'BUY' ? 'border-emerald-500/30' : 'border-amber-500/30'} bg-panel p-3">
+            <div class="flex items-start gap-2"><div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(z.sy)} ${pill(z.sy)}</p>
+              <p class="text-[11px] text-slate-400">${side === 'BUY' ? 'Bought' : 'Sold'} <b class="${bigCls(side)}">${v >= 1e3 ? fmt.cap(v, M) : z.w.items.filter(x => x.side === side).length + ' filing' + (z.w.items.filter(x => x.side === side).length === 1 ? '' : 's')}</b> in ${f.days} days${since ? ` · price since the deal ${since}` : ''}</p></div>
+              ${UI.chartBtn(f.m, z.sy, '📈', 'h-7 w-8 shrink-0 inline-flex items-center justify-center rounded-lg border border-sky-500/40 text-sky-300 hover:bg-sky-500/10')}</div>
+            <div class="mt-2">${Whale.flowBar(z.w.flow, M)}</div>
+            <ul class="mt-1.5 space-y-0.5 text-xs">${top.map(x => `<li><span class="${bigCls(side)}">${side === 'BUY' ? '▲' : '▼'}</span> <span class="text-slate-200">${U.esc(x.who)}</span> <span class="text-slate-500">· ${U.esc(x.kind || '')}${Number.isFinite(x.val) && x.val > 0 ? ' · ' + fmt.cap(x.val, M) : ''}${x.pct ? ` · ${x.pct}%` : ''} · ${fmt.dateShort(x.d)}</span></li>`).join('')}${z.w.items.filter(x => x.side === side).length > 3 ? `<li class="text-slate-500">+ ${z.w.items.filter(x => x.side === side).length - 3} more</li>` : ''}</ul>
+            ${other.length ? `<p class="mt-1 text-[11px] text-slate-500">${side === 'BUY' ? 'Sold by' : 'Bought by'}: ${other.slice(0, 2).map(x => U.esc(x.who)).join(', ')}${other.length > 2 ? ` +${other.length - 2}` : ''}</p>` : ''}</li>`; };
+        const showB = f.side !== 'SELL', showS = f.side !== 'BUY';
+        const deals = all.filter(e => (!f.q || e.s.includes(f.q.toUpperCase())) && (f.q || covOk(e.s)) && (f.side === 'all' || e.side === f.side)).filter(e => { const cut = new Date(Date.now() - f.days * 864e5).toISOString().slice(0, 10); return e.d >= cut; });
+        const kindOf = e => e.t === 'insider' ? Whale.KIND.insider + (e.role ? ' · ' + e.role : '') : e.t === '13D' || e.t === '13G' ? Whale.KIND[e.t] : Whale.KIND[Whale.kind(e.who)];
+        const typeOf = e => ({ bulk: 'Bulk deal', block: 'Block deal', insider: 'Form 4', '13D': 'Schedule 13D', '13G': 'Schedule 13G' })[e.t] + (e.amend ? ' amendment' : '');
+        body = topBox(sums.flatMap(z => z.w.items), sums.length) + `
+          <div class="grid lg:grid-cols-2 gap-3 mb-2">
+            ${showB ? `<div><p class="text-sm font-semibold mb-2 text-emerald-200">▲ Money flowing in <span class="text-xs font-normal text-slate-400">(${buyers.length} stock${buyers.length === 1 ? '' : 's'} · biggest net inflow first)</span></p>${buyers.length ? `<ul class="space-y-2">${buyers.slice(0, 20).map(z => card(z, 'BUY')).join('')}</ul>` : '<p class="text-xs text-slate-500">None in this period.</p>'}</div>` : ''}
+            ${showS ? `<div><p class="text-sm font-semibold mb-2 text-amber-200">▼ Money flowing out <span class="text-xs font-normal text-slate-400">(${sellers.length} stock${sellers.length === 1 ? '' : 's'} · biggest net outflow first)</span></p>${sellers.length ? `<ul class="space-y-2">${sellers.slice(0, 20).map(z => card(z, 'SELL')).join('')}</ul>` : '<p class="text-xs text-slate-500">None in this period.</p>'}</div>` : ''}
+          </div>
+          ${bal.length ? `<p class="mb-4 text-xs text-slate-400">◆ Balanced (money changed hands, no clear direction): ${bal.slice(0, 30).map(z => `<button type="button" data-action="whaleGo" data-m="${f.m}" data-sym="${U.esc(z.sy)}" class="underline hover:text-white">${U.esc(z.sy)}</button>`).join(', ')}${bal.length > 30 ? ` +${bal.length - 30}` : ''}</p>` : '<div class="mb-4"></div>'}
+          <div class="rounded-xl border border-line bg-panel overflow-x-auto scroll-thin"><p class="px-3 pt-3 text-sm font-semibold">Every deal <span class="text-xs font-normal text-slate-400">(${deals.length} in ${f.days} days, newest first${f.m === 'IN' ? ' · trading firms that buy and sell the same day are marked' : ''})</span></p>
+            <table class="w-full text-sm mt-1"><thead><tr class="text-left text-xs text-slate-400 border-b border-line"><th class="px-3 py-2 font-medium">Date</th><th class="px-3 py-2 font-medium">Stock</th><th class="px-3 py-2 font-medium">Side</th><th class="px-3 py-2 font-medium">Who</th><th class="px-3 py-2 font-medium">Type</th><th class="px-3 py-2 font-medium text-right">Shares</th><th class="px-3 py-2 font-medium text-right">Price</th><th class="px-3 py-2 font-medium text-right">Value</th><th></th></tr></thead>
+            <tbody>${deals.slice(0, 400).map(e => { const tr = f.m === 'IN' && Whale.kind(e.who) === 'trader';
+              return `<tr class="border-b border-line/50 ${tr ? 'opacity-50' : ''}"><td class="px-3 py-2 text-xs num whitespace-nowrap">${fmt.dateShort(e.d)}</td><td class="px-3 py-2 font-semibold"><button type="button" data-action="whaleGo" data-m="${f.m}" data-sym="${U.esc(e.s)}" class="hover:underline">${U.esc(e.s)}</button></td>
+                <td class="px-3 py-2 text-xs font-semibold ${bigCls(e.side)}">${e.side === 'BUY' ? '▲ Buy' : e.side === 'SELL' ? '▼ Sell' : '◆ Change'}</td>
+                <td class="px-3 py-2 text-xs"><span class="text-slate-200">${U.esc(e.who || '—')}</span><span class="block text-[10.5px] text-slate-500">${U.esc(kindOf(e) || '')}${tr ? ' — same-day trading, not counted' : ''}${e.plan ? ' · pre-planned 10b5-1 sale' : ''}</span></td>
+                <td class="px-3 py-2 text-xs whitespace-nowrap">${typeOf(e)}${e.url ? ` · <a href="${e.url}" target="_blank" rel="noopener" class="text-sky-300 underline">filing ↗</a>` : ''}</td>
+                <td class="px-3 py-2 text-xs num text-right">${e.qty ? fmt.num(Math.round(e.qty)) : e.pct ? e.pct + '%' : '—'}</td><td class="px-3 py-2 text-xs num text-right">${e.px ? fmt.px(e.px, M) : '—'}</td><td class="px-3 py-2 text-xs num text-right">${e.val ? fmt.cap(e.val, M) : '—'}</td>
+                <td class="px-3 py-2 text-right">${UI.chartBtn(f.m, e.s, '📈', 'h-7 w-8 inline-flex items-center justify-center rounded-lg border border-sky-500/40 text-sky-300 hover:bg-sky-500/10')}</td></tr>`; }).join('')}</tbody></table>
+            ${deals.length > 400 ? '<p class="px-3 py-2 text-xs text-slate-500">Showing the newest 400 — narrow with the filters or search.</p>' : ''}</div>`;
+      }
+    }
+    const covNote = f.m !== 'CA' && f.cov === '1' && !covSet ? `<p class="mb-3 text-xs text-amber-200">Showing all stocks — pick ${M.flag} ${M.name} at the top of the app to load its list and the StrikeZone verdicts.</p>` : '';
+    el.innerHTML = head + covNote + body + `<p class="mt-3 text-[11px] text-slate-500">${Whale.gen ? `Updated with the nightly data job · ${fmt.date(Whale.gen.slice(0, 10))}. ` : ''}Deals show up the day after they happen (exchanges and the SEC publish after the evening data run). Not investment advice.</p>`;
+    const q = $('whQ'); if (q) q.addEventListener('change', () => { f.q = q.value.trim().toUpperCase(); UI.whales(); });
+  },
+
   /* ---------- Track record ---------- */
   track() {
     const el = $('trackView'); if (!el || S().tab !== 'track') return;
@@ -5608,6 +5735,9 @@ function wire() {
         case 'chartClose': UI.chartClose(); break;
         case 'moodOpen': UI.moodOpen(); break;
         case 'pbOpen': UI.pbOpen(); break;
+        case 'whaleGo': { const f = (UI._whF ||= { m: 'IN', side: 'all', days: 30, q: '', noise: true }); f.m = act.dataset.m; f.q = act.dataset.sym; if (!$('chartModal').classList.contains('hidden')) UI.chartClose(); if (S().tab === 'whales') UI.whales(); else Store.set({ tab: 'whales' }); window.scrollTo({ top: 0 }); break; }
+        case 'whF': { const f = UI._whF, k = act.dataset.k; f[k] = k === 'days' ? +act.dataset.v : act.dataset.v; if (k === 'm') f.q = ''; UI.whales(); break; }
+        case 'whClear': UI._whF.q = ''; UI.whales(); break;
         case 'trF': { const f = UI._trF, k = act.dataset.k; f[k] = k === 'days' ? +act.dataset.v : act.dataset.v; f.more = 0; UI.track(); break; }
         case 'trHow': UI._trHow = !UI._trHow; UI.track(); break;
         case 'trMore': UI._trF.more = (UI._trF.more || 0) + 1; UI.track(); break;
@@ -5895,7 +6025,8 @@ Store.on(['idxTick'], () => { UI.markets(); UI.header(); });
 Store.on(['feedTick'], () => { const g = Feed.lastMeta?.generated; if (g && Idx.list && Idx.metaGen && g !== Idx.metaGen) { Idx.metaGen = g; Idx.load(true); } else if (g) Idx.metaGen = g; });
 Store.on(['feedTick'], () => { const g = Feed.lastMeta?.generated; if (!g) return; if (!Whale.data || (Whale.metaGen && g !== Whale.metaGen)) { Whale.metaGen = g; Whale.load(true); } else Whale.metaGen = g; });
 Store.on(['mkts'], () => { if (!Whale.data && Whale.live()) Whale.load(); });
-Store.on(['whaleTick'], () => { UI.results(); UI.finder(); UI.watch(); UI.portfolio(); });
+Store.on(['whaleTick'], () => { UI.results(); UI.finder(); UI.watch(); UI.portfolio(); UI.whales(); });
+Store.on(['mkts'], () => { if (S().tab === 'whales') UI.whales(); });
 Store.on(['feedTick'], () => { if (!Quotes.data) Quotes.load(); Quotes.start(); });
 Store.on(['trackTick'], () => { if (S().tab === 'track') UI.track(); });
 Store.on(['quoteTick'], () => { if (S().tab === 'markets') UI.markets(); if (UI._chart && !UI._chart.tv && !$('chartModal').classList.contains('hidden')) UI.chartRender(); });

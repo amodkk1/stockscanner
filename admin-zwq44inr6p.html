@@ -353,7 +353,7 @@
     StrikeZone ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-05.1 · admin</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-05.2 · admin</p>
   </div>
 </footer>
 
@@ -1126,7 +1126,7 @@ const StockBT = {
     sma1030: { name: '10/30-day SMA crossover', rule: 'Buys at the next session’s open after the 10-day simple moving average (SMA) closes above the 30-day SMA; sells at the next session’s open after it closes back below.' },
     sma50200: { name: '50/200-day SMA crossover (golden cross)', rule: 'Buys at the next session’s open after the 50-day simple moving average (SMA) closes above the 200-day SMA (a “golden cross”); sells at the next session’s open after it closes back below (a “death cross”).' },
     emasma: { name: '20-day EMA × 50-day SMA crossover', rule: 'Buys at the next session’s open after the 20-day exponential moving average (EMA) closes above the 50-day simple moving average (SMA); sells at the next session’s open after the 20-day EMA closes back below the 50-day SMA.' },
-    washout: { name: 'Washout bottom (oversold sell-off)', rule: 'Buys the day after RSI(14) closes below 30 following an 8%+ drop in 5 sessions with a close below the lower Bollinger Band; sells the day after the first close above the 20-day average, or after 15 sessions; stop 1 ATR under the signal-day low.' },
+    washout: { name: 'Washout bottom (oversold sell-off)', rule: 'Buys the day after RSI(14) closes below 30 following an 8%+ drop in 5 sessions with a close below the lower Bollinger Band; sells the day after the first close above the 20-day average, or after 15 sessions; disaster stop 25% under the entry (a tight stop was tested and cut the results in half) — under the signal-day low.' },
     leader: { name: 'Leader pullback (first dip to the 50-day)', rule: 'Buys the day after a stock that ran 40%+ off its 6-month low (RSI above 75 in the last 20 sessions) closes below its 50-day average for the first time; sells at +10%, a −7% stop, or after 20 sessions.' },
     rsi: { name: 'Oversold dip (RSI below 30)', rule: 'Buys the day after RSI(14) closes below 30 (oversold); sells the day after RSI closes above 55, or after 20 sessions; emergency stop 3.5 ATR under the signal-day low.' },
     donchian: { name: 'Breakout (new 20-day high)', rule: 'Buys the day after a close above the highest price of the previous 20 days; sells the day after a close below the lowest price of the previous 10 days.' }
@@ -1191,7 +1191,7 @@ const StockBT = {
     cross('sma50200', x.sma50, x.sma200);
     rule('emasma', i => ok(x.ema20[i], x.sma50[i], x.ema20[i - 1], x.sma50[i - 1]) && x.ema20[i] > x.sma50[i] && x.ema20[i - 1] <= x.sma50[i - 1], i => x.ema20[i] < x.sma50[i]);
     rule('rsi', i => ok(x.rsi[i], x.atr[i]) && x.rsi[i] < 30, i => x.rsi[i] > 55, 20, i => x.l[i] - 3.5 * x.atr[i]);
-    rule('washout', i => i - tk.start > 30 && ok(x.bbw[i], x.rsi[i]) && Rev.isWashout(x, i), i => x.c[i] > x.sma20[i], 15, i => x.l[i] - x.atr[i]);
+    rule('washout', i => i - tk.start > 30 && ok(x.bbw[i], x.rsi[i]) && Rev.isWashout(x, i), i => x.c[i] > x.sma20[i], 15, i => x.o[i + 1] * .75);
     rule('leader', i => i - tk.start > 130 && ok(x.sma50[i], x.sma50[i - 1]) && Rev.isLeader(x, i), (i, p) => x.h[i] >= p.px * 1.10, 20, i => x.c[i] * .93);
     rule('donchian', i => i - tk.start > 20 && x.c[i] > hi(i, 20), i => x.c[i] < lo(i, 10));
     // Buy & hold benchmark
@@ -1351,6 +1351,10 @@ const Watch = {
  *     the same code on the data of that day, and are labelled "replayed". */
 const Track = {
   data: null, err: null, _busy: null, local: false,
+  /** Rule version. When the playbook's rules change, the replayed history is rebuilt with the new rules; entries that
+   *  were recorded live keep their original, frozen results, and the change is listed in the log. */
+  RULES: 2,
+  CHANGES: { 2: 'Washout exit: the tight stop (1 ATR under the signal-day low) was replaced by a 25% disaster stop. It stopped out most trades that went on to recover; tested on 3 years in all three markets, win rate rose from about 45% to 65% and the average result roughly doubled.' },
   HOLD: { washout: 15, leaderpb: 20, oversold: 20 },
   live() { const st = S().settings; return Feed.configured(st.feed) && MARKET_CODES.some(c => st.sources[c] === 'live'); },
   async load(force = false) {
@@ -1394,7 +1398,7 @@ const Track = {
         if (x.o[j] >= tg && j > i + 1) return done(j, x.o[j], 'target'); if (x.h[j] >= tg) return done(j, tg, 'target');
       }
     } else {
-      const stop = sig.setup === 'washout' ? x.l[i] - x.atr[i] : x.l[i] - 3.5 * x.atr[i];
+      const stop = sig.setup === 'washout' ? e * .75 : x.l[i] - 3.5 * x.atr[i];
       for (let j = i + 1; j <= Math.min(last, i + H); j++) {
         if (x.l[j] <= stop) return done(j, Math.min(x.o[j], stop), 'stop');
         if (sig.setup === 'washout' ? x.c[j] > x.sma20[j] : x.rsi[j] > 55) return done(j, x.c[j], 'exit signal');
@@ -1413,21 +1417,26 @@ const Track = {
   /** Add the new signals for these markets and update the open results. Used by the nightly recorder (and by the
    *  "compute in my browser" button when there is no recorded file yet). */
   async run(prev, { markets = MARKET_CODES, backfill = 60, live = true } = {}) {
-    const log = (prev?.signals || []).map(z => ({ ...z })), now = new Date().toISOString(), notes = [];
+    const now = new Date().toISOString(), notes = [], prevRv = prev ? (prev.rv || 1) : this.RULES, upgrade = prevRv < this.RULES;
+    const changes = (prev?.changes || []).slice();
+    if (upgrade) for (let v = prevRv + 1; v <= this.RULES; v++) changes.push({ v, d: now.slice(0, 10), text: this.CHANGES[v] });
+    const log = (prev?.signals || []).filter(z => !(upgrade && z.replayed)).map(z => ({ ...z })), ids = new Set(log.map(z => z.id));
     for (const m of markets) {
       if (!S().mkts[m]?.ds) { while (S().busy) await U.sleep(200); await App.run({ codes: [m], reason: 'Track record' }); while (S().busy) await U.sleep(200); }
       const ds = S().mkts[m]?.ds; if (!ds) { notes.push(`${m}: no data`); continue; }
       const last = ds.cursor, xs = new Map(), mine = log.filter(z => z.m === m);
       const lastD = mine.reduce((a, z) => z.d > a ? z.d : a, '');
-      let from = lastD ? ds.dates.findIndex(d => d > lastD) : Math.max(0, last - backfill + 1);
+      let from = lastD && !upgrade ? ds.dates.findIndex(d => d > lastD) : Math.max(0, last - backfill + 1);
       if (from < 0) from = last + 1;
       for (let i = from; i <= last; i++) {
         const hits = this.scanDay(ds, i, xs);
         for (const h of hits) {
           const open = log.filter(z => z.m === m && z.s === h.tk.sym && z.d < ds.dates[i]).sort((p, q) => q.d.localeCompare(p.d))[0];
           if (open) { const o = this.outcome(ds, open, xs); if (!o || ['open', 'pending'].includes(o.st) || (o.xd && o.xd > ds.dates[i])) continue; }
+          if (ids.has(`${m}|${h.tk.sym}|${ds.dates[i]}`)) continue;
+          ids.add(`${m}|${h.tk.sym}|${ds.dates[i]}`);
           log.push({ id: `${m}|${h.tk.sym}|${ds.dates[i]}`, m, s: h.tk.sym, n: h.tk.name, setup: h.t.v, d: ds.dates[i], px: +h.tk.c[i].toFixed(4),
-            why: h.t.short, logged: now, replayed: !(live && i === last), ver: '2026-11-05.1 · admin' });
+            why: h.t.short, logged: now, replayed: !(live && i === last), ver: '2026-11-05.2 · admin' });
         }
         if ((i - from) % 5 === 4) await U.sleep(0);
       }
@@ -1439,11 +1448,11 @@ const Track = {
       }
       notes.push(`${m}: ${log.filter(z => z.m === m && z.logged === now).length} new signals`);
     }
-    return { v: 1, generated: now, app: '2026-11-05.1 · admin', rules: 'Buy at the next open; exit by the setup rule; closed results frozen.', signals: log, notes };
+    return { v: 1, rv: this.RULES, generated: now, app: '2026-11-05.2 · admin', rules: 'Buy at the next open; exit by the setup rule; closed results frozen.', changes, signals: log, notes };
   }
 };
 /** For the nightly recorder (headless browser in the data job). */
-window.StrikeZone = { ready: false, version: '2026-11-05.1 · admin', track: (prev, opts) => Track.run(prev, opts) };
+window.StrikeZone = { ready: false, version: '2026-11-05.2 · admin', track: (prev, opts) => Track.run(prev, opts) };
 
 /** Moving-average crossovers, read the way you would read them on a chart: when did the fast line last cross the slow
  *  line, in which direction, and how clearly (how far apart the lines are now, and whether they keep criss-crossing).
@@ -1556,8 +1565,8 @@ const Finder = {
  *  Numbers: trades · % won · average per trade · average vs holding the stock for the same days. */
 const Playbook = {
   SETUPS: {
-    washout:  { v: 'washout',  strat: 'washout', name: 'Washout bottom', icon: '⤒', rule: 'RSI below 30, down 8%+ in 5 sessions, close below the lower Bollinger Band. Exit on the first close above the 20-day average or after 15 sessions; stop 1 ATR under the signal-day low.',
-      stats: { US: [3436, .477, .018, .011, 1], CA: [2550, .504, .026, .020, 1], IN: [3172, .424, .012, .007, 1] } },
+    washout:  { v: 'washout',  strat: 'washout', name: 'Washout bottom', icon: '⤒', rule: 'RSI below 30, down 8%+ in 5 sessions, close below the lower Bollinger Band. Exit on the first close above the 20-day average or after 15 sessions; disaster stop 25% under the entry (a tight 1-ATR stop was tested and halved the results).',
+      stats: { US: [2843, .659, .0305, .0198, 1], CA: [2005, .723, .0427, .0340, 1], IN: [2671, .636, .0291, .0206, 1] } },
     leader:   { v: 'leaderpb', strat: 'leader', name: 'Leader pullback', icon: '↘↗', rule: 'A stock up 40%+ from its 6-month low (RSI above 75 in the last 20 sessions) closes below its 50-day average for the first time. Exit at +10%, a −7% stop, or after 20 sessions.',
       stats: { US: [337, .481, .013, .006, 1], CA: [376, .567, .033, .027, 1], IN: [265, .464, .008, .001, 0] } },
     oversold: { v: 'oversold', strat: 'rsi', name: 'Oversold dip', icon: '↧', rule: 'RSI(14) closes below 30. Exit when RSI closes above 55 or after 20 sessions; emergency stop 3.5 ATR under the signal-day low.',
@@ -1572,7 +1581,7 @@ const Playbook = {
   statTxt(m, k) { const t = this.stat(m, k); return t ? `${fmt.num(t.n)} past trades in ${MARKETS[m].name}, ${fmt.prob(t.win)} won, ${fmt.pct(t.avg, 1)} per trade on average (${fmt.pct(t.ex, 1)} better than holding)` : ''; },
   names(m) { return this.list(m).map(s => s.name); },
   /** The full test behind the choice: strategy → market → [trades, won, avg/trade, vs holding, vs holding 1st half, 2nd half]. */
-  RESULTS: {"donchian":{"US":[10977,0.398,0.0117,-0.0105,-0.0077,-0.0141],"CA":[14751,0.456,0.0173,-0.0032,-0.002,-0.0046],"IN":[8129,0.358,0.0083,-0.0101,-0.0089,-0.0114]},"emasma":{"US":[7253,0.367,0.0166,-0.023,-0.0192,-0.0278],"CA":[8091,0.442,0.0356,-0.0074,0.0043,-0.0219],"IN":[5988,0.351,0.0216,-0.0097,0.0036,-0.0243]},"leader":{"US":[337,0.481,0.0134,0.0064,-0.0003,0.0109],"CA":[376,0.566,0.0325,0.0265,0.0074,0.0352],"IN":[265,0.464,0.0077,0.0014,-0.0066,0.0081]},"ma":{"US":[6959,0.403,0.0201,-0.0214,-0.0145,-0.0301],"CA":[7675,0.493,0.0387,-0.0065,0.0072,-0.0245],"IN":[5806,0.373,0.0206,-0.0115,0.0058,-0.0303]},"pat:ascTriangle":{"US":[8716,0.493,0.0015,-0.0053,-0.0053,-0.0053],"CA":[12832,0.581,0.0068,0.0006,0.0008,0.0004],"IN":[5102,0.436,-0.0012,-0.0069,-0.0054,-0.0086]},"pat:breakout52":{"US":[878,0.506,0.0047,-0.0021,-0.007,0.0004],"CA":[3350,0.599,0.0083,0.002,-0.0007,0.0031],"IN":[1232,0.46,0.0015,-0.0043,-0.0093,-0.0029]},"pat:bullFlag":{"US":[6754,0.49,0.0052,-0.0014,0.0011,-0.004],"CA":[5297,0.478,0.0086,0.0031,0.0034,0.0029],"IN":[7144,0.443,0.0015,-0.004,-0.0012,-0.0077]},"pat:cupHandle":{"US":[3177,0.506,0.0061,-0.0007,-0.0034,0.0008],"CA":[2078,0.526,0.0114,0.0055,0.0031,0.0074],"IN":[2777,0.426,-0.0027,-0.0083,-0.0105,-0.0065]},"pat:engulfing":{"US":[8539,0.489,0.0053,-0.001,0.0018,-0.0028],"CA":[7778,0.502,0.0049,-0.0008,0.0004,-0.0016],"IN":[7172,0.39,-0.0053,-0.0105,-0.015,-0.0078]},"pat:goldenCross":{"US":[1362,0.534,0.0049,-0.0021,0.0002,-0.0031],"CA":[1325,0.528,0.003,-0.0031,-0.0013,-0.0049],"IN":[967,0.411,0.0012,-0.0045,-0.0046,-0.0044]},"pat:maReclaim":{"US":[4485,0.485,0.0005,-0.0062,-0.0079,-0.0052],"CA":[6153,0.517,0.0045,-0.0016,-0.0018,-0.0015],"IN":[4441,0.431,-0.0015,-0.0071,-0.0086,-0.0062]},"pat:macdCross":{"US":[17409,0.497,0.0026,-0.0043,-0.0057,-0.0027],"CA":[24067,0.565,0.0048,-0.0015,-0.001,-0.0019],"IN":[13451,0.443,0.0013,-0.0044,-0.0072,-0.0011]},"pat:resistance":{"US":[1226,0.548,0.0077,0.0007,0.0023,-0.0028],"CA":[3234,0.583,0.0053,-0.001,-0.0004,-0.0027],"IN":[3048,0.455,-0.0014,-0.0071,-0.0082,-0.0053]},"pat:rsiDiv":{"US":[2295,0.522,0.0054,-0.0013,-0.0024,-0.0002],"CA":[1757,0.528,0.0036,-0.0023,-0.0019,-0.0026],"IN":[2028,0.435,0.0016,-0.0039,-0.0147,0.0051]},"pat:squeeze":{"US":[1307,0.515,0.0057,-0.0012,0.0069,-0.0077],"CA":[3402,0.643,0.0063,-0.0002,0.0006,-0.001],"IN":[653,0.413,-0.0036,-0.0094,-0.0102,-0.0088]},"pat:stochRev":{"US":[2352,0.498,0.0036,-0.003,-0.0028,-0.0031],"CA":[4219,0.537,0.0043,-0.0018,-0.0001,-0.0029],"IN":[1822,0.398,-0.0055,-0.0109,-0.0185,-0.0068]},"rsi":{"US":[3998,0.599,0.0218,0.0077,0.0089,0.0062],"CA":[3289,0.654,0.0267,0.0155,0.0175,0.0128],"IN":[3751,0.539,0.0125,0.0009,-0.0008,0.0028]},"scanner":{"US":[5366,0.505,0.0055,-0.0013,-0.0005,-0.0017],"CA":[9470,0.588,0.0086,0.0024,0.0007,0.0035],"IN":[3912,0.437,-0.0015,-0.0072,-0.0058,-0.0086]},"sma1030":{"US":[12678,0.391,0.0139,-0.01,-0.0091,-0.0111],"CA":[14472,0.447,0.0236,-0.0012,0.001,-0.0037],"IN":[10622,0.35,0.0147,-0.0038,0.0039,-0.0121]},"sma50200":{"US":[1102,0.25,-0.0342,-0.1372,-0.1374,-0.137],"CA":[661,0.318,0.0036,-0.0933,-0.0732,-0.1196],"IN":[857,0.182,-0.0871,-0.1585,-0.1535,-0.1628]},"washout":{"US":[3436,0.477,0.0181,0.0113,0.0178,0.0012],"CA":[2550,0.504,0.0256,0.0201,0.0323,-0.0002],"IN":[3172,0.424,0.0123,0.0073,0.0132,-0.0]}}
+  RESULTS: {"donchian":{"US":[10977,0.398,0.0117,-0.0105,-0.0077,-0.0141],"CA":[14751,0.456,0.0173,-0.0032,-0.002,-0.0046],"IN":[8129,0.358,0.0083,-0.0101,-0.0089,-0.0114]},"emasma":{"US":[7253,0.367,0.0166,-0.023,-0.0192,-0.0278],"CA":[8091,0.442,0.0356,-0.0074,0.0043,-0.0219],"IN":[5988,0.351,0.0216,-0.0097,0.0036,-0.0243]},"leader":{"US":[337,0.481,0.0134,0.0064,-0.0003,0.0109],"CA":[376,0.566,0.0325,0.0265,0.0074,0.0352],"IN":[265,0.464,0.0077,0.0014,-0.0066,0.0081]},"ma":{"US":[6959,0.403,0.0201,-0.0214,-0.0145,-0.0301],"CA":[7675,0.493,0.0387,-0.0065,0.0072,-0.0245],"IN":[5806,0.373,0.0206,-0.0115,0.0058,-0.0303]},"pat:ascTriangle":{"US":[8716,0.493,0.0015,-0.0053,-0.0053,-0.0053],"CA":[12832,0.581,0.0068,0.0006,0.0008,0.0004],"IN":[5102,0.436,-0.0012,-0.0069,-0.0054,-0.0086]},"pat:breakout52":{"US":[878,0.506,0.0047,-0.0021,-0.007,0.0004],"CA":[3350,0.599,0.0083,0.002,-0.0007,0.0031],"IN":[1232,0.46,0.0015,-0.0043,-0.0093,-0.0029]},"pat:bullFlag":{"US":[6754,0.49,0.0052,-0.0014,0.0011,-0.004],"CA":[5297,0.478,0.0086,0.0031,0.0034,0.0029],"IN":[7144,0.443,0.0015,-0.004,-0.0012,-0.0077]},"pat:cupHandle":{"US":[3177,0.506,0.0061,-0.0007,-0.0034,0.0008],"CA":[2078,0.526,0.0114,0.0055,0.0031,0.0074],"IN":[2777,0.426,-0.0027,-0.0083,-0.0105,-0.0065]},"pat:engulfing":{"US":[8539,0.489,0.0053,-0.001,0.0018,-0.0028],"CA":[7778,0.502,0.0049,-0.0008,0.0004,-0.0016],"IN":[7172,0.39,-0.0053,-0.0105,-0.015,-0.0078]},"pat:goldenCross":{"US":[1362,0.534,0.0049,-0.0021,0.0002,-0.0031],"CA":[1325,0.528,0.003,-0.0031,-0.0013,-0.0049],"IN":[967,0.411,0.0012,-0.0045,-0.0046,-0.0044]},"pat:maReclaim":{"US":[4485,0.485,0.0005,-0.0062,-0.0079,-0.0052],"CA":[6153,0.517,0.0045,-0.0016,-0.0018,-0.0015],"IN":[4441,0.431,-0.0015,-0.0071,-0.0086,-0.0062]},"pat:macdCross":{"US":[17409,0.497,0.0026,-0.0043,-0.0057,-0.0027],"CA":[24067,0.565,0.0048,-0.0015,-0.001,-0.0019],"IN":[13451,0.443,0.0013,-0.0044,-0.0072,-0.0011]},"pat:resistance":{"US":[1226,0.548,0.0077,0.0007,0.0023,-0.0028],"CA":[3234,0.583,0.0053,-0.001,-0.0004,-0.0027],"IN":[3048,0.455,-0.0014,-0.0071,-0.0082,-0.0053]},"pat:rsiDiv":{"US":[2295,0.522,0.0054,-0.0013,-0.0024,-0.0002],"CA":[1757,0.528,0.0036,-0.0023,-0.0019,-0.0026],"IN":[2028,0.435,0.0016,-0.0039,-0.0147,0.0051]},"pat:squeeze":{"US":[1307,0.515,0.0057,-0.0012,0.0069,-0.0077],"CA":[3402,0.643,0.0063,-0.0002,0.0006,-0.001],"IN":[653,0.413,-0.0036,-0.0094,-0.0102,-0.0088]},"pat:stochRev":{"US":[2352,0.498,0.0036,-0.003,-0.0028,-0.0031],"CA":[4219,0.537,0.0043,-0.0018,-0.0001,-0.0029],"IN":[1822,0.398,-0.0055,-0.0109,-0.0185,-0.0068]},"rsi":{"US":[3998,0.599,0.0218,0.0077,0.0089,0.0062],"CA":[3289,0.654,0.0267,0.0155,0.0175,0.0128],"IN":[3751,0.539,0.0125,0.0009,-0.0008,0.0028]},"scanner":{"US":[5366,0.505,0.0055,-0.0013,-0.0005,-0.0017],"CA":[9470,0.588,0.0086,0.0024,0.0007,0.0035],"IN":[3912,0.437,-0.0015,-0.0072,-0.0058,-0.0086]},"sma1030":{"US":[12678,0.391,0.0139,-0.01,-0.0091,-0.0111],"CA":[14472,0.447,0.0236,-0.0012,0.001,-0.0037],"IN":[10622,0.35,0.0147,-0.0038,0.0039,-0.0121]},"sma50200":{"US":[1102,0.25,-0.0342,-0.1372,-0.1374,-0.137],"CA":[661,0.318,0.0036,-0.0933,-0.0732,-0.1196],"IN":[857,0.182,-0.0871,-0.1585,-0.1535,-0.1628]},"washout":{"US":[2843,0.659,0.0305,0.0198,0.0309,0.0038],"CA":[2005,0.723,0.0427,0.034,0.0516,0.0039],"IN":[2671,0.636,0.0291,0.0206,0.0271,0.0121]}}
 };
 
 /** LIVE PRICES during the trading day.
@@ -1952,7 +1961,7 @@ const Tech = {
 /** Reversal setups — chosen by testing on this app's own data (3 years USA & Canada, ~3 years India, entry at the
  *  signal-day close, results compared with buying on a random day under the same exit rule):
  *   • WASHOUT BOTTOM: RSI(14) < 30, down ≥ 8% in 5 sessions and a close below the lower Bollinger Band.
- *     Exit: first close above the 20-day average, or after 15 sessions; stop 1 ATR under the signal-day low.
+ *     Exit: first close above the 20-day average, or after 15 sessions; disaster stop 25% under the entry.
  *     Avg per trade: USA +2.3% (random day +0.3%), Canada +3.5% (+0.3%), India +1.0% (−0.2%) — better in both halves of the period.
  *     Waiting for a "confirmation" up-day made it worse, so the entry is the washout day itself.
  *   • LEADER PULLBACK: a stock that ran ≥ 40% off its 6-month low with RSI above 75 in the last 20 sessions, closing
@@ -2026,7 +2035,7 @@ const Rev = {
   sim(x, i, kind, last) {
     const e = x.c[i];
     if (kind === 'washout') {
-      const stop = x.l[i] - x.atr[i];
+      const stop = e * .75;   // disaster stop only — a tight stop shook out most of the eventual winners (see Playbook)
       for (let j = i + 1; j <= Math.min(last, i + 15); j++) {
         if (x.l[j] <= stop) return { ret: Math.min(x.o[j], stop) / e - 1, how: 'stopped', exit: j, stop };
         if (x.c[j] > x.sma20[j]) return { ret: x.c[j] / e - 1, how: 'target', exit: j, stop };
@@ -5670,7 +5679,7 @@ const UI = {
       ${UI._trHow ? `<div class="mt-2 rounded-xl border border-line bg-ink/60 p-3 text-xs text-slate-300 max-w-4xl space-y-1">
         <p><b>Recorded, not reconstructed.</b> The nightly data job opens this same app on the new data and saves every new BUY into a log file (signals.json) before anyone sees it. Entries are never changed afterwards.</p>
         <p><b>Realistic entry.</b> You see a signal after the close, so the trade is bought at the next session’s opening price — never at the close it was based on.</p>
-        <p><b>Exit rules:</b> Washout — stop 1 ATR under the signal-day low, sell on the first close above the 20-day average, or after 15 sessions. Oversold dip — stop 3.5 ATR under the low, sell when RSI closes above 55, or after 20 sessions. Leader pullback — −7% stop, +10% target, or after 20 sessions.</p>
+        <p><b>Exit rules:</b> Washout — sell on the first close above the 20-day average, or after 15 sessions; disaster stop 25% under the entry. Oversold dip — stop 3.5 ATR under the low, sell when RSI closes above 55, or after 20 sessions. Leader pullback — −7% stop, +10% target, or after 20 sessions.</p>
         <p><b>One trade per stock at a time.</b> Repeat BUY days while a trade is open don’t count again. <b>vs market</b> = the trade minus the main index over the same days (S&P 500, S&P/TSX, Nifty 50). No costs or taxes.</p>
         <p><b>“Replayed”</b> marks days the job did not record live (the starting 60-session history, or a missed night): the same code was run on that day’s data. Tick “Recorded live only” to exclude them.</p></div>` : ''}</div>`;
     if (!D) {
@@ -5731,6 +5740,7 @@ const UI = {
           <table class="w-full text-sm"><thead><tr class="text-left text-[11px] text-slate-500"><th class="px-3 py-1.5 font-medium">Stock</th><th class="px-3 py-1.5 font-medium">Signal</th><th class="px-3 py-1.5 font-medium">Bought</th><th class="px-3 py-1.5 font-medium">Sold / now</th><th class="px-3 py-1.5 font-medium text-right">Result</th><th class="px-3 py-1.5 font-medium text-right">vs market</th><th class="px-3 py-1.5 font-medium">Outcome</th><th></th></tr></thead><tbody>${a.sort((p, q) => (q.o.r ?? -9) - (p.o.r ?? -9)).map(res).join('')}</tbody></table></div>`; }).join('')
         + (groups.length > shownG.length ? `<button type="button" data-action="trMore" class="mt-1 h-9 px-4 rounded-lg border border-line text-sm text-slate-300 hover:bg-panel2">Show earlier days (${groups.length - shownG.length} more)</button>` : '')
         : '<p class="text-sm text-slate-400">No signals match these filters.</p>'}
+      ${(D.changes || []).length ? `<div class="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-slate-300"><p class="font-semibold text-amber-200">Rule changes</p>${D.changes.map(c => `<p class="mt-1"><b>${fmt.date(c.d)}:</b> ${U.esc(c.text)} Replayed history was rebuilt with the new rule; trades recorded live before the change keep their original results.</p>`).join('')}</div>` : ''}
       <p class="mt-3 text-[11px] text-slate-500">Log ${Track.local ? 'replayed in this browser' : `recorded by the nightly job · last updated ${fmt.date(D.generated.slice(0, 10))}`}. Past results do not guarantee future results. Not investment advice.</p>`;
     if (closed.length >= 2) requestAnimationFrame(() => { try {
       const box = $('trEq'); if (!box || !Charts.ok()) return; (UI._trCh || []).forEach(c => { try { c.remove(); } catch { } });

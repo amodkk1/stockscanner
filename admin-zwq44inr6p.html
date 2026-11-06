@@ -355,7 +355,7 @@
     StrikeZone ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-05.4 · admin</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-06.1 · admin</p>
   </div>
 </footer>
 
@@ -1438,7 +1438,7 @@ const Track = {
           if (ids.has(`${m}|${h.tk.sym}|${ds.dates[i]}`)) continue;
           ids.add(`${m}|${h.tk.sym}|${ds.dates[i]}`);
           log.push({ id: `${m}|${h.tk.sym}|${ds.dates[i]}`, m, s: h.tk.sym, n: h.tk.name, setup: h.t.v, d: ds.dates[i], px: +h.tk.c[i].toFixed(4),
-            why: h.t.short, logged: now, replayed: !(live && i === last), ver: '2026-11-05.4 · admin' });
+            why: h.t.short, logged: now, replayed: !(live && i === last), ver: '2026-11-06.1 · admin' });
         }
         if ((i - from) % 5 === 4) await U.sleep(0);
       }
@@ -1450,11 +1450,11 @@ const Track = {
       }
       notes.push(`${m}: ${log.filter(z => z.m === m && z.logged === now).length} new signals`);
     }
-    return { v: 1, rv: this.RULES, generated: now, app: '2026-11-05.4 · admin', rules: 'Buy at the next open; exit by the setup rule; closed results frozen.', changes, signals: log, notes };
+    return { v: 1, rv: this.RULES, generated: now, app: '2026-11-06.1 · admin', rules: 'Buy at the next open; exit by the setup rule; closed results frozen.', changes, signals: log, notes };
   }
 };
 /** For the nightly recorder (headless browser in the data job). */
-window.StrikeZone = { ready: false, version: '2026-11-05.4 · admin', track: (prev, opts) => Track.run(prev, opts) };
+window.StrikeZone = { ready: false, version: '2026-11-06.1 · admin', track: (prev, opts) => Track.run(prev, opts) };
 
 /** Moving-average crossovers, read the way you would read them on a chart: when did the fast line last cross the slow
  *  line, in which direction, and how clearly (how far apart the lines are now, and whether they keep criss-crossing).
@@ -1644,7 +1644,7 @@ const TVLive = {
  *  Canada: there is no free machine-readable source, so a volume footprint from the price data is shown instead.
  *  This is information next to the verdict — it is not part of the BUY rule (it hasn't been tested yet). */
 const Whale = {
-  data: null, err: null, _busy: null, gen: null, DAYS: 30,
+  data: null, err: null, _busy: null, gen: null, DAYS: 90,
   live() { const st = S().settings; return Feed.configured(st.feed) && MARKET_CODES.some(c => st.sources[c] === 'live'); },
   async load(force = false) {
     if (this._busy) return this._busy;
@@ -4440,8 +4440,8 @@ const UI = {
     return `<span class="inline-flex items-center ${big ? 'h-8 px-3 text-sm' : 'h-6 px-2 text-[11px]'} rounded-md font-bold tracking-wide whitespace-nowrap ${V.cls}">${V.label}</span>`;
   },
   /** Detail drawer: the full technical check with the action to take. */
-  techSection(row) {
-    const t = Tech.of(row); if (!t) return '';
+  techSection(row, tIn = null) {
+    const t = tIn || Tech.of(row); if (!t) return '';
     const V = Tech.V[t.v], M = row.M, tone = { good: 'text-emerald-300', ok: 'text-slate-300', warn: 'text-amber-300', bad: 'text-rose-300' };
     const R = 26, C = 2 * Math.PI * R, col = t.score >= 60 ? '#34d399' : t.score >= 45 ? '#fbbf24' : '#fb7185';
     return `<section aria-labelledby="techH" class="rounded-xl border p-4" style="border-color:${V.dot}66;background:${V.dot}0d">
@@ -4457,7 +4457,7 @@ const UI = {
         <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full shrink-0" style="background:${Tech.TONE[k.tone]}" aria-hidden="true"></span><span class="text-xs text-slate-400">${U.esc(k.label)}</span><span class="ml-auto text-xs font-semibold ${tone[k.tone]}">${U.esc(k.value)}</span></div>
         <p class="mt-1 text-[11.5px] text-slate-300 leading-snug">${U.esc(k.text)}</p></div>`).join('')}</div>
       ${UI.stageBlock(t.stage, row)}
-      <p class="mt-2.5 text-[11px] text-slate-500 leading-relaxed">BUY NOW = strong technicals and a good entry right now · BUY · WASHOUT / BUY · LEADER DIP = the two setups that tested best on this app’s data · BUY EARLY = a possible new trend caught at its start (higher low holding, tight stop under it) · BUY ABOVE = strong, but buy only if it trades above the trigger · WAIT · EXTENDED = strong trend but already run up — don’t buy here, wait for the pullback price shown · WAIT = mixed signals or earnings within 3 days · AVOID = weak technicals. Score: 50 is neutral, above 60 is constructive, below 40 is weak. ${t.earnSoon ? '<span class="text-amber-300">Earnings are due within 3 sessions.</span> ' : ''}Not investment advice.</p>
+      <p class="mt-2.5 text-[11px] text-slate-500 leading-relaxed">BUY · WASHOUT / BUY · LEADER DIP / BUY · OVERSOLD = the tested playbook setups (the only ones that can say BUY) · WATCH = strong stock, wait for a tested dip · WAIT = no tested setup now. Score: 50 is neutral, above 60 is constructive, below 40 is weak. Not investment advice.</p>
     </section>`;
   },
   /** Trend status + every positive and negative indicator, side by side. */
@@ -4573,7 +4573,88 @@ const UI = {
         ${s.filters.tech !== 'all' ? '<button type="button" data-action="techFilter" data-v="all" class="ml-1 underline underline-offset-2 text-slate-300">Show all</button>' : ''}
         <span class="w-full text-[11px] text-slate-500">Each stock is checked on 10 indicators (dots, left to right): trend · trend stage (🌱 early → ◕ late) · strength vs market · market · RSI · Bollinger Bands · MACD · volume · resistance · entry timing. <span style="color:#34d399">●</span> good <span style="color:#94a3b8">●</span> neutral <span style="color:#fbbf24">●</span> caution <span style="color:#fb7185">●</span> bad. Click a badge to filter.</span>
       </div>`;
-    el.innerHTML = banner + techBar + `<p class="text-xs text-slate-400 mb-2">Showing ${rows.length} of ${all.length} setups · sorted by ${U.esc(sortName)} · probability = chance of a +10% move within 2 weeks of entry, estimated from each market's past setups</p>` + desk + mobile;
+    el.innerHTML = banner + UI.whaleStrip(view().filter(c => s.mkts[c]?.ds), all.map(x => ({ m: x.m, sym: x.cd.sym }))) + techBar + `<p class="text-xs text-slate-400 mb-2">Showing ${rows.length} of ${all.length} setups · sorted by ${U.esc(sortName)} · probability = chance of a +10% move within 2 weeks of entry, estimated from each market's past setups</p>` + desk + mobile;
+  },
+
+  /** A stock symbol that opens the full analysis panel. */
+  symLink(m, sym) { return `<button type="button" data-action="stock" data-m="${m}" data-sym="${U.esc(sym)}" class="font-semibold hover:underline underline-offset-2 decoration-sky-400/70 text-left" title="Open the full analysis of ${U.esc(sym)}">${U.esc(sym)}</button>`; },
+
+  /* ---------- Stock analysis: shared sections ---------- */
+  /** Your holding in this stock (from the Portfolio tab), with the portfolio verdict. */
+  positionBox(m, sym) {
+    const hs = (S().settings.portfolio || []).filter(h => h.m === m && h.sym === sym); if (!hs.length) return '';
+    const M = MARKETS[m], vc = { sell: 'text-rose-300', buy: 'text-emerald-300', review: 'text-amber-300', hold: 'text-sky-300' }, vl = { sell: 'SELL', buy: 'BUY MORE', review: 'REVIEW', hold: 'HOLD' };
+    return `<section class="rounded-xl border border-line bg-ink/60 p-3"><h3 class="font-semibold text-sm mb-1.5">💼 In your portfolio</h3>${hs.map(h => { let e = null; try { e = Portfolio.check(h); } catch { }
+      return e && e.v ? `<div class="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-sm"><b class="${vc[e.v]}">${vl[e.v]}</b><span class="text-slate-300 num">${h.qty} × ${fmt.px(h.cost, M)} → ${fmt.px(e.px, M)}</span><span class="num ${e.plPct >= 0 ? 'text-emerald-300' : 'text-rose-300'}">${fmt.pct(e.plPct, 1)} (${e.pl >= 0 ? '+' : '−'}${fmt.px(Math.abs(e.pl), M)})</span></div><p class="mt-1 text-xs text-slate-400">${U.esc(e.text || '')}</p>`
+        : `<p class="text-sm text-slate-300">${h.qty} shares at ${fmt.px(h.cost, M)}</p>`; }).join('')}
+      <button type="button" data-action="goTab" data-tab="portfolio" class="mt-2 text-xs text-sky-300 underline underline-offset-2">Open Portfolio →</button></section>`;
+  },
+  /** Every past StrikeZone BUY on this stock (Track record). */
+  trackHist(m, sym) {
+    const a = (Track.data?.signals || []).filter(z => z.m === m && z.s === sym).sort((p, q) => q.d.localeCompare(p.d)); if (!a.length) return '';
+    const M = MARKETS[m];
+    return `<section class="rounded-xl border border-line bg-ink/60 p-3"><h3 class="font-semibold text-sm mb-1.5">📒 StrikeZone’s past BUY signals on ${U.esc(sym)}</h3><ul class="space-y-1 text-xs">${a.slice(0, 8).map(z => { const o = z.out || {};
+      return `<li class="flex flex-wrap items-center gap-x-2 gap-y-0.5">${UI.techPill({ v: z.setup })}<span class="text-slate-300">${fmt.date(z.d)}</span><span class="num">${o.e ? `bought ${fmt.px(o.e, M)}` : ''}${o.x ? ` → ${fmt.px(o.x, M)}` : ''}</span><b class="num ${o.r >= 0 ? 'text-emerald-300' : 'text-rose-300'}">${Number.isFinite(o.r) ? fmt.pct(o.r, 1) : ''}</b><span class="text-slate-500">${o.st === 'win' ? '✓ won' : o.st === 'loss' ? '✗ lost' : o.st === 'open' ? '⏳ open' : 'buys next open'}${o.how ? ' · ' + U.esc(o.how) : ''}${z.replayed ? ' · replayed' : ''}</span></li>`; }).join('')}</ul>
+      <button type="button" data-action="goTab" data-tab="track" class="mt-2 text-xs text-sky-300 underline underline-offset-2">Open Track record →</button></section>`;
+  },
+  /** This stock's own backtest: every strategy, tested playbook ones marked. */
+  btBox(ds, ti) {
+    const b = StockBT.cached(ds, ti); if (!b?.rows?.length) return '';
+    const rows = b.rows.filter(r => r.n >= 1).sort((p, q) => (Playbook.tested(ds.m, q.key) - Playbook.tested(ds.m, p.key)) || q.total - p.total).slice(0, 8);
+    return `<section class="rounded-xl border border-line bg-ink/60 p-3"><h3 class="font-semibold text-sm mb-1.5">🧪 How each strategy did on this stock <span class="text-xs font-normal text-slate-400">(its own price history · buy & hold ${fmt.pct(b.bh.ret, 1)})</span></h3>
+      <table class="w-full text-xs"><thead><tr class="text-left text-slate-500"><th class="py-1 font-medium">Strategy</th><th class="py-1 font-medium text-right">Trades</th><th class="py-1 font-medium text-right">Won</th><th class="py-1 font-medium text-right">Total</th><th class="py-1 font-medium">Today</th></tr></thead><tbody>
+      ${rows.map(r => { const t = b.today[r.key] || {}; return `<tr class="border-t border-line/50"><td class="py-1 ${Playbook.tested(ds.m, r.key) ? 'text-emerald-200' : 'text-slate-300'}">${Playbook.tested(ds.m, r.key) ? '✓ ' : ''}${U.esc(r.name)}</td><td class="py-1 num text-right">${r.n}</td><td class="py-1 num text-right">${fmt.prob(r.winRate)}</td><td class="py-1 num text-right ${r.total >= 0 ? 'text-emerald-300' : 'text-rose-300'}">${fmt.pct(r.total, 0)}</td><td class="py-1 text-slate-400">${t.buy ? 'signal' : t.sellNext ? 'exit' : r.openTrade ? 'in a trade' : '—'}</td></tr>`; }).join('')}</tbody></table>
+      <p class="mt-1 text-[10.5px] text-slate-500">✓ = tested playbook setup (can make the verdict a BUY). Others are information only. <button type="button" data-action="btStock" data-m="${ds.m}" data-sym="${U.esc(ds.tickers[ti].sym)}" class="text-sky-300 underline">Full backtest →</button></p></section>`;
+  },
+  fundNews(ds, ti) {
+    const tk = ds.tickers[ti], f = tk.fund, M = ds.M, i = ds.cursor;
+    const fRow = (k, v) => `<div class="flex justify-between gap-3 py-1.5 border-b border-line/60 text-sm"><dt class="text-slate-400">${k}</dt><dd class="num text-slate-200 text-right">${v}</dd></div>`;
+    const news = (tk.news || []).filter(n => n.i <= i && n.i >= i - 40).slice(-6).reverse();
+    return `<div class="grid sm:grid-cols-2 gap-5">
+      <section><h3 class="font-semibold mb-1">Fundamentals</h3>${f ? `<dl>${fRow('Revenue growth (YoY)', fmt.pct(f.revGrowth))}${fRow('EPS growth (YoY)', fmt.pct(f.epsGrowth))}${fRow('Operating margin', fmt.pct(f.opMargin, 1, false))}${fRow('Debt / equity', Number.isFinite(f.debtToEquity) ? f.debtToEquity.toFixed(2) : '—')}${fRow('P/E', f.pe ? f.pe.toFixed(1) : 'n/m')}${fRow('Market cap', fmt.cap(tk.cap, M))}</dl>` : `<p class="text-sm text-slate-400">No fundamentals in the data feed for this stock.${tk.cap ? ` Market cap ${fmt.cap(tk.cap, M)}.` : ''}</p>`}</section>
+      <section><h3 class="font-semibold mb-1">News & events</h3>${news.length ? `<ul class="space-y-2">${news.map(n => `<li class="text-sm"><span class="inline-block w-2 h-2 rounded-full mr-1.5 ${n.sent > 0 ? 'bg-emerald-400' : n.sent < 0 ? 'bg-rose-400' : 'bg-slate-500'}" aria-hidden="true"></span>${U.esc(n.title || n.h || '')} <span class="text-[11px] text-slate-500">${fmt.dateShort(ds.dates[n.i])}</span></li>`).join('')}</ul>` : '<p class="text-sm text-slate-400">No recent news in the data feed.</p>'}</section></div>`;
+  },
+  openDrawerShell(html, after) {
+    $('drawerBody').innerHTML = html;
+    const dr = $('drawer'), bd = $('drawerBackdrop');
+    dr.classList.remove('hidden'); dr.classList.add('flex'); bd.classList.remove('hidden');
+    requestAnimationFrame(() => { dr.classList.add('open'); bd.classList.add('open'); });
+    document.body.style.overflow = 'hidden'; $('drawerBody').scrollTop = 0;
+    dr.querySelector('[data-action=closeDrawer]')?.focus();
+    if (after) requestAnimationFrame(after);
+  },
+  /** End-to-end analysis of ANY stock, from anywhere in the app. Scanner-shortlisted stocks get the full shortlist
+   *  view (probability, reasons, plan); every other stock gets the same analysis without the shortlist parts. */
+  async openStock(m, sym) {
+    if (!m || !sym || !MARKETS[m]) return;
+    if (!$('chartModal').classList.contains('hidden')) UI.chartClose();
+    UI.lastFocus = document.activeElement;
+    if (!S().mkts[m]?.ds) { UI.toast(`Loading ${MARKETS[m].name}…`); while (S().busy) await U.sleep(200); await App.run({ codes: [m], reason: 'Stock analysis' }); while (S().busy) await U.sleep(200); }
+    const row = S().results.find(r => r.m === m && r.cd.sym === sym);
+    if (row) { UI.openDetail(row.key); return; }
+    const ds = S().mkts[m]?.ds; if (!ds) return;
+    const ti = ds.tickers.findIndex(t => t.sym === sym); if (ti < 0) { UI.toast(`${sym} isn’t in StrikeZone’s ${MARKETS[m].name} list.`, 'error'); return; }
+    const tk = ds.tickers[ti], M = ds.M, i = ds.cursor, c = tk.c[i], day = c / tk.c[i - 1] - 1, t = Tech.ofAny(ds, ti), x = Ind.compute(tk, M), lq = Quotes.of(m, sym);
+    UI.openDrawerShell(`
+      <div class="sticky top-0 z-10 bg-panel/95 backdrop-blur border-b border-line px-4 sm:px-5 py-3 flex flex-wrap items-center gap-2">
+        <div class="min-w-0 flex-1"><h2 id="drawerTitle" class="font-semibold text-lg leading-tight">${U.esc(tk.sym)} <span class="text-sm font-normal text-slate-300 num">${fmt.px(c, M)}</span> <span class="text-sm num ${day >= 0 ? 'text-emerald-300' : 'text-rose-300'}">${fmt.pct(day, 2)}</span> ${t ? UI.techPill(t) : ''} ${Whale.chip(m, sym)}</h2>
+          <p class="text-xs text-slate-400 truncate">${flagTag(M)} ${M.exch} · ${U.esc(tk.name)} · ${U.esc(tk.sector || '')} · close of ${fmt.date(ds.dates[i])}</p>${lq ? `<p class="mt-0.5">${Quotes.tag(m, lq, M)}</p>` : ''}</div>
+        ${UI.chartBtn(m, sym, '📈 Chart', 'h-9 px-3 rounded-lg border border-sky-500/40 text-sm text-sky-300 hover:bg-sky-500/10')}
+        <button type="button" data-action="watchAdd" data-m="${m}" data-sym="${U.esc(sym)}" data-key="auto" class="h-9 px-3 rounded-lg border border-violet-500/40 text-sm text-violet-300 hover:bg-violet-500/10">◆ Watch</button>
+        <button type="button" data-action="closeDrawer" class="h-9 w-9 inline-flex items-center justify-center rounded-lg hover:bg-panel2" aria-label="Close details"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+      </div>
+      <div class="p-4 sm:p-5 space-y-5">
+        ${t ? UI.techSection({ m, M, ds }, t) : '<p class="text-sm text-slate-400">Not enough history for a technical check.</p>'}
+        ${lq ? `<p class="text-xs text-slate-400">The verdict uses the close of ${fmt.date(ds.dates[i])}; it updates after today’s close. Live price ${fmt.px(lq.c, M)} (${fmt.pct(lq.c / c - 1, 1)} vs that close).</p>` : ''}
+        ${UI.positionBox(m, sym)}
+        ${Whale.section(m, sym)}
+        ${UI.trackHist(m, sym)}
+        <section aria-label="Price chart"><div class="flex items-center gap-3 text-[11px] text-slate-400 mb-1.5 flex-wrap"><span><span style="color:#94a3b8">━</span> 20-day</span><span><span style="color:#38bdf8">━</span> 50-day</span><span><span style="color:#f59e0b">━</span> 200-day</span><span class="text-slate-500">· 1 year · open 📈 Chart for more</span></div>
+          <div id="dsMain" class="h-[300px] rounded-lg border border-line bg-ink"></div><div id="dsRsi" class="mt-1 h-[90px] rounded-lg border border-line bg-ink"></div></section>
+        ${UI.btBox(ds, ti)}
+        ${UI.fundNews(ds, ti)}
+        <section class="rounded-lg border border-amber-500/25 bg-amber-500/5 p-3"><p class="text-[11px] text-amber-200/70">${U.esc(sym)} is not on the scanner’s shortlist today, so there is no shortlist probability or trade plan — the verdict above is the action. Not investment advice. ${U.esc(M.regNote || '')}</p></section>
+      </div>`, () => { try { UI.charts.push(...Charts.full($('dsMain'), $('dsRsi'), ds, ti, x, t, 250)); } catch (e) { console.error(e); } });
   },
 
   /* ---------- Detail drawer ---------- */
@@ -4597,7 +4678,7 @@ const UI = {
     $('drawerBody').innerHTML = `
       <div class="sticky top-0 z-10 bg-panel/95 backdrop-blur border-b border-line px-4 sm:px-5 py-3 flex items-center gap-3">
         ${tierBadge(sc.tier)}
-        <div class="min-w-0 flex-1"><h2 id="drawerTitle" class="font-semibold text-lg leading-tight">${U.esc(tk.sym)} <span class="text-sm font-normal text-slate-400">${fmt.px(cd.price, M)}</span></h2>
+        <div class="min-w-0 flex-1"><h2 id="drawerTitle" class="font-semibold text-lg leading-tight">${U.esc(tk.sym)} <span class="text-sm font-normal text-slate-400">${fmt.px(cd.price, M)}</span> ${Whale.chip(row.m, tk.sym)}</h2>
           <p class="text-xs text-slate-400 truncate">${flagTag(M)} ${M.exch} · ${U.esc(tk.name)} · ${U.esc(tk.sector)} · ${fmt.cap(tk.cap, M)}</p></div>
         ${UI.chartBtn(row.m, tk.sym, '📈 Chart', 'h-9 px-3 rounded-lg border border-sky-500/40 text-sm text-sky-300 hover:bg-sky-500/10')}
         <button type="button" data-action="btStock" data-m="${row.m}" data-sym="${U.esc(tk.sym)}" class="hidden sm:inline-flex h-9 px-3 items-center rounded-lg border border-line text-sm text-slate-300 hover:bg-panel2">Backtest</button>
@@ -4606,6 +4687,9 @@ const UI = {
       </div>
       <div class="p-4 sm:p-5 space-y-5">
         ${UI.techSection(row)}
+        ${UI.positionBox(row.m, tk.sym)}
+        ${Whale.section(row.m, tk.sym)}
+        ${UI.trackHist(row.m, tk.sym)}
         <section aria-labelledby="sumH" class="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.04] p-4">
           <div class="flex flex-col sm:flex-row sm:items-start gap-3 sm:gap-4">
             <div class="flex sm:block items-baseline gap-2 sm:text-center shrink-0">
@@ -4834,7 +4918,7 @@ const UI = {
         const M = MARKETS[w.m], st = e.strat, plan = e.plan, hot = e.hot || [], hl = hot.length ? StockBT.hotLabel(hot) : null;
         return `<li class="rounded-xl border ${hot.length ? 'border-yellow-400/70 hot-card' : tone[e.kind]} bg-panel p-3">
           <div class="flex flex-wrap items-start gap-x-3 gap-y-1">
-            <div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(w.sym)} <span class="text-xs font-normal text-slate-400">${flagTag(M)} ${M.name}</span> ${e.tv ? UI.techPill(e.tv) : ''} ${Whale.chip(w.m, w.sym)} ${hl ? hl.html : ''}</p>
+            <div class="min-w-0 flex-1"><p class="font-semibold">${UI.symLink(w.m, w.sym)} <span class="text-xs font-normal text-slate-400">${flagTag(M)} ${M.name}</span> ${e.tv ? UI.techPill(e.tv) : ''} ${Whale.chip(w.m, w.sym)} ${hl ? hl.html : ''}</p>
               <p class="text-xs text-slate-300">${U.esc(Watch.label(w.key, e.res))}</p></div>
             <div class="flex items-center gap-1.5 shrink-0">
               ${UI.chartBtn(w.m, w.sym)}
@@ -5040,11 +5124,11 @@ const UI = {
       ${rows.length ? `<div class="overflow-x-auto scroll-thin"><table class="w-full text-sm">
         <thead><tr class="text-left text-xs text-slate-400 border-b border-line"><th class="px-3 py-2 font-medium">Stock</th><th class="px-3 py-2 font-medium">StrikeZone verdict</th><th class="px-3 py-2 font-medium">Success with this strategy</th><th class="px-3 py-2 font-medium text-right">Total return</th><th class="px-3 py-2 font-medium text-right">Avg / trade</th><th class="px-3 py-2"></th></tr></thead>
         <tbody>${shown.map(r => `<tr class="border-b border-line/60 align-top ${r.best ? 'bg-amber-400/[0.05]' : ''}">
-          <td class="px-3 py-2 ${r.best ? 'border-l-2 border-amber-400' : 'border-l-2 border-transparent'}"><p class="font-semibold">${U.esc(r.sym)} ${Whale.chip(f.m, r.sym)} ${r.best ? '<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400 text-ink align-middle">★ BEST FIT</span>' : ''}</p>
+          <td class="px-3 py-2 ${r.best ? 'border-l-2 border-amber-400' : 'border-l-2 border-transparent'}"><p class="font-semibold">${UI.symLink(f.m, r.sym)} ${Whale.chip(f.m, r.sym)} ${r.best ? '<span class="ml-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-400 text-ink align-middle">★ BEST FIT</span>' : ''}</p>
             <p class="text-[11px] text-slate-400 truncate max-w-[220px]">${U.esc(r.name)}</p>
             <p class="text-[11px] ${r.best ? 'text-amber-200' : 'text-slate-500'}">${r.best ? `Best of all ${r.of} strategies for ${U.esc(r.sym)}` : `Ranks #${r.rank} of ${r.of} · best: ${U.esc(r.bestName || '—')}`}</p></td>
           <td class="px-3 py-2 whitespace-nowrap">${stateCell(r)}</td>
-          <td class="px-3 py-2"><p class="num"><b class="${r.winRate >= .6 ? 'text-emerald-300' : r.winRate >= .5 ? 'text-slate-100' : 'text-rose-300'}">${r.wins} of ${r.n}</b> trades won <span class="text-slate-400">(${fmt.prob(r.winRate)})</span></p>
+          <td class="px-3 py-2" data-sort="${(r.winRate * 100).toFixed(2)}"><p class="num"><b class="${r.winRate >= .6 ? 'text-emerald-300' : r.winRate >= .5 ? 'text-slate-100' : 'text-rose-300'}">${r.wins} of ${r.n}</b> trades won <span class="text-slate-400">(${fmt.prob(r.winRate)})</span></p>
             <div class="mt-1 h-1.5 w-32 rounded-full bg-ink overflow-hidden"><div class="h-full ${r.winRate >= .6 ? 'bg-emerald-400' : r.winRate >= .5 ? 'bg-slate-300' : 'bg-rose-400'}" style="width:${Math.round((r.winRate || 0) * 100)}%"></div></div></td>
           <td class="px-3 py-2 text-right num ${tone(r.total)}">${fmt.pct(r.total, 1)}</td>
           <td class="px-3 py-2 text-right num ${tone(r.avg)}">${fmt.pct(r.avg, 1)}</td>
@@ -5093,7 +5177,7 @@ const UI = {
     const card = r => { const M = r.M, p = r.plan;
       return `<li class="rounded-xl border ${r.age === 0 ? 'border-emerald-500/40' : 'border-line'} bg-panel p-3">
         <div class="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
-          <div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(r.sym)} ${(() => { const tv = Tech.ofAny(r.ds, r.ti); return tv ? UI.techPill(tv) : ''; })()} ${Whale.chip(r.m, r.sym)} <span class="text-xs font-normal text-slate-400">${multi ? flagTag(M) + ' ' : ''}${U.esc(r.name)} · ${U.esc(r.sector)}</span></p>
+          <div class="min-w-0 flex-1"><p class="font-semibold">${UI.symLink(r.m, r.sym)} ${(() => { const tv = Tech.ofAny(r.ds, r.ti); return tv ? UI.techPill(tv) : ''; })()} ${Whale.chip(r.m, r.sym)} <span class="text-xs font-normal text-slate-400">${multi ? flagTag(M) + ' ' : ''}${U.esc(r.name)} · ${U.esc(r.sector)}</span></p>
             <p class="text-[11px] text-slate-400">${r.kind === 'washout' ? `<span class="font-semibold ${r.day >= 2 ? 'text-emerald-300' : 'text-amber-200'}">Washout day ${r.day}</span> · ` : ''}${when(r)} · ${fmt.date(r.date)}${r.age ? ` · since then ${'<span class="' + tone(r.since) + '">' + fmt.pct(r.since, 1) + '</span>'}` : ''} · now ${fmt.px(r.price, M)}</p></div>
           <div class="flex flex-wrap gap-1.5 sm:shrink-0">
             <button type="button" data-action="watchAdd" data-m="${r.m}" data-sym="${U.esc(r.sym)}" data-key="${r.kind}" class="h-7 px-2.5 rounded-lg border border-violet-500/40 text-xs text-violet-300 hover:bg-violet-500/10">◆ Watch</button>
@@ -5112,7 +5196,7 @@ const UI = {
         </div>
         <p class="mt-2 text-[11px] text-slate-400">${U.esc(p.exitTxt)}${r.kind === 'washout' ? (r.day === 1 ? ' Day 1 of a washout: historically the 2nd and later days were better entries in the USA and Canada — consider a starter position now and adding if the selling continues.' : ` Day ${r.day}: deeper into the washout, which has historically been the better entry.`) : ''}</p>
       </li>`; };
-    el.innerHTML = `<div class="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.04] p-4 mb-3">
+    el.innerHTML = UI.whaleStrip(codes) + `<div class="rounded-xl border border-emerald-500/30 bg-emerald-500/[0.04] p-4 mb-3">
         <h3 class="font-semibold">${S0.icon} ${S0.label}</h3>
         <p class="mt-1 text-sm text-slate-300 max-w-4xl">${S0.desc} ${mode === 'washout' ? 'Rule: RSI below 30, down 8% or more in 5 sessions, and a close below the lower Bollinger Band — bought while it is happening, not after a “confirmation” bounce (waiting made results worse). Each day the condition holds counts as a signal.' : mode === 'oversold' ? 'Rule: RSI(14) closes below 30 (washouts, the deeper version, are listed separately). Exit when RSI closes back above 55 or after 20 sessions, with an emergency stop 3.5× the daily range below the signal-day low.' : 'Rule: ran 40% or more off its 6-month low with RSI above 75 in the last month, then closes below its 50-day average for the first time.'}</p>
         ${(() => { const off = codes.filter(c => !Playbook.on(c, { washout: 'washout', leader: 'leader', oversold: 'oversold' }[mode])); return off.length ? `<p class="mt-2 text-xs text-amber-200">Not in the playbook for ${off.map(c => MARKETS[c].name).join(', ')}: there it did not beat simply holding the stock in our 3-year test, so these show as WAIT and are listed for information only.</p>` : ''; })()}
@@ -5169,6 +5253,7 @@ const UI = {
       <div class="sticky top-0 z-10 bg-panel/95 backdrop-blur border-b border-line px-3 sm:px-4 py-2.5 flex flex-wrap items-center gap-2">
         <div class="min-w-0 mr-auto"><h2 id="chartTitle" class="font-semibold text-lg leading-tight">${U.esc(tk.sym)} <span class="text-sm font-normal text-slate-300 num">${fmt.px(c, M)}</span> <span class="text-sm num ${day >= 0 ? 'text-emerald-300' : 'text-rose-300'}">${fmt.pct(day, 2)}</span></h2>
           <p class="text-xs text-slate-400 truncate">${flagTag(M)} ${M.exch} · ${U.esc(tk.name)} · ${U.esc(tk.sector)} · close of ${fmt.date(ds.dates[i])}</p>${lq ? `<p class="mt-0.5">${Quotes.tag(st.m, lq, M)}</p>` : ''}</div>
+        <button type="button" data-action="stock" data-m="${st.m}" data-sym="${U.esc(tk.sym)}" class="h-8 px-2.5 rounded-lg border border-line text-xs text-slate-200 hover:bg-panel2">🔍 Full analysis</button>
         <div class="flex rounded-lg ring-1 ring-line overflow-hidden" role="group" aria-label="Chart type"><button type="button" data-action="chartTv" data-on="0" class="h-8 px-2.5 text-xs ${!st.tv ? 'bg-panel2 text-slate-100 font-semibold' : 'text-slate-400 hover:bg-panel2'}">StrikeZone chart</button><button type="button" data-action="chartTv" data-on="1" class="h-8 px-2.5 text-xs ${st.tv ? 'bg-panel2 text-slate-100 font-semibold' : 'text-slate-400 hover:bg-panel2'}" title="TradingView's live chart — real-time or exchange-delayed">⚡ Live chart</button></div>
         <div class="flex rounded-lg ring-1 ring-line overflow-hidden" role="group" aria-label="Chart period">${rng.map(([n, l]) => `<button type="button" data-action="chartRange" data-n="${n}" class="h-8 px-2.5 text-xs ${st.range === n ? 'bg-panel2 text-slate-100 font-semibold' : 'text-slate-400 hover:bg-panel2'}">${l}</button>`).join('')}</div>
         <a href="${tvUrl}" target="_blank" rel="noopener" class="h-8 px-2.5 inline-flex items-center rounded-lg border border-line text-xs text-slate-300 hover:bg-panel2">TradingView ↗</a>
@@ -5456,7 +5541,7 @@ const UI = {
         return `<li class="rounded-xl border ${vd.card} bg-panel p-3">
           <div class="flex flex-wrap items-start gap-x-3 gap-y-2">
             <div class="min-w-0 flex-1">
-              <p class="font-semibold">${U.esc(h.sym)} <span class="text-xs font-normal text-slate-400">${flagTag(M)} ${M.name}${e.tk ? ' · ' + U.esc(e.tk.name) : ''}</span></p>
+              <p class="font-semibold">${UI.symLink(h.m, h.sym)} ${Whale.chip(h.m, h.sym)} <span class="text-xs font-normal text-slate-400">${flagTag(M)} ${M.name}${e.tk ? ' · ' + U.esc(e.tk.name) : ''}</span></p>
               <p class="text-[11px] text-slate-500 num">${fmt.num(h.qty, h.qty % 1 ? 2 : 0)} shares @ ${fmt.px(h.cost, M)}${h.date ? ` · bought ${fmt.date(h.date)}` : ''}</p>
             </div>
             <span class="shrink-0 px-2.5 py-1 rounded-md ring-1 text-xs font-bold tracking-wide ${vd.badge}">${vd.label}</span>
@@ -5701,6 +5786,28 @@ const UI = {
     if (bt.curve.length) requestAnimationFrame(() => { try { const c = Charts.equity($('btChart'), bt.curve); c._bt = true; UI.charts.push(c); } catch (e) { console.error(e); } });
   },
 
+  /** Whale strip on the Watchlist: the market's whale cash flow + the stocks where money is going in / out. */
+  whaleStrip(codes, listed = []) {
+    if (!Whale.data && !Whale._busy && Whale.live()) Whale.load();
+    const onList = new Set(listed.map(x => x.m + '|' + x.sym));
+    const parts = codes.map(c => {
+      const M = MARKETS[c], ds = S().mkts[c]?.ds; if (!ds) return '';
+      let sums = [];
+      if (c === 'CA') sums = ds.tickers.filter(t => !t.excluded).map(t => ({ sy: t.sym, w: Whale.footprint(c, t.sym) })).filter(z => z.w);
+      else { const cov = new Set(ds.tickers.map(t => t.sym)); sums = [...new Set((Whale.data?.[c] || []).map(e => e.s))].filter(sy => cov.has(sy)).map(sy => ({ sy, w: Whale.summary(c, sy, 30) })).filter(z => z.w); }
+      if (!sums.length) return `<span class="text-slate-500">${M.flag} ${M.name}: ${c === 'US' && Whale.data && !(Whale.data.US || []).length ? 'no SEC filings yet' : 'no whale activity in 30 days'}</span>`;
+      const fl = Whale.flowOf(sums.flatMap(z => z.w.items)), [lbl, tc] = Whale.FLOW[fl.tone];
+      const ins = sums.filter(z => z.w.flow.tone === 'in').sort((a, b) => b.w.flow.net - a.w.flow.net), outs = sums.filter(z => z.w.flow.tone === 'out').sort((a, b) => a.w.flow.net - b.w.flow.net);
+      const btn = (z, up) => `<button type="button" data-action="whaleGo" data-m="${c}" data-sym="${U.esc(z.sy)}" class="inline-flex items-center h-6 px-1.5 rounded ring-1 ${up ? 'ring-emerald-500/40 text-emerald-200 hover:bg-emerald-500/10' : 'ring-rose-500/40 text-rose-200 hover:bg-rose-500/10'} ${onList.has(c + '|' + z.sy) ? 'font-bold' : ''}" title="${onList.has(c + '|' + z.sy) ? 'On this list · ' : ''}${U.esc(z.w.head)}">${up ? '▲' : '▼'} ${U.esc(z.sy)}</button>`;
+      return `<span class="inline-flex flex-wrap items-center gap-1.5"><b class="text-slate-200">${M.flag} ${M.name}</b> <span class="${tc} font-semibold">${lbl}</span> <span class="text-slate-400">ratio ${Whale.ratioTxt(fl.ratio)}</span>
+        ${ins.slice(0, 6).map(z => btn(z, true)).join('')}${outs.slice(0, 4).map(z => btn(z, false)).join('')}</span>`;
+    }).filter(Boolean);
+    if (!parts.length) return '';
+    return `<div class="mb-3 rounded-xl border border-line bg-panel px-3 py-2.5 text-xs flex flex-wrap items-center gap-x-4 gap-y-2">
+      <span class="font-semibold text-slate-200">🐋 Whale activity <span class="font-normal text-slate-500">(last 30 days)</span></span>${parts.join('<span class="text-slate-600">|</span>')}
+      <button type="button" data-action="whaleGo" data-m="${codes[0]}" data-sym="" class="ml-auto h-7 px-2.5 rounded-lg ring-1 ring-sky-400/50 text-sky-200 hover:bg-sky-500/10">Open Whale activity →</button></div>`;
+  },
+
   /* ---------- Whale activity ---------- */
   whales() {
     const el = $('whaleView'); if (!el || S().tab !== 'whales') return;
@@ -5744,7 +5851,7 @@ const UI = {
         const rows = ds.tickers.filter(t => !t.excluded && (!f.q || t.sym.includes(f.q.toUpperCase()))).map(t => ({ t, w: Whale.footprint('CA', t.sym) })).filter(z => z.w && (f.side === 'all' || z.w.items.some(x => x.side === f.side)));
         rows.sort((a, b) => b.w.items[0].d.localeCompare(a.w.items[0].d));
         body = topBox(rows.flatMap(z => z.w.items), rows.length) + (rows.length ? `<div class="rounded-xl border border-line bg-panel overflow-x-auto scroll-thin"><table class="w-full text-sm"><thead><tr class="text-left text-xs text-slate-400 border-b border-line"><th class="px-3 py-2 font-medium">Date</th><th class="px-3 py-2 font-medium">Stock</th><th class="px-3 py-2 font-medium">What happened</th><th class="px-3 py-2 font-medium">Verdict</th><th></th></tr></thead><tbody>
-          ${rows.flatMap(z => z.w.items.filter(x => f.side === 'all' || x.side === f.side).map(x => `<tr class="border-b border-line/50"><td class="px-3 py-2 text-xs num whitespace-nowrap">${fmt.dateShort(x.d)}</td><td class="px-3 py-2"><b>${U.esc(z.t.sym)}</b><span class="block text-[11px] text-slate-500 truncate max-w-[200px]">${U.esc(z.t.name)}</span></td><td class="px-3 py-2 text-xs"><span class="${bigCls(x.side)} font-semibold">${x.side === 'BUY' ? '▲ Heavy buying' : '▼ Heavy selling'}</span> · ${U.esc(x.who)}</td><td class="px-3 py-2">${pill(z.t.sym)}</td><td class="px-3 py-2 text-right">${UI.chartBtn('CA', z.t.sym, '📈', 'h-7 w-8 inline-flex items-center justify-center rounded-lg border border-sky-500/40 text-sky-300 hover:bg-sky-500/10')}</td></tr>`)).slice(0, 300).join('')}</tbody></table></div>` : '<p class="text-sm text-slate-400">No heavy-volume days in the last 10 sessions for these filters.</p>');
+          ${rows.flatMap(z => z.w.items.filter(x => f.side === 'all' || x.side === f.side).map(x => `<tr class="border-b border-line/50"><td class="px-3 py-2 text-xs num whitespace-nowrap">${fmt.dateShort(x.d)}</td><td class="px-3 py-2">${UI.symLink('CA', z.t.sym)}<span class="block text-[11px] text-slate-500 truncate max-w-[200px]">${U.esc(z.t.name)}</span></td><td class="px-3 py-2 text-xs"><span class="${bigCls(x.side)} font-semibold">${x.side === 'BUY' ? '▲ Heavy buying' : '▼ Heavy selling'}</span> · ${U.esc(x.who)}</td><td class="px-3 py-2">${pill(z.t.sym)}</td><td class="px-3 py-2 text-right">${UI.chartBtn('CA', z.t.sym, '📈', 'h-7 w-8 inline-flex items-center justify-center rounded-lg border border-sky-500/40 text-sky-300 hover:bg-sky-500/10')}</td></tr>`)).slice(0, 300).join('')}</tbody></table></div>` : '<p class="text-sm text-slate-400">No heavy-volume days in the last 10 sessions for these filters.</p>');
       }
     } else if (!Whale.data) body = Whale._busy ? '<div class="skeleton h-40"></div>' : '<p class="text-sm text-slate-400">Loading…</p>';
     else if (Whale.err === 'nofile' || Whale.err === 'demo') body = `<p class="text-sm text-slate-400">${Whale.err === 'demo' ? 'Whale data comes with the live data feed.' : 'Not in the data feed yet — it appears after the next data update with the updated fetch.py.'}</p>`;
@@ -5762,7 +5869,7 @@ const UI = {
         const card = (z, side) => { const top = z.w.items.filter(x => x.side === side).slice(0, 3), v = val(z, side), other = z.w.items.filter(x => x.side === (side === 'BUY' ? 'SELL' : 'BUY'));
           const ev = Whale.events(f.m, z.sy, f.days).find(e => e.side === side), since = sinceTxt(z.sy, ev?.px);
           return `<li class="rounded-xl border ${side === 'BUY' ? 'border-emerald-500/30' : 'border-amber-500/30'} bg-panel p-3">
-            <div class="flex items-start gap-2"><div class="min-w-0 flex-1"><p class="font-semibold">${U.esc(z.sy)} ${pill(z.sy)}</p>
+            <div class="flex items-start gap-2"><div class="min-w-0 flex-1"><p class="font-semibold">${UI.symLink(f.m, z.sy)} ${pill(z.sy)}</p>
               <p class="text-[11px] text-slate-400">${side === 'BUY' ? 'Bought' : 'Sold'} <b class="${bigCls(side)}">${v >= 1e3 ? fmt.cap(v, M) : z.w.items.filter(x => x.side === side).length + ' filing' + (z.w.items.filter(x => x.side === side).length === 1 ? '' : 's')}</b> in ${f.days} days${since ? ` · price since the deal ${since}` : ''}</p></div>
               ${UI.chartBtn(f.m, z.sy, '📈', 'h-7 w-8 shrink-0 inline-flex items-center justify-center rounded-lg border border-sky-500/40 text-sky-300 hover:bg-sky-500/10')}</div>
             <div class="mt-2">${Whale.flowBar(z.w.flow, M)}</div>
@@ -5834,7 +5941,7 @@ const UI = {
     const res = z => { const o = z.o, M = MARKETS[z.m];
       const badge = o.st === 'win' ? '<span class="inline-flex h-6 px-2 items-center rounded bg-emerald-500/20 text-emerald-200 text-xs font-semibold">✓ Won</span>' : o.st === 'loss' ? '<span class="inline-flex h-6 px-2 items-center rounded bg-rose-500/20 text-rose-200 text-xs font-semibold">✗ Lost</span>' : o.st === 'open' ? '<span class="inline-flex h-6 px-2 items-center rounded bg-sky-500/20 text-sky-200 text-xs font-semibold">⏳ Open</span>' : '<span class="inline-flex h-6 px-2 items-center rounded bg-slate-500/20 text-slate-300 text-xs">Buys next open</span>';
       return `<tr class="border-b border-line/50 hover:bg-panel2/40">
-        <td class="px-3 py-2"><p class="font-semibold">${U.esc(z.s)} <span class="text-[11px] font-normal text-slate-500">${flagTag(M)}${z.replayed ? ' · <span title="Not recorded live — the same code replayed on that day’s data">replayed</span>' : ''}</span></p><p class="text-[11px] text-slate-500 truncate max-w-[200px]">${U.esc(z.n || '')}</p></td>
+        <td class="px-3 py-2"><p class="font-semibold">${UI.symLink(z.m, z.s)} <span class="text-[11px] font-normal text-slate-500">${flagTag(M)}${z.replayed ? ' · <span title="Not recorded live — the same code replayed on that day’s data">replayed</span>' : ''}</span></p><p class="text-[11px] text-slate-500 truncate max-w-[200px]">${U.esc(z.n || '')}</p></td>
         <td class="px-3 py-2">${UI.techPill({ v: z.setup })}</td>
         <td class="px-3 py-2 num text-xs">${o.e ? `${fmt.px(o.e, M)}<span class="block text-[10.5px] text-slate-500">${fmt.dateShort(o.ed)} open</span>` : '—'}</td>
         <td class="px-3 py-2 num text-xs">${o.x ? `${fmt.px(o.x, M)}<span class="block text-[10.5px] text-slate-500">${o.st === 'open' ? 'last close' : `${fmt.dateShort(o.xd)} · ${U.esc(o.how)}`}</span>` : '—'}</td>
@@ -6275,7 +6382,9 @@ function wire() {
         case 'chartClose': UI.chartClose(); break;
         case 'moodOpen': UI.moodOpen(); break;
         case 'pbOpen': UI.pbOpen(); break;
-        case 'whaleGo': { const f = (UI._whF ||= { m: 'IN', side: 'all', days: 30, q: '', noise: true }); f.m = act.dataset.m; f.q = act.dataset.sym; if (!$('chartModal').classList.contains('hidden')) UI.chartClose(); if (S().tab === 'whales') UI.whales(); else Store.set({ tab: 'whales' }); window.scrollTo({ top: 0 }); break; }
+        case 'stock': UI.openStock(act.dataset.m, act.dataset.sym); break;
+        case 'goTab': UI.closeDrawer(); Store.set({ tab: act.dataset.tab }); window.scrollTo({ top: 0 }); break;
+        case 'whaleGo': { const f = (UI._whF ||= { m: 'IN', side: 'all', days: 30, q: '', noise: true }); f.m = act.dataset.m; f.q = act.dataset.sym || ''; if (!$('chartModal').classList.contains('hidden')) UI.chartClose(); if (S().tab === 'whales') UI.whales(); else Store.set({ tab: 'whales' }); window.scrollTo({ top: 0 }); break; }
         case 'whF': { const f = UI._whF, k = act.dataset.k; f[k] = k === 'days' ? +act.dataset.v : act.dataset.v; if (k === 'm') f.q = ''; UI.whales(); break; }
         case 'whClear': UI._whF.q = ''; UI.whales(); break;
         case 'trF': { const f = UI._trF, k = act.dataset.k; f[k] = k === 'days' ? +act.dataset.v : act.dataset.v; f.more = 0; UI.track(); break; }
@@ -6727,11 +6836,80 @@ Store.on(['busy'], () => { if (S().tab === 'portfolio') $('pCheck').disabled = S
 Store.on(['busy'], () => { if (S().tab === 'watch') $('wCheck').disabled = S().busy; });
 Store.on(['results', 'settings', 'mkts', 'mySync'], () => UI.myStocks());
 
+/* =====================================================================
+ * TABLE SORTING — every table in the app: click a column header to sort ascending, click again for descending.
+ * Works on any table (numbers, %, money with K/M/B/Cr, dates, text); empty cells (—) always go last. The choice is
+ * remembered per table, so it survives the table being redrawn. Detail rows (a full-width row under a row) move with
+ * their row.
+ * ===================================================================== */
+const TableSort = {
+  state: new Map(),
+  MON: { jan: 0, feb: 1, mar: 2, apr: 3, may: 4, jun: 5, jul: 6, aug: 7, sep: 8, oct: 9, nov: 10, dec: 11 },
+  label(c) { if (c.dataset.label === undefined) c.dataset.label = c.textContent.replace(/[↕▲▼]/g, '').trim(); return c.dataset.label; },
+  sig(t) { const h = t.tHead?.rows[0]; return h ? [...h.cells].map(c => this.label(c)).join('|') : ''; },
+  value(cell) {
+    if (!cell) return null;
+    const raw = (cell.dataset.sort ?? cell.innerText ?? '').trim();
+    if (!raw || /^[—–-]+$/.test(raw)) return null;
+    const t = raw.replace(/\s+/g, ' ');
+    let m = t.match(/^(\d{4})-(\d{2})-(\d{2})/); if (m) return { n: Date.UTC(+m[1], m[2] - 1, +m[3]) };
+    m = t.match(/^(?:[A-Za-z]{3},?\s+)?([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2})(?:,?\s+(\d{4}))?\b/);
+    if (m && this.MON[m[1].toLowerCase()] !== undefined) { const y = m[3] ? +m[3] : new Date().getFullYear(); return { n: Date.UTC(y, this.MON[m[1].toLowerCase()], +m[2]) }; }
+    m = t.match(/^[▲▼◆⏳✓✗↑↓\s]*([+\-−]?)\s*(?:[A-Z]{0,2}\$|₹|€|£)?\s*([+\-−]?)(\d[\d,]*(?:\.\d+)?)\s*(T|B|M|K|Cr|L)?\b/);
+    if (m) {
+      let v = parseFloat(m[3].replace(/,/g, '')); const mult = { T: 1e12, B: 1e9, M: 1e6, K: 1e3, Cr: 1e7, L: 1e5 }[m[4]] || 1; v *= mult;
+      if (/[-−]/.test(m[1] + m[2]) || /^▼/.test(t)) v = -Math.abs(v);
+      return { n: v };
+    }
+    return { s: t.toLowerCase() };
+  },
+  sortTable(t, col, dir) {
+    const tb = t.tBodies[0]; if (!tb) return;
+    const groups = []; for (const r of [...tb.rows]) { const c0 = r.cells[0]; if (groups.length && c0 && c0.colSpan > 1 && r.cells.length === 1) groups[groups.length - 1].push(r); else groups.push([r]); }
+    if (groups.length < 2) return;
+    const k = groups.map((g, i) => ({ g, i, v: this.value(g[0].cells[col]) }));
+    k.sort((a, b) => {
+      if (a.v === null || b.v === null) return a.v === null && b.v === null ? a.i - b.i : a.v === null ? 1 : -1;
+      const r = a.v.n !== undefined && b.v.n !== undefined ? a.v.n - b.v.n : a.v.n !== undefined ? -1 : b.v.n !== undefined ? 1 : a.v.s.localeCompare(b.v.s, undefined, { numeric: true });
+      return (r || a.i - b.i) * (r ? dir : 1);
+    });
+    const frag = document.createDocumentFragment(); k.forEach(x => x.g.forEach(r => frag.appendChild(r))); tb.appendChild(frag);
+  },
+  mark(t) {
+    const st = this.state.get(this.sig(t)), h = t.tHead?.rows[0]; if (!h) return;
+    [...h.cells].forEach((c, i) => {
+      if (!this.label(c) || c.dataset.nosort !== undefined) return;
+      c.style.cursor = 'pointer'; c.setAttribute('aria-sort', st?.col === i ? (st.dir > 0 ? 'ascending' : 'descending') : 'none'); c.title = c.title || 'Click to sort';
+      let ar = c.querySelector('.tsort'); if (!ar) { ar = document.createElement('span'); ar.className = 'tsort'; ar.setAttribute('aria-hidden', 'true'); ar.style.cssText = 'margin-left:4px;font-size:10px;opacity:.55'; c.appendChild(ar); }
+      ar.textContent = st?.col === i ? (st.dir > 0 ? '▲' : '▼') : '↕'; ar.style.opacity = st?.col === i ? '1' : '.4';
+    });
+  },
+  prep(t) {
+    if (t.dataset.sortReady || !t.tHead || t.dataset.nosort !== undefined) return;
+    t.dataset.sortReady = '1'; this.mark(t);
+    const st = this.state.get(this.sig(t)); if (st) this.sortTable(t, st.col, st.dir);
+  },
+  scan() { document.querySelectorAll('table').forEach(t => this.prep(t)); },
+  init() {
+    document.addEventListener('click', e => {
+      const th = e.target.closest('thead th'); if (!th || e.target.closest('button, a, input, select, label')) return;
+      const t = th.closest('table'); if (!t || t.dataset.nosort !== undefined || !this.label(th) || th.dataset.nosort !== undefined) return;
+      const col = [...th.parentElement.cells].indexOf(th), key = this.sig(t), cur = this.state.get(key);
+      const dir = cur?.col === col ? -cur.dir : (this.value(t.tBodies[0]?.rows[0]?.cells[col])?.n !== undefined ? -1 : 1);   // numbers start high→low, text A→Z
+      this.state.set(key, { col, dir }); this.sortTable(t, col, dir);
+      document.querySelectorAll('table').forEach(x => { if (this.sig(x) === key) { if (x !== t) this.sortTable(x, col, dir); this.mark(x); } });
+    });
+    let q = false; new MutationObserver(() => { if (q) return; q = true; requestAnimationFrame(() => { q = false; this.scan(); }); }).observe(document.body, { childList: true, subtree: true });
+    this.scan();
+  }
+};
+
 async function boot() {
   await Shared.load();
   if (!Admin.is) Shared.apply();
   Visit.track('market', S().settings.market === 'ALL' ? 'All' : MARKETS[S().settings.market].name);
   wire();
+  TableSort.init();
   UI.whoLine();
   UI.acctButton();
   if (!RECORDER) { Account.init(); Visit.start(); }

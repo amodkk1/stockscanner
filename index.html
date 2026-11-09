@@ -376,7 +376,7 @@
     StrikeZone ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-08.4 · public</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-09.1 · public</p>
   </div>
 </footer>
 
@@ -1148,6 +1148,7 @@ const StockBT = {
     ma: { name: 'Trend following (20/50-day crossover)', rule: 'Buys the day after the 20-day average crosses above the 50-day average; sells the day after it crosses back below.' },
     sma1030: { name: '10/30-day SMA crossover', rule: 'Buys at the next session’s open after the 10-day simple moving average (SMA) closes above the 30-day SMA; sells at the next session’s open after it closes back below.' },
     sma50200: { name: '50/200-day SMA crossover (golden cross)', rule: 'Buys at the next session’s open after the 50-day simple moving average (SMA) closes above the 200-day SMA (a “golden cross”); sells at the next session’s open after it closes back below (a “death cross”).' },
+    dema51020: { name: '5 × 10 × 20 DEMA crossover (short-term delivery)', rule: 'Short-term delivery trade (held overnight, not intraday). Uses three double-exponential moving averages (DEMA — a faster-reacting EMA): buys at the next session’s open when the 5-day DEMA is above the 10-day and the 10-day is above the 20-day (all three lined up upward) for the first time; sells at the next session’s open after the 5-day DEMA closes back below the 10-day.' },
     emasma: { name: '20-day EMA × 50-day SMA crossover', rule: 'Buys at the next session’s open after the 20-day exponential moving average (EMA) closes above the 50-day simple moving average (SMA); sells at the next session’s open after the 20-day EMA closes back below the 50-day SMA.' },
     washout: { name: 'Washout bottom (oversold sell-off)', rule: 'Buys the day after RSI(14) closes below 30 following an 8%+ drop in 5 sessions with a close below the lower Bollinger Band; sells the day after the first close above the 20-day average, or after 15 sessions; disaster stop 25% under the entry (a tight stop was tested and cut the results in half) — under the signal-day low.' },
     leader: { name: 'Leader pullback (first dip to the 50-day)', rule: 'Buys the day after a stock that ran 40%+ off its 6-month low (RSI above 75 in the last 20 sessions) closes below its 50-day average for the first time; sells at +10%, a −7% stop, or after 20 sessions.' },
@@ -1212,6 +1213,7 @@ const StockBT = {
     const cross = (key, f, sl) => rule(key, i => ok(f[i], sl[i], f[i - 1], sl[i - 1]) && f[i] > sl[i] && f[i - 1] <= sl[i - 1], i => f[i] < sl[i]);
     cross('sma1030', x.sma10, x.sma30);
     cross('sma50200', x.sma50, x.sma200);
+    rule('dema51020', i => Cross.ev(Cross.DEF.dema51020, x, i) === 'up', i => x.dema5[i] < x.dema10[i]);
     rule('emasma', i => ok(x.ema20[i], x.sma50[i], x.ema20[i - 1], x.sma50[i - 1]) && x.ema20[i] > x.sma50[i] && x.ema20[i - 1] <= x.sma50[i - 1], i => x.ema20[i] < x.sma50[i]);
     rule('rsi', i => ok(x.rsi[i], x.atr[i]) && x.rsi[i] < 30, i => x.rsi[i] > 55, 20, i => x.l[i] - 3.5 * x.atr[i]);
     rule('washout', i => i - tk.start > 30 && ok(x.bbw[i], x.rsi[i]) && Rev.isWashout(x, i), i => x.c[i] > x.sma20[i], 15, i => x.o[i + 1] * .75);
@@ -1283,16 +1285,19 @@ const StratBT = {
     const tok = ++this.tok, ds = S().mkts[m]?.ds; if (!ds) throw new Error(`${MARKETS[m].name} data isn’t loaded.`);
     this.busy = true; this.st = { m, key, win, hold, done: 0, total: 0 }; UI.stbResults();
     const idx = ds.tickers.map((_, i) => i).filter(i => !ds.tickers[i].excluded), last = ds.cursor, from = win === 'all' ? 0 : last - win, ix = ds.index?.c;
-    const intra = key.startsWith('pat:') || key === 'scanner', trades = [], per = []; let tested = 0, t0 = performance.now(), rule = '', name = '';
+    const intra = key.startsWith('pat:') || key === 'scanner', trades = [], per = []; let skipped = 0, tested = 0, t0 = performance.now(), rule = '', name = '';
     const bench = t => { if (!ix) return NaN; const a = ix[Math.max(0, t.entry - 1)], e = t.open ? last : Math.max(t.entry, intra || t.how === 'stopped' || t.how === 'target' ? t.exit : t.exit - 1), b = ix[Math.min(last, e)]; return a > 0 && b > 0 ? b / a - 1 : NaN; };
     this.st.total = idx.length;
     for (let k = 0; k < idx.length; k++) {
       if (tok !== this.tok) return;
       const ti = idx[k], res = StockBT.cached(ds, ti, hold), r = res?.rows.find(z => z.key === key);
       if (r) { tested++; rule ||= r.rule; name ||= r.name;
-        const tk = ds.tickers[ti], mine = r.trades.filter(t => t.entry >= from && t.entry <= last).map(t => ({ ...t, ti, sym: tk.sym, name: tk.name, bx: bench(t) }));
-        trades.push(...mine); const cl = mine.filter(t => !t.open);
-        if (mine.length) per.push({ ti, sym: tk.sym, name: tk.name, ...StockBT.stats(mine, 1), ex: cl.length ? cl.reduce((a, t) => a + (t.ret - (Number.isFinite(t.bx) ? t.bx : 0)), 0) / cl.length : NaN }); }
+        const tk = ds.tickers[ti], bad = t => { const c = tk.c, p0 = c[t.entry - 1]; if (!(t.px > 0) || !(p0 > 0) || t.px / p0 > 2 || t.px / p0 < .5) return true;
+            for (let k = t.entry; k <= Math.min(last, t.exit); k++) { const q = c[k] / c[k - 1]; if (!(q < 3 && q > 1 / 3)) return true; } return false; };
+        const all = r.trades.filter(t => t.entry >= from && t.entry <= last), mine = all.filter(t => !bad(t)); skipped += all.length - mine.length;
+        const mine2 = mine.map(t => ({ ...t, ti, sym: tk.sym, name: tk.name, bx: bench(t) }));
+        trades.push(...mine2); const cl = mine2.filter(t => !t.open);
+        if (mine2.length) per.push({ ti, sym: tk.sym, name: tk.name, ...StockBT.stats(mine2, 1), ex: cl.length ? cl.reduce((a, t) => a + (t.ret - (Number.isFinite(t.bx) ? t.bx : 0)), 0) / cl.length : NaN }); }
       if (performance.now() - t0 > 60) { this.st.done = k + 1; App.setProgress((k + 1) / idx.length); UI.stbProgress(); await U.yieldUI(); t0 = performance.now(); }
     }
     App.setProgress(1);
@@ -1301,7 +1306,7 @@ const StratBT = {
     const gain = sum(rets.filter(r => r > 0)), loss = -sum(rets.filter(r => r < 0));
     const byYear = {}; for (const t of closed) { const y = ds.dates[t.entry].slice(0, 4); (byYear[y] ||= []).push(t); }
     const how = {}; for (const t of closed) { const h = t.open ? 'open' : t.how; how[h] = (how[h] || 0) + 1; }
-    this.st = { m, key, win, hold, name: name || Watch.label(key), rule, tested, withTrades: per.length, trades, per, date: ds.dates[last], start: ds.dates[Math.max(0, from)], dsKey: ds.key,
+    this.st = { m, key, win, hold, name: name || Watch.label(key), rule, tested, skipped, withTrades: per.length, trades, per, date: ds.dates[last], start: ds.dates[Math.max(0, from)], dsKey: ds.key,
       nClosed, n: closed.length, wins: rets.filter(r => r > 0).length, avg: rets.length ? sum(rets) / rets.length : NaN, med: rets.length ? rets[Math.floor(rets.length / 2)] : NaN,
       ex: exs.length ? sum(exs) / exs.length : NaN, beat: exs.length ? exs.filter(v => v > 0).length / exs.length : NaN, pf: loss > 0 ? gain / loss : NaN,
       days: closed.length ? sum(closed.map(t => (t.open ? last : t.exit) - t.entry + 1)) / closed.length : NaN, best: rets.length ? rets[rets.length - 1] : NaN, worst: rets.length ? rets[0] : NaN,
@@ -1495,7 +1500,7 @@ const Track = {
           if (ids.has(`${m}|${h.tk.sym}|${ds.dates[i]}`)) continue;
           ids.add(`${m}|${h.tk.sym}|${ds.dates[i]}`);
           log.push({ id: `${m}|${h.tk.sym}|${ds.dates[i]}`, m, s: h.tk.sym, n: h.tk.name, setup: h.t.v, d: ds.dates[i], px: +h.tk.c[i].toFixed(4),
-            why: h.t.short, logged: now, replayed: !(live && i === last), ver: '2026-11-08.4 · public' });
+            why: h.t.short, logged: now, replayed: !(live && i === last), ver: '2026-11-09.1 · public' });
         }
         if ((i - from) % 5 === 4) await U.sleep(0);
       }
@@ -1507,25 +1512,34 @@ const Track = {
       }
       notes.push(`${m}: ${log.filter(z => z.m === m && z.logged === now).length} new signals`);
     }
-    return { v: 1, rv: this.RULES, generated: now, app: '2026-11-08.4 · public', rules: 'Buy at the next open; exit by the setup rule; closed results frozen.', changes, signals: log, notes };
+    return { v: 1, rv: this.RULES, generated: now, app: '2026-11-09.1 · public', rules: 'Buy at the next open; exit by the setup rule; closed results frozen.', changes, signals: log, notes };
   }
 };
 /** For the nightly recorder (headless browser in the data job). */
-window.StrikeZone = { ready: false, version: '2026-11-08.4 · public', track: (prev, opts) => Track.run(prev, opts) };
+window.StrikeZone = { ready: false, version: '2026-11-09.1 · public', track: (prev, opts) => Track.run(prev, opts) };
 
 /** Moving-average crossovers, read the way you would read them on a chart: when did the fast line last cross the slow
  *  line, in which direction, and how clearly (how far apart the lines are now, and whether they keep criss-crossing).
  *  Tested on 3 years of data: crosses that held for 2 closes and opened a 1%+ gap won more often than every raw cross
  *  (USA 37% → 42%, India 35% → 40% of trades won), even though they are entered a little later. */
 const Cross = {
-  DEF: { ma: ['sma20', 'sma50', '20-day SMA', '50-day SMA'], sma1030: ['sma10', 'sma30', '10-day SMA', '30-day SMA'], sma50200: ['sma50', 'sma200', '50-day SMA', '200-day SMA'], emasma: ['ema20', 'sma50', '20-day EMA', '50-day SMA'] },
+  DEF: { ma: ['sma20', 'sma50', '20-day SMA', '50-day SMA'], sma1030: ['sma10', 'sma30', '10-day SMA', '30-day SMA'], sma50200: ['sma50', 'sma200', '50-day SMA', '200-day SMA'], emasma: ['ema20', 'sma50', '20-day EMA', '50-day SMA'], dema51020: ['dema5', 'dema10', '5-day DEMA', '10-day DEMA', 'dema20', '20-day DEMA'] },
+  /** The event on bar k: 'up' / 'down' / null. Two lines: a plain cross. Three lines (fast, mid, slow): 'up' when all three first line up
+   *  fast > mid > slow; 'down' when the fast line crosses back below the mid line. */
+  ev(d, x, k) {
+    const f = x[d[0]], s = x[d[1]], t = d[4] ? x[d[4]] : null, F = Number.isFinite;
+    if (!F(f[k]) || !F(s[k]) || !F(f[k - 1]) || !F(s[k - 1])) return null;
+    if (t) { if (!F(t[k]) || !F(t[k - 1])) return null; const al = j => f[j] > s[j] && s[j] > t[j]; if (al(k) && !al(k - 1)) return 'up'; }
+    else if (f[k] > s[k] && f[k - 1] <= s[k - 1]) return 'up';
+    return f[k] < s[k] && f[k - 1] >= s[k - 1] ? 'down' : null;
+  },
   CLEAR: 0.01, CHOP: 3,
   is(k) { return !!this.DEF[k]; },
   read(x, key, i, start = 0, dates = null) {
     const d = this.DEF[key]; if (!d) return null;
     const [fk, sk, fn, sn] = d, f = x[fk], sl = x[sk], F = Number.isFinite;
     if (!F(f[i]) || !F(sl[i])) return null;
-    const up = k => f[k] > sl[k] && f[k - 1] <= sl[k - 1], dn = k => f[k] < sl[k] && f[k - 1] >= sl[k - 1];
+    const up = k => this.ev(d, x, k) === 'up', dn = k => this.ev(d, x, k) === 'down';
     let j = -1, dir = null, n30 = 0;
     for (let k = i; k > Math.max(start + 1, i - 500); k--) {
       if (!F(f[k - 1]) || !F(sl[k - 1])) break;
@@ -1538,9 +1552,8 @@ const Cross = {
     return { key, fk, sk, fn, sn, j, ago: i - j, dir, gap, n30, clarity, date: dates?.[j] };
   },
   /** Every cross between two bars, for chart markers. */
-  all(x, key, from, to) { const d = this.DEF[key]; if (!d) return []; const f = x[d[0]], sl = x[d[1]], F = Number.isFinite, out = [];
-    for (let k = Math.max(1, from); k <= to; k++) { if (!F(f[k]) || !F(sl[k]) || !F(f[k - 1]) || !F(sl[k - 1])) continue;
-      if (f[k] > sl[k] && f[k - 1] <= sl[k - 1]) out.push([k, 'up']); else if (f[k] < sl[k] && f[k - 1] >= sl[k - 1]) out.push([k, 'down']); }
+  all(x, key, from, to) { const d = this.DEF[key]; if (!d) return []; const out = [];
+    for (let k = Math.max(1, from); k <= to; k++) { const e = this.ev(d, x, k); if (e) out.push([k, e]); }
     return out; },
   agoTxt(n) { return n === 0 ? 'today' : n === 1 ? '1 session ago' : `${n} sessions ago`; },
   clarityTxt(c) {
@@ -2726,6 +2739,8 @@ const Visit = {
 const Ind = {
   nan: n => new Float64Array(n).fill(NaN),
   sma(a, n) { const out = Ind.nan(a.length); let s = 0; for (let i = 0; i < a.length; i++) { s += a[i]; if (i >= n) s -= a[i - n]; if (i >= n - 1) out[i] = s / n; } return out; },
+  /** Double exponential moving average: 2 × EMA − EMA of the EMA (less lag than a plain EMA). */
+  dema(a, n) { const e1 = Ind.emaFrom(a, n, 0), e2 = Ind.emaFrom(e1, n, n - 1), out = Ind.nan(a.length); for (let i = 0; i < a.length; i++) if (Number.isFinite(e1[i]) && Number.isFinite(e2[i])) out[i] = 2 * e1[i] - e2[i]; return out; },
   emaFrom(a, n, start) {
     const out = Ind.nan(a.length), k = 2 / (n + 1);
     if (start + n > a.length) return out;
@@ -2810,7 +2825,7 @@ const Ind = {
     const m = Ind.macd(c), st = Ind.stoch(h, l, c), dm = Ind.adx(h, l, c);
     return {
       M, start: s, o: tk.o, h: tk.h, l: tk.l, c: tk.c, v: tk.v,
-      sma10: E(Ind.sma(c, 10)), sma20: E(Ind.sma(c, 20)), sma30: E(Ind.sma(c, 30)), sma50: E(Ind.sma(c, 50)), ema20: E(Ind.emaFrom(c, 20, 0)), sma200: E(Ind.sma(c, 200)), av50: E(Ind.sma(v, 50)),
+      sma10: E(Ind.sma(c, 10)), sma20: E(Ind.sma(c, 20)), sma30: E(Ind.sma(c, 30)), sma50: E(Ind.sma(c, 50)), ema20: E(Ind.emaFrom(c, 20, 0)), dema5: E(Ind.dema(c, 5)), dema10: E(Ind.dema(c, 10)), dema20: E(Ind.dema(c, 20)), sma200: E(Ind.sma(c, 200)), av50: E(Ind.sma(v, 50)),
       rsi: E(Ind.rsi(c)), macd: E(m.m), sig: E(m.s), bbw: E(Ind.bbw(c)), atr: E(Ind.atr(h, l, c)),
       adx: E(dm.adx), pdi: E(dm.pdi), mdi: E(dm.mdi), obv: E(Ind.obv(c, v)), ll120: Ind.argminTrail(tk.l, 118).map((v, k) => Math.max(v, s)), ll45: Ind.argminTrail(tk.l, 43).map((v, k) => Math.max(v, s)),
       k: E(st.k), d: E(st.d), hh252: E(Ind.maxPrior(h, 252)), hh60: E(Ind.maxPrior(h, 60))
@@ -4013,7 +4028,7 @@ const Charts = {
     line(bu, 'rgba(167,139,250,0.55)', 1, 2); line(bl, 'rgba(167,139,250,0.55)', 1, 2);
     const XD = Cross.DEF[strat];
     if (!XD) { line(x.sma20, '#94a3b8'); line(x.sma50, '#38bdf8', 2); line(x.sma200, '#f59e0b', 2); }
-    else { if (!XD.includes('sma200')) line(x.sma200, 'rgba(245,158,11,0.45)', 1); line(x[XD[1]], '#38bdf8', 2.5); line(x[XD[0]], '#f472b6', 2.5); }
+    else { if (!XD.includes('sma200') && !XD[4]) line(x.sma200, 'rgba(245,158,11,0.45)', 1); if (XD[4]) line(x[XD[4]], '#f59e0b', 2); line(x[XD[1]], '#38bdf8', 2.5); line(x[XD[0]], '#f472b6', 2.5); }
     // markers: tested setups in view + today's scanner trigger
     const marks = [], wide = el.clientWidth > 520;
     if (XD) for (const [k, dir] of Cross.all(x, strat, from, i)) marks.push(dir === 'up' ? { time: ds.dates[k], position: 'belowBar', color: '#34d399', shape: 'arrowUp', text: wide ? 'Cross up' : '' } : { time: ds.dates[k], position: 'aboveBar', color: '#fbbf24', shape: 'arrowDown', text: wide ? 'Cross down' : '' });
@@ -5122,7 +5137,7 @@ const UI = {
     const xBanner = !xc ? '' : (() => { const ct = Cross.clarityTxt(xc), up = xc.dir === 'up', gp = fmt.pct(Math.abs(xc.gap), 2).replace(/^[+−-]/, '');
       return `<div class="mb-2 rounded-lg border ${up ? 'border-emerald-500/40 bg-emerald-500/5' : 'border-amber-500/40 bg-amber-500/5'} px-3 py-2 text-sm">
         <p><b>${U.esc(StockBT.CLASSIC[st.strat].name)}:</b> ${xc.j < 0 ? 'no cross in the data shown.' : `<span class="${up ? 'text-emerald-300' : 'text-amber-300'} font-semibold">${up ? '▲ crossed UP' : '▼ crossed DOWN'}</span> on ${fmt.date(xc.date)} (${Cross.agoTxt(xc.ago)}).`} The ${xc.fn} is now <b class="num">${gp}</b> ${xc.gap >= 0 ? 'above' : 'below'} the ${xc.sn}. <span class="inline-flex h-5 px-1.5 items-center rounded text-[11px] ring-1 ${ct.cls}">${ct.t}</span></p>
-        <p class="text-xs text-slate-400 mt-0.5">${U.esc(ct.tip)} On the chart: <span style="color:#f472b6">━</span> ${xc.fn}, <span style="color:#38bdf8">━</span> ${xc.sn}; <span class="text-emerald-300">▲</span> / <span class="text-amber-300">▼</span> mark every cross.</p></div>`; })();
+        <p class="text-xs text-slate-400 mt-0.5">${U.esc(ct.tip)} On the chart: <span style="color:#f472b6">━</span> ${xc.fn}, <span style="color:#38bdf8">━</span> ${xc.sn}${Cross.DEF[st.strat][5] ? `, <span style="color:#f59e0b">━</span> ${Cross.DEF[st.strat][5]}; <span class="text-emerald-300">▲</span> = all three lined up (buy), <span class="text-amber-300">▼</span> = ${xc.fn} back below the ${xc.sn} (sell).` : `; <span class="text-emerald-300">▲</span> / <span class="text-amber-300">▼</span> mark every cross.`}</p></div>`; })();
     el.innerHTML = `
       <div class="sticky top-0 z-10 bg-panel/95 backdrop-blur border-b border-line px-3 sm:px-4 py-2.5 flex flex-wrap items-center gap-2">
         <div class="min-w-0 mr-auto"><h2 id="chartTitle" class="font-semibold text-lg leading-tight">${U.esc(tk.sym)} <span class="text-sm font-normal text-slate-300 num">${fmt.px(c, M)}</span> <span class="text-sm num ${day >= 0 ? 'text-emerald-300' : 'text-rose-300'}">${fmt.pct(day, 2)}</span></h2>
@@ -5142,7 +5157,7 @@ const UI = {
           ${st.tv ? `<div id="cxTv" class="h-[480px] sm:h-[560px] rounded-lg border border-line bg-ink overflow-hidden"></div>
           <p class="mt-1.5 text-[11px] text-slate-400">TradingView live chart: USA prices are real-time; Canada and India follow each exchange’s rules (some are delayed — TradingView marks it). If it says the symbol is only available on TradingView, use the TradingView ↗ button. The StrikeZone verdict on the right is based on the last official close.</p>` : `<div id="cxMain" class="h-[340px] sm:h-[440px] rounded-lg border border-line bg-ink"></div>
           <div id="cxRsi" class="mt-1 h-[110px] rounded-lg border border-line bg-ink"></div>`}
-          <p class="mt-1.5 text-[11px] text-slate-500 flex flex-wrap gap-x-3 gap-y-1">${xc ? `<span><span style="color:#f472b6">━</span> ${xc.fn}</span><span><span style="color:#38bdf8">━</span> ${xc.sn}</span>${xc.sk !== 'sma200' ? '<span><span style="color:#f59e0b">━</span> 200-day (faint)</span>' : ''}` : '<span><span style="color:#94a3b8">━</span> 20-day</span><span><span style="color:#38bdf8">━</span> 50-day</span><span><span style="color:#f59e0b">━</span> 200-day</span>'}<span><span style="color:#a78bfa">┅</span> Bollinger Bands</span><span><span style="color:#2dd4bf">▲</span> W = washout</span><span><span style="color:#5eead4">▲</span> L = leader pullback</span><span>Lower panel: RSI (70 overbought · 30 oversold)</span></p>
+          <p class="mt-1.5 text-[11px] text-slate-500 flex flex-wrap gap-x-3 gap-y-1">${xc ? `<span><span style="color:#f472b6">━</span> ${xc.fn}</span><span><span style="color:#38bdf8">━</span> ${xc.sn}</span>${Cross.DEF[xc.key][5] ? `<span><span style="color:#f59e0b">━</span> ${Cross.DEF[xc.key][5]}</span>` : xc.sk !== 'sma200' ? '<span><span style="color:#f59e0b">━</span> 200-day (faint)</span>' : ''}` : '<span><span style="color:#94a3b8">━</span> 20-day</span><span><span style="color:#38bdf8">━</span> 50-day</span><span><span style="color:#f59e0b">━</span> 200-day</span>'}<span><span style="color:#a78bfa">┅</span> Bollinger Bands</span><span><span style="color:#2dd4bf">▲</span> W = washout</span><span><span style="color:#5eead4">▲</span> L = leader pullback</span><span>Lower panel: RSI (70 overbought · 30 oversold)</span></p>
           ${setups.length ? `<p class="mt-2 text-xs text-slate-300"><b>Active setups:</b> ${setups.map(U.esc).join(' · ')}</p>` : ''}
         </div>
         <aside class="space-y-3 min-w-0">
@@ -5564,6 +5579,7 @@ const UI = {
           <td class="px-3 py-1.5 num text-right ${col(t.ret)}" data-sort="${t.ret}">${pc(t.ret, 1)}</td><td class="px-3 py-1.5 num text-right text-xs ${col(F(t.bx) ? t.ret - t.bx : NaN)}" data-sort="${F(t.bx) ? t.ret - t.bx : ''}">${F(t.bx) ? pc(t.ret - t.bx, 1) : '—'}</td>
           <td class="px-3 py-1.5 text-xs text-slate-400">${t.open ? 'open' : howTxt[t.how] || t.how}</td></tr>`).join('')}</tbody></table></div>
         ${st.trades.length > recent.length ? `<button type="button" data-action="stbTrMore" class="mt-2 text-xs text-sky-300 underline">Show 50 more trades</button>` : ''}</div>` : ''}
+      ${st.skipped ? `<p class="mt-2 text-[11px] text-amber-300/80">${fmt.num(st.skipped)} trade${st.skipped === 1 ? '' : 's'} left out because of bad price data (a stock split or a wrong price in the feed — a price jumping 3× or more in one day).</p>` : ''}
       <p class="mt-4 text-[11px] text-slate-500">Trades still open are counted at today’s closing price, so long-holding strategies aren’t judged only on the trades that already failed. Each stock trades one position at a time with the strategy’s own entry and exit rules; buys and sells are at the next session’s open unless a stop or target is hit. “Vs market” compares each trade with the ${M.name} index over the same days. No commissions or slippage. Past results don’t guarantee future returns. Not investment advice.</p>
     </div>`;
   },

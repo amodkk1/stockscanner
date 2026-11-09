@@ -234,6 +234,30 @@
     </div>
     <div id="sbResults" class="mt-4" aria-live="polite"></div>
 
+    <div class="mt-8 rounded-xl border border-sky-500/30 bg-panel p-4">
+      <h2 class="text-base font-semibold">Backtest a strategy — how did it do across every stock?</h2>
+      <p class="text-xs text-slate-400 mt-0.5 max-w-3xl">Pick one strategy and a market. The app replays that strategy on every stock in the market over the chosen period and adds up every trade it would have made: how often it won, the average gain per trade, and whether it beat simply holding the market index over the same days.</p>
+      <form id="stbForm" class="mt-4 grid grid-cols-2 md:grid-cols-6 gap-3 items-end" autocomplete="off" onsubmit="return false">
+        <label class="text-xs text-slate-400">Market
+          <select id="stbMarket" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select>
+        </label>
+        <label class="col-span-2 text-xs text-slate-400">Strategy
+          <select id="stbKey" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100"></select>
+        </label>
+        <label class="text-xs text-slate-400">Period
+          <select id="stbWindow" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-2 text-sm text-slate-100">
+            <option value="125">Last 6 months</option><option value="250">Last 1 year</option><option value="500">Last 2 years</option><option value="all" selected>All available history</option>
+          </select>
+        </label>
+        <label class="text-xs text-slate-400">Max days in a trade <span class="text-slate-500">(patterns)</span>
+          <input id="stbHold" type="number" min="3" max="30" step="1" value="10" class="mt-1 w-full h-9 rounded-lg bg-ink border border-line px-3 text-sm text-slate-100 num">
+        </label>
+        <button id="stbRun" type="button" class="h-9 px-4 rounded-lg bg-sky-500 text-ink text-sm font-semibold hover:bg-sky-400 disabled:opacity-50 disabled:cursor-wait">Backtest strategy</button>
+      </form>
+      <p id="stbError" class="mt-2 text-xs text-rose-300 hidden" role="alert"></p>
+    </div>
+    <div id="stbResults" class="mt-4" aria-live="polite"></div>
+
     <div class="mt-8 rounded-xl border border-line bg-panel p-4">
       <h2 class="text-base font-semibold">Backtest the whole scanner (all stocks)</h2>
       <p class="text-xs text-slate-400 mt-0.5 max-w-2xl">Replays the scan on past sessions (every 5 trading days), takes the top picks from each scan, and simulates the trade plan: buy-stop fill at the entry zone, exit at target, stop, or after the holding period. Also shows how well the probability estimates matched what actually happened.</p>
@@ -352,7 +376,7 @@
     StrikeZone ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-08.3 · public</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-08.4 · public</p>
   </div>
 </footer>
 
@@ -1252,6 +1276,42 @@ const StockBT = {
   }
 };
 
+/** Strategy backtest: ONE strategy replayed on every stock in a market; all its trades added up and compared with the market index over the same days. */
+const StratBT = {
+  tok: 0, st: null, busy: false,
+  async run(m, key, win, hold) {
+    const tok = ++this.tok, ds = S().mkts[m]?.ds; if (!ds) throw new Error(`${MARKETS[m].name} data isn’t loaded.`);
+    this.busy = true; this.st = { m, key, win, hold, done: 0, total: 0 }; UI.stbResults();
+    const idx = ds.tickers.map((_, i) => i).filter(i => !ds.tickers[i].excluded), last = ds.cursor, from = win === 'all' ? 0 : last - win, ix = ds.index?.c;
+    const intra = key.startsWith('pat:') || key === 'scanner', trades = [], per = []; let tested = 0, t0 = performance.now(), rule = '', name = '';
+    const bench = t => { if (!ix) return NaN; const a = ix[Math.max(0, t.entry - 1)], e = t.open ? last : Math.max(t.entry, intra || t.how === 'stopped' || t.how === 'target' ? t.exit : t.exit - 1), b = ix[Math.min(last, e)]; return a > 0 && b > 0 ? b / a - 1 : NaN; };
+    this.st.total = idx.length;
+    for (let k = 0; k < idx.length; k++) {
+      if (tok !== this.tok) return;
+      const ti = idx[k], res = StockBT.cached(ds, ti, hold), r = res?.rows.find(z => z.key === key);
+      if (r) { tested++; rule ||= r.rule; name ||= r.name;
+        const tk = ds.tickers[ti], mine = r.trades.filter(t => t.entry >= from && t.entry <= last).map(t => ({ ...t, ti, sym: tk.sym, name: tk.name, bx: bench(t) }));
+        trades.push(...mine); const cl = mine.filter(t => !t.open);
+        if (mine.length) per.push({ ti, sym: tk.sym, name: tk.name, ...StockBT.stats(mine, 1), ex: cl.length ? cl.reduce((a, t) => a + (t.ret - (Number.isFinite(t.bx) ? t.bx : 0)), 0) / cl.length : NaN }); }
+      if (performance.now() - t0 > 60) { this.st.done = k + 1; App.setProgress((k + 1) / idx.length); UI.stbProgress(); await U.yieldUI(); t0 = performance.now(); }
+    }
+    App.setProgress(1);
+    const closed = trades, nClosed = trades.filter(t => !t.open).length, F = Number.isFinite, sum = a => a.reduce((x, y) => x + y, 0);
+    const rets = closed.map(t => t.ret).sort((a, b) => a - b), exs = closed.filter(t => F(t.bx)).map(t => t.ret - t.bx);
+    const gain = sum(rets.filter(r => r > 0)), loss = -sum(rets.filter(r => r < 0));
+    const byYear = {}; for (const t of closed) { const y = ds.dates[t.entry].slice(0, 4); (byYear[y] ||= []).push(t); }
+    const how = {}; for (const t of closed) { const h = t.open ? 'open' : t.how; how[h] = (how[h] || 0) + 1; }
+    this.st = { m, key, win, hold, name: name || Watch.label(key), rule, tested, withTrades: per.length, trades, per, date: ds.dates[last], start: ds.dates[Math.max(0, from)], dsKey: ds.key,
+      nClosed, n: closed.length, wins: rets.filter(r => r > 0).length, avg: rets.length ? sum(rets) / rets.length : NaN, med: rets.length ? rets[Math.floor(rets.length / 2)] : NaN,
+      ex: exs.length ? sum(exs) / exs.length : NaN, beat: exs.length ? exs.filter(v => v > 0).length / exs.length : NaN, pf: loss > 0 ? gain / loss : NaN,
+      days: closed.length ? sum(closed.map(t => (t.open ? last : t.exit) - t.entry + 1)) / closed.length : NaN, best: rets.length ? rets[rets.length - 1] : NaN, worst: rets.length ? rets[0] : NaN,
+      open: trades.filter(t => t.open), how,
+      years: Object.entries(byYear).sort().map(([y, a]) => { const e = a.filter(t => F(t.bx)); return { y, n: a.length, win: a.filter(t => t.ret > 0).length / a.length, avg: sum(a.map(t => t.ret)) / a.length, ex: e.length ? sum(e.map(t => t.ret - t.bx)) / e.length : NaN }; }) };
+    this.busy = false; UI.stbResults();
+  },
+  cancel() { this.tok++; this.busy = false; App.setProgress(1); }
+};
+
 /** Strategy watch: stocks paired with a strategy; alerts when that strategy signals. */
 const Watch = {
   state: {},   // id -> evaluation for display
@@ -1435,7 +1495,7 @@ const Track = {
           if (ids.has(`${m}|${h.tk.sym}|${ds.dates[i]}`)) continue;
           ids.add(`${m}|${h.tk.sym}|${ds.dates[i]}`);
           log.push({ id: `${m}|${h.tk.sym}|${ds.dates[i]}`, m, s: h.tk.sym, n: h.tk.name, setup: h.t.v, d: ds.dates[i], px: +h.tk.c[i].toFixed(4),
-            why: h.t.short, logged: now, replayed: !(live && i === last), ver: '2026-11-08.3 · public' });
+            why: h.t.short, logged: now, replayed: !(live && i === last), ver: '2026-11-08.4 · public' });
         }
         if ((i - from) % 5 === 4) await U.sleep(0);
       }
@@ -1447,11 +1507,11 @@ const Track = {
       }
       notes.push(`${m}: ${log.filter(z => z.m === m && z.logged === now).length} new signals`);
     }
-    return { v: 1, rv: this.RULES, generated: now, app: '2026-11-08.3 · public', rules: 'Buy at the next open; exit by the setup rule; closed results frozen.', changes, signals: log, notes };
+    return { v: 1, rv: this.RULES, generated: now, app: '2026-11-08.4 · public', rules: 'Buy at the next open; exit by the setup rule; closed results frozen.', changes, signals: log, notes };
   }
 };
 /** For the nightly recorder (headless browser in the data job). */
-window.StrikeZone = { ready: false, version: '2026-11-08.3 · public', track: (prev, opts) => Track.run(prev, opts) };
+window.StrikeZone = { ready: false, version: '2026-11-08.4 · public', track: (prev, opts) => Track.run(prev, opts) };
 
 /** Moving-average crossovers, read the way you would read them on a chart: when did the fast line last cross the slow
  *  line, in which direction, and how clearly (how far apart the lines are now, and whether they keep criss-crossing).
@@ -4152,7 +4212,7 @@ const UI = {
     if (t === 'track') UI.track();
     if (t === 'whales') UI.whales();
     if (t === 'pipeline') UI.pipeline();
-    if (t === 'backtest') UI.btForm();
+    if (t === 'backtest') { UI.btForm(); UI.stbForm(); }
   },
 
   /* ---------- Watchlist ---------- */
@@ -5448,6 +5508,65 @@ const UI = {
   },
 
   /* ---------- Backtest one stock ---------- */
+  stbForm() {
+    const sel = $('stbMarket'); if (!sel) return;
+    if (!sel.options.length) { sel.innerHTML = MARKET_CODES.map(c => `<option value="${c}">${MARKETS[c].flag} ${MARKETS[c].name}</option>`).join(''); sel.value = view()[0]; $('stbKey').innerHTML = Watch.optionsHtml(true); $('stbKey').value = 'washout'; }
+    $('stbRun').disabled = StratBT.busy || S().busy; $('stbRun').textContent = StratBT.busy ? 'Testing…' : 'Backtest strategy';
+    UI.stbResults();
+  },
+  stbProgress() { const st = StratBT.st, e = $('stbProg'), t = $('stbProgTxt'); if (!st || !e) return; e.style.width = Math.round(100 * st.done / Math.max(1, st.total)) + '%'; if (t) t.textContent = `${fmt.num(st.done)} of ${fmt.num(st.total)} stocks`; },
+  stbResults() {
+    const el = $('stbResults'), st = StratBT.st; if (!el) return;
+    if ($('stbRun')) { $('stbRun').disabled = StratBT.busy || S().busy; $('stbRun').textContent = StratBT.busy ? 'Testing…' : 'Backtest strategy'; }
+    if (!st) { el.innerHTML = ''; return; }
+    const M = MARKETS[st.m];
+    if (StratBT.busy) { el.innerHTML = `<div class="rounded-xl border border-line bg-panel p-4"><p class="text-sm text-slate-300">Replaying <b>${U.esc(Watch.label(st.key))}</b> on every ${M.name} stock… <span id="stbProgTxt" class="text-slate-400"></span> <button type="button" data-action="stbCancel" class="ml-2 text-xs underline text-slate-400 hover:text-slate-200">Cancel</button></p><p class="text-xs text-slate-500 mt-1">The first run in a market takes a little longer; after that results are cached.</p><div class="mt-3 h-1.5 rounded-full bg-ink overflow-hidden"><div id="stbProg" class="h-full bg-sky-400 transition-all" style="width:2%"></div></div></div>`; UI.stbProgress(); return; }
+    const F = Number.isFinite, pc = (v, d = 1) => F(v) ? fmt.pct(v, d) : '—', col = v => !F(v) ? 'text-slate-300' : v > 0 ? 'text-emerald-300' : v < 0 ? 'text-rose-300' : 'text-slate-300';
+    const tested = Playbook.tested(st.m, st.key), wr = st.n ? st.wins / st.n : NaN;
+    const kpi = (l, v, sub, c = 'text-slate-100') => `<div class="rounded-lg border border-line bg-ink/40 p-3"><p class="text-[11px] uppercase tracking-wide text-slate-500">${l}</p><p class="mt-1 text-xl font-semibold num ${c}">${v}</p>${sub ? `<p class="text-[11px] text-slate-500 mt-0.5">${sub}</p>` : ''}</div>`;
+    const verdict = !st.n ? ['No trades in this period.', 'border-line', 'text-slate-300']
+      : st.n < 20 ? [`Only ${st.n} trades — too few to judge.`, 'border-amber-500/40', 'text-amber-200']
+      : st.ex > 0 && st.avg > 0 ? [`Worked: the average trade made ${pc(st.avg, 2)} and beat the market index over the same days by ${pc(st.ex, 2)}.`, 'border-emerald-500/40', 'text-emerald-200']
+      : st.avg > 0 ? [`Made money (${pc(st.avg, 2)} per trade) but did not beat simply holding the market over the same days (${pc(st.ex, 2)}).`, 'border-amber-500/40', 'text-amber-200']
+      : [`Did not work: the average trade lost ${pc(st.avg, 2)}${F(st.ex) ? ` (${pc(st.ex, 2)} vs the market)` : ''}.`, 'border-rose-500/40', 'text-rose-200'];
+    const howTxt = { open: 'still open', signal: 'exit signal', time: 'time limit', stopped: 'stop-loss', target: 'target hit', stop: 'stop-loss', expired: 'time limit' };
+    const per = st.per.filter(r => r.n >= 1).sort((a, b) => b.total - a.total), show = UI._stbShow || 25;
+    const recent = [...st.trades].sort((a, b) => b.entry - a.entry).slice(0, UI._stbTr || 50), ds = S().mkts[st.m]?.ds, D = i => ds ? ds.dates[Math.min(i, ds.cursor)] : '';
+    el.innerHTML = `<div class="rounded-xl border border-sky-500/30 bg-panel p-4">
+      <div class="flex flex-wrap items-start gap-2"><div class="mr-auto"><h3 class="font-semibold">${U.esc(st.name)} <span class="text-sm font-normal text-slate-400">· ${flagTag(M)} ${M.name} · ${fmt.date(st.start)} – ${fmt.date(st.date)}</span></h3>
+        <p class="text-xs text-slate-400 mt-0.5 max-w-4xl">${U.esc(st.rule || '')}</p></div>
+        <span class="text-[11px] px-2 py-1 rounded-full ring-1 ${tested ? 'ring-emerald-500/40 text-emerald-300' : 'ring-line text-slate-400'}">${tested ? '✓ In the StrikeZone playbook for ' + M.name : 'Information only — not a playbook BUY setup in ' + M.name}</span></div>
+      <p class="mt-3 rounded-lg border ${verdict[1]} px-3 py-2 text-sm ${verdict[2]}">${verdict[0]}</p>
+      <div class="mt-3 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-8 gap-2">
+        ${kpi('Trades', fmt.num(st.n), `${fmt.num(st.n - st.open.length)} closed + ${fmt.num(st.open.length)} still open · ${fmt.num(st.withTrades)} of ${fmt.num(st.tested)} stocks`)}
+        ${kpi('Won', F(wr) ? fmt.prob(wr) : '—', `${fmt.num(st.wins)} of ${fmt.num(st.n)} trades made money`, F(wr) && wr >= .5 ? 'text-emerald-300' : 'text-amber-300')}
+        ${kpi('Average trade', pc(st.avg, 2), `median ${pc(st.med, 2)}`, col(st.avg))}
+        ${kpi('Vs market index', pc(st.ex, 2), F(st.beat) ? `beat the index in ${fmt.prob(st.beat)} of trades` : 'average extra return per trade', col(st.ex))}
+        ${kpi('Profit factor', F(st.pf) ? st.pf.toFixed(2) : '—', 'total gains ÷ total losses (above 1 = profitable)', F(st.pf) && st.pf >= 1 ? 'text-emerald-300' : 'text-rose-300')}
+        ${kpi('Days in a trade', F(st.days) ? st.days.toFixed(1) : '—', 'average sessions held')}
+        ${kpi('Best / worst', `<span class="text-emerald-300">${pc(st.best, 0)}</span> <span class="text-slate-500">/</span> <span class="text-rose-300">${pc(st.worst, 0)}</span>`, 'single trade')}
+        ${kpi('Open now', fmt.num(st.open.length), 'still running — counted at today’s price')}
+      </div>
+      ${Object.keys(st.how).length ? `<p class="mt-2 text-[11px] text-slate-500">How trades ended: ${Object.entries(st.how).map(([k, v]) => `${howTxt[k] || k} ${fmt.num(v)}`).join(' · ')}</p>` : ''}
+      ${st.years.length ? `<div class="mt-4"><p class="text-sm font-semibold mb-1">Year by year <span class="text-xs font-normal text-slate-400">(does it work consistently?)</span></p><div class="overflow-x-auto scroll-thin"><table class="w-full text-sm"><thead><tr class="text-left text-xs text-slate-400 border-b border-line"><th class="px-3 py-2 font-medium">Year</th><th class="px-3 py-2 font-medium text-right">Trades</th><th class="px-3 py-2 font-medium text-right">Won</th><th class="px-3 py-2 font-medium text-right">Average trade</th><th class="px-3 py-2 font-medium text-right">Vs market</th></tr></thead><tbody>
+        ${st.years.map(y => `<tr class="border-b border-line/50"><td class="px-3 py-1.5">${y.y}</td><td class="px-3 py-1.5 num text-right">${fmt.num(y.n)}</td><td class="px-3 py-1.5 num text-right">${fmt.prob(y.win)}</td><td class="px-3 py-1.5 num text-right ${col(y.avg)}">${pc(y.avg, 2)}</td><td class="px-3 py-1.5 num text-right ${col(y.ex)}">${pc(y.ex, 2)}</td></tr>`).join('')}</tbody></table></div></div>` : ''}
+      ${per.length ? `<div class="mt-5"><p class="text-sm font-semibold mb-1">Stocks where it traded <span class="text-xs font-normal text-slate-400">(${fmt.num(per.length)} · best total first · click a header to sort)</span></p><div class="overflow-x-auto scroll-thin"><table class="w-full text-sm"><thead><tr class="text-left text-xs text-slate-400 border-b border-line"><th class="px-3 py-2 font-medium">Stock</th><th class="px-3 py-2 font-medium text-right">Trades</th><th class="px-3 py-2 font-medium text-right">Won</th><th class="px-3 py-2 font-medium text-right">Average trade</th><th class="px-3 py-2 font-medium text-right">Total (compounded)</th><th class="px-3 py-2 font-medium text-right">Vs market / trade</th><th class="px-3 py-2 font-medium">Now</th><th></th></tr></thead><tbody>
+        ${per.slice(0, show).map(r => `<tr class="border-b border-line/50 hover:bg-panel2/40"><td class="px-3 py-1.5"><p>${UI.symLink(st.m, r.sym)} ${Whale.chip(st.m, r.sym)}</p><p class="text-[11px] text-slate-500 truncate max-w-[220px]">${U.esc(r.name)}</p></td>
+          <td class="px-3 py-1.5 num text-right">${fmt.num(r.n)}</td><td class="px-3 py-1.5 num text-right" data-sort="${F(r.winRate) ? r.winRate : ''}">${F(r.winRate) ? fmt.prob(r.winRate) : '—'}</td>
+          <td class="px-3 py-1.5 num text-right ${col(r.avg)}" data-sort="${F(r.avg) ? r.avg : ''}">${pc(r.avg, 1)}</td><td class="px-3 py-1.5 num text-right ${col(r.total)}" data-sort="${F(r.total) ? r.total : ''}">${pc(r.total, 1)}</td>
+          <td class="px-3 py-1.5 num text-right ${col(r.ex)}" data-sort="${F(r.ex) ? r.ex : ''}">${pc(r.ex, 1)}</td>
+          <td class="px-3 py-1.5 text-xs">${r.openTrade ? `<span class="text-sky-300">in a trade ${pc(r.openTrade.ret, 1)}</span>` : '<span class="text-slate-500">—</span>'}</td>
+          <td class="px-3 py-1.5 text-right">${UI.chartBtn(st.m, r.sym, '📈', 'h-7 w-8 inline-flex items-center justify-center rounded-lg border border-sky-500/40 text-sky-300 hover:bg-sky-500/10', Cross.is(st.key) ? st.key : '')}</td></tr>`).join('')}</tbody></table></div>
+        ${per.length > show ? `<button type="button" data-action="stbMore" class="mt-2 text-xs text-sky-300 underline">Show 25 more stocks</button>` : ''}</div>` : ''}
+      ${recent.length ? `<div class="mt-5"><p class="text-sm font-semibold mb-1">Trades <span class="text-xs font-normal text-slate-400">(newest first · ${fmt.num(st.trades.length)} in total incl. open)</span></p><div class="overflow-x-auto scroll-thin"><table class="w-full text-sm"><thead><tr class="text-left text-xs text-slate-400 border-b border-line"><th class="px-3 py-2 font-medium">Bought</th><th class="px-3 py-2 font-medium">Stock</th><th class="px-3 py-2 font-medium text-right">Buy price</th><th class="px-3 py-2 font-medium">Sold</th><th class="px-3 py-2 font-medium text-right">Sell price</th><th class="px-3 py-2 font-medium text-right">Days</th><th class="px-3 py-2 font-medium text-right">Return</th><th class="px-3 py-2 font-medium text-right">Vs market</th><th class="px-3 py-2 font-medium">Exit</th></tr></thead><tbody>
+        ${recent.map(t => `<tr class="border-b border-line/50"><td class="px-3 py-1.5 text-xs" data-sort="${t.entry}">${fmt.date(D(t.entry))}</td><td class="px-3 py-1.5">${UI.symLink(st.m, t.sym)}</td><td class="px-3 py-1.5 num text-right text-xs">${fmt.px(t.px, M)}</td>
+          <td class="px-3 py-1.5 text-xs" data-sort="${t.exit}">${t.open ? '<span class="text-sky-300">still open</span>' : fmt.date(D(t.exit))}</td><td class="px-3 py-1.5 num text-right text-xs">${fmt.px(t.exitPx, M)}</td><td class="px-3 py-1.5 num text-right text-xs">${t.exit - t.entry + 1}</td>
+          <td class="px-3 py-1.5 num text-right ${col(t.ret)}" data-sort="${t.ret}">${pc(t.ret, 1)}</td><td class="px-3 py-1.5 num text-right text-xs ${col(F(t.bx) ? t.ret - t.bx : NaN)}" data-sort="${F(t.bx) ? t.ret - t.bx : ''}">${F(t.bx) ? pc(t.ret - t.bx, 1) : '—'}</td>
+          <td class="px-3 py-1.5 text-xs text-slate-400">${t.open ? 'open' : howTxt[t.how] || t.how}</td></tr>`).join('')}</tbody></table></div>
+        ${st.trades.length > recent.length ? `<button type="button" data-action="stbTrMore" class="mt-2 text-xs text-sky-300 underline">Show 50 more trades</button>` : ''}</div>` : ''}
+      <p class="mt-4 text-[11px] text-slate-500">Trades still open are counted at today’s closing price, so long-holding strategies aren’t judged only on the trades that already failed. Each stock trades one position at a time with the strategy’s own entry and exit rules; buys and sells are at the next session’s open unless a stop or target is hit. “Vs market” compares each trade with the ${M.name} index over the same days. No commissions or slippage. Past results don’t guarantee future returns. Not investment advice.</p>
+    </div>`;
+  },
   sbForm() {
     const sel = $('sbMarket');
     if (!sel.options.length) { sel.innerHTML = MARKET_CODES.map(c => `<option value="${c}">${MARKETS[c].flag} ${MARKETS[c].name}</option>`).join(''); sel.value = view()[0]; }
@@ -6008,6 +6127,9 @@ function wire() {
 
         case 'finderGo': $('finderCard').scrollIntoView({ behavior: 'smooth', block: 'start' }); break;
         case 'finderCancel': Finder.cancel(); break;
+        case 'stbMore': UI._stbShow = (UI._stbShow || 25) + 25; UI.stbResults(); break;
+        case 'stbTrMore': UI._stbTr = (UI._stbTr || 50) + 50; UI.stbResults(); break;
+        case 'stbCancel': StratBT.cancel(); StratBT.st = null; UI.stbResults(); break;
         case 'finderMore': Finder.set({ show: (Finder.st().show || 50) + 50 }); break;
         case 'finderWatch': {
           const f = Finder.st(), sym = act.dataset.sym;
@@ -6225,6 +6347,17 @@ function wire() {
   $('sbMarket').addEventListener('change', () => { $('sbStock').value = ''; UI.sbList(); });
   $('sbResults').addEventListener('click', e => { const tr = e.target.closest('[data-sbsel]'); if (tr) Store.set({ sbt: { ...S().sbt, sel: tr.dataset.sbsel } }); });
   $('sbResults').addEventListener('keydown', e => { const tr = e.target.closest('[data-sbsel]'); if (tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); Store.set({ sbt: { ...S().sbt, sel: tr.dataset.sbsel } }); } });
+  $('stbRun').addEventListener('click', async () => {
+    const m = $('stbMarket').value, key = $('stbKey').value, w = $('stbWindow').value, hold = +$('stbHold').value, err = $('stbError');
+    err.classList.add('hidden');
+    if (!Number.isInteger(hold) || hold < 3 || hold > 30) { err.textContent = 'Max days in a trade must be 3–30.'; err.classList.remove('hidden'); return; }
+    if (StratBT.busy) return;
+    if (!S().mkts[m]?.ds) await App.run({ codes: [m], reason: `Loading ${MARKETS[m].name} for the strategy backtest` });
+    if (!S().mkts[m]?.ds) { err.textContent = `Couldn’t load ${MARKETS[m].name} data.`; err.classList.remove('hidden'); return; }
+    UI._stbShow = 25; UI._stbTr = 50;
+    try { await StratBT.run(m, key, w === 'all' ? 'all' : +w, hold); }
+    catch (ex) { console.error(ex); StratBT.busy = false; err.textContent = ex.message; err.classList.remove('hidden'); App.setProgress(1); UI.stbResults(); }
+  });
   UI.runStockBT = runStock;
 
   $('btRun').addEventListener('click', async () => {

@@ -376,7 +376,7 @@
     StrikeZone ranks the confluence of technical, volume, fundamental, regime and catalyst signals and estimates probabilities from its own past hit rates. It does not predict prices.
     Not investment advice. Past performance ≠ future results. Publishing recommendations to others may require registration — USA: SEC/FINRA · Canada: CIRO/CSA · India: SEBI (Research Analyst). Demo tickers and company names are fictional.
     <p id="whoLine" class="mt-2"></p>
-    <p class="mt-1 text-slate-600">App version 2026-11-09.2 · public</p>
+    <p class="mt-1 text-slate-600">App version 2026-11-09.3 · public</p>
   </div>
 </footer>
 
@@ -1500,7 +1500,7 @@ const Track = {
           if (ids.has(`${m}|${h.tk.sym}|${ds.dates[i]}`)) continue;
           ids.add(`${m}|${h.tk.sym}|${ds.dates[i]}`);
           log.push({ id: `${m}|${h.tk.sym}|${ds.dates[i]}`, m, s: h.tk.sym, n: h.tk.name, setup: h.t.v, d: ds.dates[i], px: +h.tk.c[i].toFixed(4),
-            why: h.t.short, logged: now, replayed: !(live && i === last), ver: '2026-11-09.2 · public' });
+            why: h.t.short, logged: now, replayed: !(live && i === last), ver: '2026-11-09.3 · public' });
         }
         if ((i - from) % 5 === 4) await U.sleep(0);
       }
@@ -1512,11 +1512,11 @@ const Track = {
       }
       notes.push(`${m}: ${log.filter(z => z.m === m && z.logged === now).length} new signals`);
     }
-    return { v: 1, rv: this.RULES, generated: now, app: '2026-11-09.2 · public', rules: 'Buy at the next open; exit by the setup rule; closed results frozen.', changes, signals: log, notes };
+    return { v: 1, rv: this.RULES, generated: now, app: '2026-11-09.3 · public', rules: 'Buy at the next open; exit by the setup rule; closed results frozen.', changes, signals: log, notes };
   }
 };
 /** For the nightly recorder (headless browser in the data job). */
-window.StrikeZone = { ready: false, version: '2026-11-09.2 · public', track: (prev, opts) => Track.run(prev, opts) };
+window.StrikeZone = { ready: false, version: '2026-11-09.3 · public', track: (prev, opts) => Track.run(prev, opts) };
 
 /** Moving-average crossovers, read the way you would read them on a chart: when did the fast line last cross the slow
  *  line, in which direction, and how clearly (how far apart the lines are now, and whether they keep criss-crossing).
@@ -5012,10 +5012,42 @@ const UI = {
     const pill = (txt, lvl, tip) => `<span class="inline-flex items-center gap-1 h-6 px-2 rounded-md ring-1 text-xs num font-semibold ${pillC[lvl]}" title="${U.esc(tip)}">${txt}</span>`;
     // mini gauge: a track with a dot at position p (0..1); optional shaded zone [z0, z1] = where the check passes
     const gauge = (p, lvl, tip, z0, z1, lbl) => `<div class="w-[84px]" title="${U.esc(tip)}"><div class="relative h-1.5 rounded-full bg-line">${F(z0) ? `<div class="absolute inset-y-0 rounded-full bg-white/15" style="left:${z0 * 100}%;width:${(z1 - z0) * 100}%"></div>` : ''}<span class="absolute -top-[3px] w-3 h-3 rounded-full ring-2 ring-ink ${dotC[lvl]}" style="left:calc(${Math.round(Math.max(0, Math.min(1, p)) * 100)}% - 6px)"></span></div>${lbl ? `<p class="mt-1 text-[10.5px] text-slate-500 num leading-none">${lbl}</p>` : ''}</div>`;
+    const prep = (r, k, up) => { const M = MARKETS[r.m], ds = S().mkts[r.m].ds, t = Tech.ofAny(ds, r.ti), rs = GoldenX.rsiStat(r.dir, r.rsi, r.rmax), bs = GoldenX.bbStat(r.dir, r.pb), as = GoldenX.adxStat(r), n = [r.ch.loc, r.ch.rsi, r.ch.bb, r.ch.adx].filter(v => v >= .75).length;
+          const sc = r.score, scC = sc >= 60 ? 'emerald' : sc >= 40 ? 'amber' : 'rose';
+          const pbP = F(r.pb) ? (Math.max(-.2, Math.min(1.2, r.pb)) + .2) / 1.4 : .5;   // map %B −0.2…1.2 onto the gauge (bands at ~14% and ~86%)
+          const zone = up ? [(.3 + .2) / 1.4, (.8 + .2) / 1.4] : [(.8 + .2) / 1.4, 1];
+          const posZone = up ? [0, .25] : [.75, 1];
+          const tipPos = `${GoldenX.posTxt(r.pos52)} — ${Math.round(r.pos52 * 100)}% of the way from the 52-week low to the high. 200-day average ${r.s200dn ? 'falling (downtrend)' : 'rising (uptrend)'}.`;
+          const tipBB = `${bs[0]}${r.bbx > .05 ? ' · bands widening (move picking up)' : r.bbx < -.05 ? ' · bands narrowing' : ''}. Shaded part = where this check passes.`;
+          const tipAdx = `${as[0]}. ADX ${F(r.adx) ? r.adx.toFixed(0) : '—'} (${r.adxUp ? 'rising' : 'falling'}) · +DI ${F(r.pdi) ? r.pdi.toFixed(0) : '—'} / −DI ${F(r.mdi) ? r.mdi.toFixed(0) : '—'}. Under 20 = no real trend, 25+ = strong.`;
+          return { M, t, rs, bs, as, n, sc, scC, pbP, zone, posZone, tipPos, tipBB, tipAdx }; };
+    const card = (r, k, up) => { const { M, t, rs, bs, as, n, sc, scC, pbP, zone, posZone, tipPos, tipBB, tipAdx } = prep(r, k, up);
+      const lab = (l, v, sub) => `<div class="min-w-0"><p class="text-[10.5px] uppercase tracking-wide text-slate-500">${l}</p><div class="mt-1">${v}</div>${sub ? `<p class="mt-1 text-[11px] leading-snug ${sub[1]}">${sub[0]}</p>` : ''}</div>`;
+      const tc = { good: 'text-emerald-300', warn: 'text-amber-300', bad: 'text-rose-300' };
+      return `<div class="rounded-lg border border-line bg-ink/40 p-3">
+        <div class="flex items-start gap-2">
+          <span class="num text-xs text-slate-500 pt-0.5 w-5 shrink-0">${k + 1}</span>
+          <div class="min-w-0 flex-1"><div class="flex flex-wrap items-center gap-1">${UI.symLink(r.m, r.sym)} ${Whale.chip(r.m, r.sym)} ${multi ? `<span class="text-[11px] text-slate-500">${flagTag(M)}</span>` : ''}</div>
+            <p class="text-[11px] text-slate-500 truncate">${U.esc(r.name)}</p>
+            <p class="text-[11px] mt-0.5"><span class="${up ? 'text-emerald-300' : 'text-rose-300'}">${up ? '▲' : '▼'} crossed ${fmt.dateShort(r.date)}</span> <span class="text-slate-500">· ${r.ago === 0 ? 'today' : r.ago + 'd ago'} · 20-day ${fmt.pct(r.r20, 1)}</span></p></div>
+          <div class="text-right shrink-0"><b class="num text-xl text-${scC}-300 leading-none">${sc}</b><p class="text-[10px] text-slate-500">${key === 'rev' ? 'setup' : 'momentum'}</p></div>
+        </div>
+        <div class="mt-3 grid grid-cols-2 gap-x-4 gap-y-3">
+          ${lab('52-week range', gauge(r.pos52, lv(r.ch.loc), tipPos, posZone[0], posZone[1], `${Math.round(r.pos52 * 100)}% · 200d ${r.s200dn ? '↓' : '↑'}`), [GoldenX.posTxt(r.pos52), tc[lv(r.ch.loc)]])}
+          ${lab('RSI', pill(r.rsi.toFixed(0), lv(r.ch.rsi), ''), [rs[0], tc[lv(r.ch.rsi)]])}
+          ${lab('Bollinger', gauge(pbP, lv(r.ch.bb), tipBB, zone[0], zone[1], `%B ${F(r.pb) ? r.pb.toFixed(2) : '—'}${r.bbx > .05 ? ' ⇔' : ''}`), [bs[0], tc[lv(r.ch.bb)]])}
+          ${lab('ADX · DI', `${pill(`${F(r.adx) ? r.adx.toFixed(0) : '—'}${r.adxUp ? '↑' : '↓'}`, lv(r.ch.adx), '')} <span class="text-xs ${r.pdi > r.mdi ? 'text-emerald-300' : 'text-rose-300'}">${r.pdi > r.mdi ? '▲ buyers' : '▼ sellers'}</span>`, [as[0], tc[lv(r.ch.adx)]])}
+        </div>
+        <div class="mt-3 pt-2 border-t border-line/60 flex items-center gap-2">
+          <span class="flex items-center gap-1 text-[11px] text-slate-500">${[r.ch.loc, r.ch.rsi, r.ch.bb, r.ch.adx].map(v => `<span class="w-1.5 h-1.5 rounded-full ${dotC[lv(v)]}"></span>`).join('')} ${n}/4 checks</span>
+          <span class="ml-auto">${t ? UI.techPill(t) : ''}</span>
+          ${UI.chartBtn(r.m, r.sym, '📈', 'h-8 w-9 inline-flex items-center justify-center rounded-lg border border-sky-500/40 text-sky-300 hover:bg-sky-500/10', 'sma50200')}
+        </div></div>`; };
     const table = (rows, up) => `<div class="rounded-xl border ${up ? 'border-emerald-500/30' : 'border-rose-500/30'} bg-panel mb-4">
       <p class="px-3 pt-3 font-semibold ${up ? 'text-emerald-200' : 'text-rose-200'}">${up ? '▲ Golden crosses — buy side' : '▼ Death crosses — sell side'} <span class="text-xs font-normal text-slate-400">(${rows.length} stock${rows.length === 1 ? '' : 's'} · ranked by ${key === 'rev' ? (up ? 'setup: near 52-week low, RSI in buy zone, back above middle band, ADX confirmed' : 'setup: near 52-week high, RSI overbought, at upper band, ADX confirmed') : (up ? 'upward momentum' : 'downward momentum')})</span></p>
       ${up ? '' : '<p class="px-3 text-[11px] text-amber-200/80">Use this list to review holdings — a death cross alone is not a sell signal.</p>'}
-      ${rows.length ? `<table class="w-full text-sm mt-1 table-fixed"><colgroup><col class="w-9"><col><col class="w-[78px]"><col class="w-[112px]"><col class="w-[96px]"><col class="w-[64px]"><col class="w-[96px]"><col class="w-[92px]"><col class="w-[74px] hidden xl:table-column"><col class="w-[118px]"><col class="w-11"></colgroup>
+      ${rows.length ? `<div class="lg:hidden mt-2 px-2 pb-1 space-y-2">${rows.slice(0, 150).map((r, k) => card(r, k, up)).join('')}</div>
+        <table class="hidden lg:table w-full text-sm mt-1 table-fixed"><colgroup><col class="w-9"><col><col class="w-[78px]"><col class="w-[112px]"><col class="w-[96px]"><col class="w-[64px]"><col class="w-[96px]"><col class="w-[92px]"><col class="w-[74px] hidden xl:table-column"><col class="w-[118px]"><col class="w-11"></colgroup>
         <thead><tr class="text-left text-xs text-slate-400 border-b border-line whitespace-nowrap">
           <th class="px-2 py-2 font-medium">#</th><th class="px-2 py-2 font-medium">Stock</th><th class="px-2 py-2 font-medium">Crossed</th>
           <th class="px-2 py-2 font-medium" title="${key === 'rev' ? 'Setup score 0–100 and how many of the 4 checks passed' : 'Momentum score 0–100'}">${key === 'rev' ? 'Setup' : 'Momentum'}</th>
@@ -5024,14 +5056,7 @@ const UI = {
           <th class="px-2 py-2 font-medium" title="Price inside the Bollinger Bands: left = lower band, right = upper band">Bollinger</th>
           <th class="px-2 py-2 font-medium" title="ADX trend strength · ▲ = buyers (+DI) on top, ▼ = sellers (−DI) on top">ADX · DI</th>
           <th class="px-2 py-2 font-medium text-right hidden xl:table-cell">20-day</th><th class="px-2 py-2 font-medium">Verdict</th><th></th></tr></thead><tbody>
-        ${rows.slice(0, 150).map((r, k) => { const M = MARKETS[r.m], ds = S().mkts[r.m].ds, t = Tech.ofAny(ds, r.ti), rs = GoldenX.rsiStat(r.dir, r.rsi, r.rmax), bs = GoldenX.bbStat(r.dir, r.pb), as = GoldenX.adxStat(r), n = [r.ch.loc, r.ch.rsi, r.ch.bb, r.ch.adx].filter(v => v >= .75).length;
-          const sc = r.score, scC = sc >= 60 ? 'emerald' : sc >= 40 ? 'amber' : 'rose';
-          const pbP = F(r.pb) ? (Math.max(-.2, Math.min(1.2, r.pb)) + .2) / 1.4 : .5;   // map %B −0.2…1.2 onto the gauge (bands at ~14% and ~86%)
-          const zone = up ? [(.3 + .2) / 1.4, (.8 + .2) / 1.4] : [(.8 + .2) / 1.4, 1];
-          const posZone = up ? [0, .25] : [.75, 1];
-          const tipPos = `${GoldenX.posTxt(r.pos52)} — ${Math.round(r.pos52 * 100)}% of the way from the 52-week low to the high. 200-day average ${r.s200dn ? 'falling (downtrend)' : 'rising (uptrend)'}.`;
-          const tipBB = `${bs[0]}${r.bbx > .05 ? ' · bands widening (move picking up)' : r.bbx < -.05 ? ' · bands narrowing' : ''}. Shaded part = where this check passes.`;
-          const tipAdx = `${as[0]}. ADX ${F(r.adx) ? r.adx.toFixed(0) : '—'} (${r.adxUp ? 'rising' : 'falling'}) · +DI ${F(r.pdi) ? r.pdi.toFixed(0) : '—'} / −DI ${F(r.mdi) ? r.mdi.toFixed(0) : '—'}. Under 20 = no real trend, 25+ = strong.`;
+        ${rows.slice(0, 150).map((r, k) => { const { M, t, rs, bs, as, n, sc, scC, pbP, zone, posZone, tipPos, tipBB, tipAdx } = prep(r, k, up);
           return `<tr class="border-b border-line/50 hover:bg-panel2/40 align-middle">
             <td class="px-2 py-2 num text-xs text-slate-500">${k + 1}</td>
             <td class="px-2 py-2 min-w-0"><div class="flex items-center gap-1 min-w-0"><span class="shrink-0">${UI.symLink(r.m, r.sym)}</span><span class="shrink-0">${Whale.chip(r.m, r.sym)}</span>${multi ? `<span class="text-[11px] text-slate-500 shrink-0">${flagTag(M)}</span>` : ''}</div><p class="text-[11px] text-slate-500 truncate" title="${U.esc(r.name)}">${U.esc(r.name)}</p></td>
@@ -5045,7 +5070,7 @@ const UI = {
             <td class="px-2 py-2 num text-xs text-right hidden xl:table-cell ${r.r20 >= 0 ? 'text-emerald-300' : 'text-rose-300'}">${fmt.pct(r.r20, 1)}</td>
             <td class="px-2 py-2">${t ? UI.techPill(t) : ''}</td>
             <td class="px-1 py-2 text-right">${UI.chartBtn(r.m, r.sym, '📈', 'h-7 w-8 inline-flex items-center justify-center rounded-lg border border-sky-500/40 text-sky-300 hover:bg-sky-500/10', 'sma50200')}</td></tr>`; }).join('')}</tbody></table>
-        <p class="px-3 py-2 text-[11px] text-slate-500 flex flex-wrap gap-x-4 gap-y-1"><span><span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span> passes the check</span><span><span class="inline-block w-2 h-2 rounded-full bg-amber-400"></span> partly</span><span><span class="inline-block w-2 h-2 rounded-full bg-rose-400"></span> fails</span><span>Gauges: shaded part = the zone that passes</span><span>▲ / ▼ = buyers / sellers in control (DI)</span><span>Hover any value for the detail</span></p>` : '<p class="px-3 pb-3 text-sm text-slate-400">None in this window.</p>'}</div>`;
+        <p class="px-3 py-2 text-[11px] text-slate-500 flex flex-wrap gap-x-4 gap-y-1"><span><span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span> passes the check</span><span><span class="inline-block w-2 h-2 rounded-full bg-amber-400"></span> partly</span><span><span class="inline-block w-2 h-2 rounded-full bg-rose-400"></span> fails</span><span>Gauges: shaded part = the zone that passes</span><span>▲ / ▼ = buyers / sellers in control (DI)</span><span class="hidden lg:inline">Hover any value for the detail</span><span class="lg:hidden">Tap 📈 for the chart · tap the name for the full analysis</span></p>` : '<p class="px-3 pb-3 text-sm text-slate-400">None in this window.</p>'}</div>`;
     el.innerHTML = UI.whaleStrip(codes) + `<div class="rounded-xl border border-amber-400/30 bg-amber-500/[0.04] p-4 mb-3">
         <h3 class="font-semibold">✕ Golden cross &amp; death cross</h3>
         <p class="mt-1 text-sm text-slate-300 max-w-4xl">Stocks whose <b>50-day average crossed the 200-day</b> in the chosen window, each checked for <b>where it sits in its 52-week range</b>, <b>RSI</b>, the <b>Bollinger Bands</b> and <b>trend strength (ADX with +DI / −DI)</b>. Click 📈 to see the 50- and 200-day lines with the cross marked.</p>
@@ -5057,11 +5082,7 @@ const UI = {
             <p class="mt-0.5 text-slate-400">Higher for strong RSI, price in the upper band or above it, widening bands and a rising 50-day (reversed for death crosses).</p>
             <p class="mt-1 text-slate-400"><b class="text-slate-300">3-year test:</b> golden crosses scoring 60+ beat the market over the next 20 sessions in all three markets (USA +0.9%, Canada +1.4%, India +2.0%). Golden crosses near the 52-week high with RSI above 70 did best.</p></div></div>
         <div class="mt-3 flex flex-wrap items-center gap-2 text-xs">
-          <span class="text-slate-400">Rank by</span>${chip('rank', 'rev', '52-week position + RSI + Bollinger')}${chip('rank', 'mom', 'Momentum')}
-          <span class="ml-2 text-slate-400">Crossed</span>${chip('win', 1, 'today')}${chip('win', 3, 'last 3 sessions')}${chip('win', 5, 'last 5')}${chip('win', 10, 'last 10')}
-          <span class="ml-2 text-slate-400">Show</span>${chip('side', 'both', 'Both')}${chip('side', 'up', '▲ Golden (buy side)')}${chip('side', 'down', '▼ Death (sell side)')}
-          <span class="ml-2 text-slate-400">Score</span>${chip('min', 0, 'Any')}${chip('min', 60, '60+ only')}
-          <span class="ml-2 text-slate-400">Trend (ADX)</span>${chip('adx', 0, 'Any')}${chip('adx', 1, '✓ Confirmed only')}
+          <span class="inline-flex flex-wrap items-center gap-1.5 mr-3"><span class="text-slate-400 w-full sm:w-auto">Rank by</span>${chip('rank', 'rev', '52-week position + RSI + Bollinger + ADX')}${chip('rank', 'mom', 'Momentum')}</span><span class="inline-flex flex-wrap items-center gap-1.5 mr-3"><span class="text-slate-400 w-full sm:w-auto">Crossed</span>${chip('win', 1, 'today')}${chip('win', 3, 'last 3 sessions')}${chip('win', 5, 'last 5')}${chip('win', 10, 'last 10')}</span><span class="inline-flex flex-wrap items-center gap-1.5 mr-3"><span class="text-slate-400 w-full sm:w-auto">Show</span>${chip('side', 'both', 'Both')}${chip('side', 'up', '▲ Golden (buy side)')}${chip('side', 'down', '▼ Death (sell side)')}</span><span class="inline-flex flex-wrap items-center gap-1.5 mr-3"><span class="text-slate-400 w-full sm:w-auto">Score</span>${chip('min', 0, 'Any')}${chip('min', 60, '60+ only')}</span><span class="inline-flex flex-wrap items-center gap-1.5 mr-3"><span class="text-slate-400 w-full sm:w-auto">Trend (ADX)</span>${chip('adx', 0, 'Any')}${chip('adx', 1, '✓ Confirmed only')}</span>
         </div>
         <p class="mt-2 text-xs text-slate-400 max-w-5xl"><b class="text-slate-300">Trend strength check (ADX · DI), tested on 3 years of golden crosses:</b> when ADX was 20+ and rising with +DI above −DI (“✓ Confirmed”), the stock beat the market over the next 20 sessions in all three markets — USA +0.6%, Canada +0.9%, India +1.5% on average (it rose in 58%, 68% and 49% of cases) — versus USA +0.1%, Canada −0.5%, India +0.3% when it wasn’t. Of the trend measures we tested (ADX, volume, on-balance volume, MACD, strength vs the index), it was the only one that helped in every market. <b class="text-slate-300">Best entry candidates:</b> a golden cross with ✓ ADX confirmed and a high score.</p></div>
       ${f.side !== 'down' ? table(gold, true) : ''}${f.side !== 'up' ? table(death, false) : ''}
